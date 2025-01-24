@@ -90,6 +90,8 @@ while running:
         if not exit_new_tower:
             exit_new_tower = game_tools.handle_newtower(screen, tower)
 
+        game_tools.send_wave(1)
+
         pygame.display.flip()
         screen.blit(image_map, (0, 0))
         clock.tick(60)  # limits FPS to 60

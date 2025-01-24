@@ -12,6 +12,10 @@ hitbox_position = (0, 0)  # Top-left corner
 
 # Load frames once globally
 frames = [pygame.image.load(f"assets/splash/splash{i}.png").convert_alpha() for i in range(1, 8)]
+house_path = [(237, 502), (221, 447), (186, 417), (136, 408), (113, 385), (113, 352),
+              (137, 335), (297, 329), (322, 306), (339, 257), (297, 228), (460, 164),
+              (680, 174), (687, 294), (703, 340), (884, 344), (897, 476), (826, 515),
+              (727, 504), (580, 524)]
 
 
 def play_splash_animation(scrn: pygame.Surface, pos: tuple[int, int], frame_delay: int = 5):
@@ -293,3 +297,19 @@ class AntEnemy:
                 (0, 255, 0),
                 (*self.rect.topleft, self.size[0] * (self.health / 100), 5)
             )
+
+
+def send_wave(round_number: int) -> bool:
+    enemies = []
+    ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
+    if round_number == 1:
+        enemies = [ant]
+
+    for enemy in enemies[:]:
+        enemy.move()
+
+    if not enemies:     # no enemies left
+        return True
+
+    return False
+
