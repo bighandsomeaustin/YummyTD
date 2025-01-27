@@ -8,6 +8,9 @@ pygame.display.set_mode((1280, 720))
 
 towers = []
 enemies = []
+last_spawn_time = 0
+wave_size = 0
+spawn_interval = 0
 hitbox_position = (0, 0)  # Top-left corner
 
 # Load frames once globally
@@ -131,31 +134,11 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
 
 
 def update_towers(scrn: pygame.surface):
-    """if not hasattr(update_towers, "last_angle"):
-        update_towers.last_angle = 0
-
-    img_base_rat = pygame.image.load("assets/base_rat.png").convert_alpha()
-    image_rect = img_base_rat.get_rect(center=(512, 512))
-    base_rat_radius = 100
-
-    mouse = pygame.mouse.get_pos()
-
-    distance = math.sqrt((mouse[0] - image_rect.centerx) ** 2 + (mouse[1] - image_rect.centery) ** 2)
-
-    dx = mouse[0] - image_rect.centerx
-    dy = mouse[1] - image_rect.centery
-    angle = math.degrees(math.atan2(dy, dx))
-
-    if distance <= base_rat_radius:
-        update_towers.last_angle = angle
-        rotated_image = pygame.transform.rotate(img_base_rat, -angle)
-        rotated_rect = rotated_image.get_rect(center=image_rect.center)
-        scrn.blit(rotated_image, rotated_rect.topleft)
-    else:
-        rotated_image = pygame.transform.rotate(img_base_rat, -update_towers.last_angle)
-        rotated_rect = rotated_image.get_rect(center=image_rect.center)
-        scrn.blit(rotated_image, rotated_rect.topleft)"""
+    global towers
+    global enemies
     for tower in towers:
+        tower.update(enemies)
+        tower.shoot()
         tower.render(scrn)
 
 
@@ -183,7 +166,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
 
     if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower):
         tower_mrcheese = MrCheese((mouse[0], mouse[1]), radius=100, weapon="Cheese", damage=1,
-                                  image_path="assets/base_rat.png")
+                                  image_path="assets/base_rat.png", projectile_image="assets/projectile_cheese.png")
         towers.append(tower_mrcheese)
         tower_click.play()
         play_splash_animation(scrn, (mouse[0], mouse[1]))
@@ -196,7 +179,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
 
 
 class MrCheese:
-    def __init__(self, position, radius, weapon, damage, image_path):
+    def __init__(self, position, radius, weapon, damage, image_path, projectile_image, shoot_interval=1000):
         self.position = position  # (x, y) tuple
         self.radius = radius
         self.weapon = weapon
@@ -206,6 +189,10 @@ class MrCheese:
         self.rect = self.image.get_rect(center=position)
         self.angle = 0  # Default orientation
         self.target = None  # Current target (e.g., enemy)
+        self.projectiles = []  # List to manage active projectiles
+        self.projectile_image = projectile_image  # Path to the projectile image
+        self.shoot_interval = shoot_interval  # Interval in milliseconds
+        self.last_shot_time = 0  # Tracks the last time the tower shot
 
     def update(self, enemies):
         # Find the closest enemy within the radius
@@ -227,16 +214,37 @@ class MrCheese:
             self.image = pygame.transform.rotate(self.original_image, self.angle)
             self.rect = self.image.get_rect(center=self.position)
 
+        # Update all projectiles
+        for projectile in self.projectiles[:]:
+            projectile.move()
+            if projectile.hit:  # Check if the projectile has hit the target
+                if self.target.is_alive:  # Apply damage if the target is still alive
+                    self.target.take_damage(self.damage)
+                self.projectiles.remove(projectile)
+
     def render(self, screen):
         # Draw the tower
         screen.blit(self.image, self.rect.topleft)
         # Optionally draw the radius for debugging
         # pygame.draw.circle(screen, (0, 255, 0), self.position, self.radius, 1)
 
+        # Render all projectiles
+        for projectile in self.projectiles:
+            projectile.render(screen)
+
     def shoot(self):
-        # Define what happens when the tower shoots
-        if self.target:
-            print(f"Tower at {self.position} shooting {self.target} with {self.weapon} causing {self.damage} damage.")
+        # Shoot a projectile if enough time has passed since the last shot
+        current_time = pygame.time.get_ticks()
+        if self.target and current_time - self.last_shot_time >= self.shoot_interval:
+            projectile = Projectile(
+                position=self.position,
+                target=self.target,
+                speed=10,  # Speed of the projectile
+                damage=self.damage,
+                image_path=self.projectile_image
+            )
+            self.projectiles.append(projectile)
+            self.last_shot_time = current_time
 
 
 class AntEnemy:
@@ -245,7 +253,8 @@ class AntEnemy:
         self.health = health
         self.speed = speed
         self.path = path  # List of (x, y) points the enemy follows
-        self.image = pygame.image.load(image_path).convert_alpha()
+        self.original_image = pygame.image.load(image_path).convert_alpha()
+        self.image = self.original_image
         self.rect = self.image.get_rect(center=position)
         self.size = self.rect.size  # Width and height of the enemy
         self.current_target = 0  # Current target index in the path
@@ -273,6 +282,9 @@ class AntEnemy:
             )
             self.rect.center = self.position
 
+            # Rotate the enemy to face the target
+            self.update_orientation(direction_x, direction_y)
+
             # Check if the enemy reached the target
             if distance <= self.speed:
                 self.current_target += 1
@@ -280,6 +292,13 @@ class AntEnemy:
         # If the enemy has reached the end of the path
         if self.current_target >= len(self.path):
             self.is_alive = False  # Mark as no longer active (escaped)
+
+    def update_orientation(self, direction_x, direction_y):
+        """Rotate the image to face the movement direction."""
+        # Calculate angle in radians and convert to degrees
+        angle = math.degrees(math.atan2(-direction_y, direction_x))  # Flip y-axis for Pygame
+        self.image = pygame.transform.rotate(self.original_image, angle - 90)
+        self.rect = self.image.get_rect(center=self.rect.center)
 
     def take_damage(self, damage):
         self.health -= damage
@@ -291,25 +310,95 @@ class AntEnemy:
         if self.is_alive:
             screen.blit(self.image, self.rect.topleft)
             # Optionally, draw the health bar
-            pygame.draw.rect(screen, (255, 0, 0), (*self.rect.topleft, self.size[0], 5))
-            pygame.draw.rect(
-                screen,
-                (0, 255, 0),
-                (*self.rect.topleft, self.size[0] * (self.health / 100), 5)
-            )
+            # pygame.draw.rect(screen, (255, 0, 0), (*self.rect.topleft, self.size[0], 5))
+            # pygame.draw.rect(
+            #     screen,
+            #     (0, 255, 0),
+            #     (*self.rect.topleft, self.size[0] * (self.health / 100), 5)
+            # )
 
 
-def send_wave(round_number: int) -> bool:
-    enemies = []
-    ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
-    if round_number == 1:
-        enemies = [ant]
+class Projectile:
+    def __init__(self, position, target, speed, damage, image_path):
+        self.position = list(position)  # Current position as [x, y]
+        self.target = target  # Target enemy (an instance of AntEnemy)
+        self.speed = speed  # Speed of the projectile
+        self.damage = damage  # Damage caused by the projectile
+        self.image = pygame.image.load(image_path).convert_alpha()
+        self.rect = self.image.get_rect(center=position)
+        self.hit = False  # Whether the projectile has hit the target
 
+    def move(self):
+        # Calculate direction towards the target
+        if not self.target.is_alive:  # If the target is dead, stop moving
+            self.hit = True
+            return
+
+        target_x, target_y = self.target.position
+        dx = target_x - self.position[0]
+        dy = target_y - self.position[1]
+        distance = math.sqrt(dx**2 + dy**2)
+
+        # Move the projectile towards the target
+        if distance > 0:
+            direction_x = dx / distance
+            direction_y = dy / distance
+            self.position[0] += direction_x * self.speed
+            self.position[1] += direction_y * self.speed
+            self.rect.center = self.position
+
+        # Check if the projectile reaches the target
+        if distance <= self.speed:
+            self.hit = True  # Mark as hit
+
+    def render(self, screen):
+        # Draw the projectile
+        screen.blit(self.image, self.rect.topleft)
+
+
+def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
+    global enemies
+    global last_spawn_time
+    global enemies_spawned
+    global wave_size
+    global spawn_interval
+
+    # Initialize wave variables when a new wave starts
+    if round_number == 1 and "enemies_spawned" not in globals():
+        enemies = []
+        spawn_interval = 1000
+        wave_size = 5
+        last_spawn_time = 0  # Track the last spawn time
+        enemies_spawned = 0  # Track how many enemies have been spawned so far
+    if round_number == 2 and "enemies_spawned" not in globals():
+        enemies = []
+        spawn_interval = 750
+        wave_size = 10
+        last_spawn_time = 0  # Track the last spawn time
+        enemies_spawned = 0  # Track how many enemies have been spawned so far
+
+    # Spawn enemies at intervals until the wave size is reached
+    current_time = pygame.time.get_ticks()
+    if enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval:
+        ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
+        enemies.append(ant)
+        last_spawn_time = current_time
+        enemies_spawned += 1
+
+    # Render and update enemies
     for enemy in enemies[:]:
+        enemy.render(scrn)
         enemy.move()
+        if not enemy.is_alive:
+            enemies.remove(enemy)
 
-    if not enemies:     # no enemies left
+    # Check if the wave is complete (all enemies spawned and defeated)
+    if enemies_spawned >= wave_size and not enemies:
+        # Reset `enemies_spawned` for the next wave
+        enemies_spawned = 0
         return True
 
     return False
+
+
 

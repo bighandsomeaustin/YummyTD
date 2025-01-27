@@ -20,6 +20,9 @@ running = True
 state = "Menu"
 resumeFlag = False
 mixer.music.play(loops=-1)
+curr_wave = False
+round_number = 1
+PlayFlag = True
 
 while running:
     # poll for events
@@ -90,7 +93,13 @@ while running:
         if not exit_new_tower:
             exit_new_tower = game_tools.handle_newtower(screen, tower)
 
-        game_tools.send_wave(1)
+        if PlayFlag:
+
+            curr_wave = game_tools.send_wave(screen, round_number)
+
+            if curr_wave:
+                # PlayFlag = False
+                round_number += 1
 
         pygame.display.flip()
         screen.blit(image_map, (0, 0))
