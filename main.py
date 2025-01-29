@@ -21,7 +21,7 @@ state = "Menu"
 resumeFlag = False
 mixer.music.play(loops=-1)
 curr_wave = False
-round_number = 1
+round_number = 7    # change for debugging
 PlayFlag = True
 
 while running:
@@ -76,6 +76,7 @@ while running:
         game_tools.fade_into_image(screen, "assets/house_map_baselayer.png", 500)
         image_map = pygame.image.load(
             "assets/house_map_baselayer.png").convert_alpha()
+        game_tools.start_new_wave(round_number)
 
     while state == "New Game":
 
@@ -101,6 +102,7 @@ while running:
             if curr_wave:
                 game_tools.RoundFlag = False
                 round_number += 1
+                game_tools.start_new_wave(round_number)
 
         pygame.display.flip()
         screen.blit(image_map, (0, 0))

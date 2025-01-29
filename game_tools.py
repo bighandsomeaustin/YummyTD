@@ -8,9 +8,11 @@ pygame.display.set_mode((1280, 720))
 
 towers = []
 enemies = []
-last_spawn_time = 0
+enemies_spawned = 0
 wave_size = 0
 spawn_interval = 0
+last_spawn_time = 0
+current_wave = 1
 hitbox_position = (0, 0)  # Top-left corner
 RoundFlag = False
 money = 250
@@ -254,8 +256,9 @@ class MrCheese:
         for projectile in self.projectiles[:]:
             projectile.move()
             if projectile.hit:  # Check if the projectile has hit the target
-                if self.target.is_alive:  # Apply damage if the target is still alive
-                    self.target.take_damage(self.damage)
+                if self.target is not None:
+                    if self.target.is_alive:  # Apply damage if the target is still alive
+                        self.target.take_damage(self.damage)
                 self.projectiles.remove(projectile)
 
     def render(self, screen):
@@ -360,6 +363,83 @@ class AntEnemy:
             # )
 
 
+class HornetEnemy:
+    global user_health
+
+    def __init__(self, position, health, speed, path, image_path):
+        self.position = position  # (x, y) tuple
+        self.health = health
+        self.speed = speed
+        self.path = path  # List of (x, y) points the enemy follows
+        self.original_image = pygame.image.load(image_path).convert_alpha()
+        self.image = self.original_image
+        self.rect = self.image.get_rect(center=position)
+        self.size = self.rect.size  # Width and height of the enemy
+        self.current_target = 0  # Current target index in the path
+        self.is_alive = True
+
+    def move(self):
+        # Move towards the next point in the path
+        global user_health
+        if self.current_target < len(self.path):
+            target_x, target_y = self.path[self.current_target]
+            dx = target_x - self.position[0]
+            dy = target_y - self.position[1]
+            distance = (dx ** 2 + dy ** 2) ** 0.5
+
+            if distance == 0:  # Avoid division by zero
+                return
+
+            # Calculate normalized direction vector
+            direction_x = dx / distance
+            direction_y = dy / distance
+
+            # Move enemy by speed in the direction of the target
+            self.position = (
+                self.position[0] + direction_x * self.speed,
+                self.position[1] + direction_y * self.speed
+            )
+            self.rect.center = self.position
+
+            # Rotate the enemy to face the target
+            self.update_orientation(direction_x, direction_y)
+
+            # Check if the enemy reached the target
+            if distance <= self.speed:
+                self.current_target += 1
+
+        # If the enemy has reached the end of the path
+        if self.current_target >= len(self.path):
+            self.is_alive = False  # Mark as no longer active (escaped)
+            user_health -= self.health
+
+    def update_orientation(self, direction_x, direction_y):
+        """Rotate the image to face the movement direction."""
+        # Calculate angle in radians and convert to degrees
+        angle = math.degrees(math.atan2(-direction_y, direction_x))  # Flip y-axis for Pygame
+        self.image = pygame.transform.rotate(self.original_image, angle - 90)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def take_damage(self, damage):
+        global money
+        self.health -= damage
+        if self.health <= 0:
+            self.is_alive = False
+            money += 10
+
+    def render(self, screen):
+        # Draw the enemy on the screen
+        if self.is_alive:
+            screen.blit(self.image, self.rect.topleft)
+            # Optionally, draw the health bar
+            # pygame.draw.rect(screen, (255, 0, 0), (*self.rect.topleft, self.size[0], 5))
+            # pygame.draw.rect(
+            #     screen,
+            #     (0, 255, 0),
+            #     (*self.rect.topleft, self.size[0] * (self.health / 100), 5)
+            # )
+
+
 class Projectile:
     def __init__(self, position, target, speed, damage, image_path):
         self.position = list(position)  # Current position as [x, y]
@@ -398,53 +478,129 @@ class Projectile:
         screen.blit(self.image, self.rect.topleft)
 
 
+def start_new_wave(round_number: int):
+    """Initialize wave settings when a new wave starts."""
+    global enemies, enemies_spawned, wave_size, spawn_interval, last_spawn_time
+
+    wave_data = {
+        1: {"spawn_interval": 1000, "wave_size": 5},
+        2: {"spawn_interval": 750, "wave_size": 10},
+        3: {"spawn_interval": 500, "wave_size": 15},
+        4: {"spawn_interval": 1000, "wave_size": 20},
+        5: {"spawn_interval": 750, "wave_size": 20},
+        6: {"spawn_interval": 500, "wave_size": 30},
+        7: {"spawn_interval": 500, "wave_size": 30}
+    }
+
+    if round_number in wave_data:
+        print(f"Starting Wave {round_number}")  # Debugging
+        enemies.clear()
+        enemies_spawned = 0
+        wave_size = wave_data[round_number]["wave_size"]
+        spawn_interval = wave_data[round_number]["spawn_interval"]
+        last_spawn_time = pygame.time.get_ticks()
+
+
 def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
-    global enemies, last_spawn_time, wave_size, spawn_interval, enemies_spawned
+    global enemies, last_spawn_time, enemies_spawned, wave_size, spawn_interval, money
 
-    # Initialize wave variables when a new wave starts
-    if round_number == 1 and "enemies_spawned" not in globals():
-        enemies = []
-        spawn_interval = 1000
-        wave_size = 5
-        last_spawn_time = 0  # Track the last spawn time
-        enemies_spawned = 0  # Track how many enemies have been spawned so far
-    elif round_number == 2 and "enemies_spawned" not in globals():
-        enemies = []
-        spawn_interval = 750
-        wave_size = 10
-        last_spawn_time = 0  # Track the last spawn time
-        enemies_spawned = 0  # Track how many enemies have been spawned so far
-
-    # Spawn enemies at intervals until the wave size is reached
     current_time = pygame.time.get_ticks()
 
-    # add rest of info depending on the round
-    if round_number == 1 and enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval:
+    # Enemy Spawning Logic
+    if enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval and round_number < 4:
+        print(f"Spawning Enemy {enemies_spawned + 1}/{wave_size}")  # Debugging
         ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
         enemies.append(ant)
         last_spawn_time = current_time
         enemies_spawned += 1
 
-    elif round_number == 2 and enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval:
-        ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
-        enemies.append(ant)
-        last_spawn_time = current_time
-        enemies_spawned += 1
+    if round_number == 4:
+        if enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval:
+            ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
+            enemies.append(ant)
+            if enemies_spawned < 10:
+                spawn_interval = 100
+            elif 10 <= enemies_spawned <= 20:
+                spawn_interval = 750
+            last_spawn_time = current_time
+            enemies_spawned += 1
 
-    # Render and update enemies
+    if round_number == 5:
+        if enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval:
+            ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
+            hornet = HornetEnemy((238, 500), 3, 2, house_path, "assets/hornet_base.png")
+            if enemies_spawned <= 4:
+                enemies.append(ant)
+            elif enemies_spawned == 4:
+                enemies.append(ant)
+                spawn_interval = 3000
+            elif 5 < enemies_spawned <= 9:
+                spawn_interval = 750
+                enemies.append(hornet)
+            elif enemies_spawned == 9:
+                enemies.append(hornet)
+                spawn_interval = 6000
+            elif 10 <= enemies_spawned <= 20:
+                enemies.append(ant)
+                spawn_interval = 500
+            last_spawn_time = current_time
+            enemies_spawned += 1
+
+    if round_number == 6:
+        if enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval:
+            ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
+            hornet = HornetEnemy((238, 500), 3, 2, house_path, "assets/hornet_base.png")
+            if enemies_spawned <= 9:
+                spawn_interval = 50
+                enemies.append(ant)
+            elif enemies_spawned == 9:
+                enemies.append(ant)
+                spawn_interval = 5000
+            elif 10 < enemies_spawned <= 19:
+                spawn_interval = 50
+                enemies.append(ant)
+            elif enemies_spawned == 20:
+                enemies.append(ant)
+                spawn_interval = 6000
+            elif 20 <= enemies_spawned <= 30:
+                enemies.append(ant)
+                enemies.append(hornet)
+                spawn_interval = 500
+            last_spawn_time = current_time
+            enemies_spawned += 1
+    if round_number == 7:
+        if enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval:
+            ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
+            hornet = HornetEnemy((238, 500), 3, 2, house_path, "assets/hornet_base.png")
+            if enemies_spawned <= 4:
+                spawn_interval = 50
+                enemies.append(hornet)
+            elif enemies_spawned == 5:
+                enemies.append(hornet)
+                spawn_interval = 5000
+            elif 5 <= enemies_spawned <= 24:
+                spawn_interval = 50
+                enemies.append(ant)
+            elif enemies_spawned == 25:
+                enemies.append(ant)
+                spawn_interval = 6000
+            elif 25 <= enemies_spawned <= 30:
+                enemies.append(hornet)
+                spawn_interval = 50
+            last_spawn_time = current_time
+            enemies_spawned += 1
+
+    # Update and Render Enemies
     for enemy in enemies[:]:
         enemy.render(scrn)
         enemy.move()
         if not enemy.is_alive:
             enemies.remove(enemy)
 
-    # Check if the wave is complete (all enemies spawned and defeated)
+    # Check if the wave is complete (all enemies spawned & defeated)
     if enemies_spawned >= wave_size and not enemies:
-        # Reset `enemies_spawned` for the next wave
-        enemies_spawned = 0
-        return True
+        print(f"Wave {round_number} Complete!")  # Debugging
+        money += round(300 * (math.log(round_number + 1) / math.log(51)))
+        return True  # Signal wave completion
 
     return False
-
-
-
