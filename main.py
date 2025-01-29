@@ -84,6 +84,7 @@ while running:
                 pygame.quit()
 
         game_tools.update_towers(screen)
+        game_tools.update_stats(screen, game_tools.user_health, game_tools.money, round_number)
 
         cursor_select = game_tools.check_game_menu_elements(screen)
         if cursor_select is not "NULL":
@@ -93,12 +94,12 @@ while running:
         if not exit_new_tower:
             exit_new_tower = game_tools.handle_newtower(screen, tower)
 
-        if PlayFlag:
+        if game_tools.RoundFlag:
 
             curr_wave = game_tools.send_wave(screen, round_number)
 
             if curr_wave:
-                # PlayFlag = False
+                game_tools.RoundFlag = False
                 round_number += 1
 
         pygame.display.flip()

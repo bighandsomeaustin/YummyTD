@@ -12,6 +12,9 @@ last_spawn_time = 0
 wave_size = 0
 spawn_interval = 0
 hitbox_position = (0, 0)  # Top-left corner
+RoundFlag = False
+money = 250
+user_health = 100
 
 # Load frames once globally
 frames = [pygame.image.load(f"assets/splash/splash{i}.png").convert_alpha() for i in range(1, 8)]
@@ -117,16 +120,30 @@ def fade_into_image(scrn: pygame.Surface, image_path: str, duration: int = 200):
 
 
 def check_game_menu_elements(scrn: pygame.surface) -> str:
+    global RoundFlag
+    global money
     purchase = pygame.mixer.Sound("assets/purchase_sound.mp3")
     img_tower_select = pygame.image.load("assets/tower_select.png").convert_alpha()
     img_mrcheese_text = pygame.image.load("assets/mrcheese_text.png").convert_alpha()
+    img_playbutton = pygame.image.load("assets/playbutton.png").convert_alpha()
+    img_playbutton_unavail = pygame.image.load("assets/playbutton_unavail.png").convert_alpha()
 
     mouse = pygame.mouse.get_pos()
+
+    if not RoundFlag:
+        scrn.blit(img_playbutton, (1110, 665))
+        if 1110 <= mouse[0] <= (1110 + 81) and 665 <= mouse[1] <= (665 + 50):
+            if detect_single_click():
+                RoundFlag = True
+                return "nextround"
+
+    if RoundFlag:
+        scrn.blit(img_playbutton_unavail, (1110, 665))
 
     if 1115 <= mouse[0] <= (1115 + 73) and 101 <= mouse[1] <= (101 + 88):
         scrn.blit(img_tower_select, (1115, 101))
         scrn.blit(img_mrcheese_text, (1113, 53))
-        if detect_single_click():  # Detect the transition from not pressed to pressed
+        if detect_single_click() and money >= 150:  # Detect the transition from not pressed to pressed
             purchase.play()
             return "mrcheese"
 
@@ -142,7 +159,20 @@ def update_towers(scrn: pygame.surface):
         tower.render(scrn)
 
 
+def update_stats(scrn: pygame.surface, health: int, money: int, round_number: int):
+    health_font = pygame.font.SysFont("arial", 28)
+    money_font = pygame.font.SysFont("arial", 28)
+    round_font = pygame.font.SysFont("arial", 28)
+    text1 = health_font.render(f"{health}", True, (255, 255, 255))
+    text2 = money_font.render(f"{money}", True, (255, 255, 255))
+    text3 = round_font.render(f"Round {round_number}", True, (255, 255, 255))
+    scrn.blit(text1, (55, 15))
+    scrn.blit(text2, (65, 62))
+    scrn.blit(text3, (1150, 10))
+
+
 def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
+    global money
     image_house_hitbox = 'assets/house_illegal_regions.png'
     house_hitbox = pygame.image.load(image_house_hitbox).convert_alpha()
     tower_click = pygame.mixer.Sound("assets/tower_placed.mp3")
@@ -155,6 +185,11 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
         img_base_rat = pygame.image.load("assets/base_rat.png").convert_alpha()
         # Create a surface for the circle
         circle_surface = pygame.Surface((200, 200), pygame.SRCALPHA)  # 200x200 for radius 100
+        # quit selection if escape pressed
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return True
         if check_hitbox(house_hitbox, relative_pos, towers):
             pygame.draw.circle(circle_surface, (0, 0, 0, 128), (100, 100), 100)  # Black with 50% opacity
             scrn.blit(img_base_rat, (mouse[0] - 25, mouse[1] - 25))
@@ -170,6 +205,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
         towers.append(tower_mrcheese)
         tower_click.play()
         play_splash_animation(scrn, (mouse[0], mouse[1]))
+        money -= 150
         return True
 
     if tower == "NULL":
@@ -248,6 +284,8 @@ class MrCheese:
 
 
 class AntEnemy:
+    global user_health
+
     def __init__(self, position, health, speed, path, image_path):
         self.position = position  # (x, y) tuple
         self.health = health
@@ -262,6 +300,7 @@ class AntEnemy:
 
     def move(self):
         # Move towards the next point in the path
+        global user_health
         if self.current_target < len(self.path):
             target_x, target_y = self.path[self.current_target]
             dx = target_x - self.position[0]
@@ -292,6 +331,7 @@ class AntEnemy:
         # If the enemy has reached the end of the path
         if self.current_target >= len(self.path):
             self.is_alive = False  # Mark as no longer active (escaped)
+            user_health -= self.health
 
     def update_orientation(self, direction_x, direction_y):
         """Rotate the image to face the movement direction."""
@@ -301,9 +341,11 @@ class AntEnemy:
         self.rect = self.image.get_rect(center=self.rect.center)
 
     def take_damage(self, damage):
+        global money
         self.health -= damage
         if self.health <= 0:
             self.is_alive = False
+            money += 5
 
     def render(self, screen):
         # Draw the enemy on the screen
@@ -357,11 +399,7 @@ class Projectile:
 
 
 def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
-    global enemies
-    global last_spawn_time
-    global enemies_spawned
-    global wave_size
-    global spawn_interval
+    global enemies, last_spawn_time, wave_size, spawn_interval, enemies_spawned
 
     # Initialize wave variables when a new wave starts
     if round_number == 1 and "enemies_spawned" not in globals():
@@ -370,7 +408,7 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
         wave_size = 5
         last_spawn_time = 0  # Track the last spawn time
         enemies_spawned = 0  # Track how many enemies have been spawned so far
-    if round_number == 2 and "enemies_spawned" not in globals():
+    elif round_number == 2 and "enemies_spawned" not in globals():
         enemies = []
         spawn_interval = 750
         wave_size = 10
@@ -379,7 +417,15 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
 
     # Spawn enemies at intervals until the wave size is reached
     current_time = pygame.time.get_ticks()
-    if enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval:
+
+    # add rest of info depending on the round
+    if round_number == 1 and enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval:
+        ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
+        enemies.append(ant)
+        last_spawn_time = current_time
+        enemies_spawned += 1
+
+    elif round_number == 2 and enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval:
         ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
         enemies.append(ant)
         last_spawn_time = current_time
