@@ -170,6 +170,8 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
 def handle_upgrade(scrn, tower):
     global UpgradeFlag
     mouse = pygame.mouse.get_pos()
+
+    # check if user quits upgrade handler
     if not ((tower.position[0] - 25) <= mouse[0] <= (tower.position[0] + 25) and (tower.position[1] - 25) <= mouse[1]
             <= (tower.position[1] + 25)):
         if detect_single_click():
@@ -180,6 +182,14 @@ def handle_upgrade(scrn, tower):
             if event.key == pygame.K_ESCAPE:
                 UpgradeFlag = False
                 return
+
+    # scrn.blit upgrade screen
+    # check bounds of upgrade, return 1 or 2 for top or bottom choice
+
+    for tower in towers:
+            # add upgrades and whatnot in the tower class
+            # if top of bottom upgrade is clicked, track what upgrades so far too
+        UpgradeFlag = True
 
     circle_surface = pygame.Surface((2 * tower.radius, 2 * tower.radius), pygame.SRCALPHA)
     pygame.draw.circle(circle_surface, (0, 0, 0, 128), (100, 100), tower.radius)  # Black with 50% opacity
@@ -217,7 +227,10 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
     # Convert mouse position to the hitbox's local coordinates
     relative_pos = (mouse[0] - hitbox_position[0], mouse[1] - hitbox_position[1])
 
-    if tower == "mrcheese":
+    if tower == "NULL":
+        return True
+
+    elif tower == "mrcheese":
         img_base_rat = pygame.image.load("assets/base_rat.png").convert_alpha()
         # Create a surface for the circle
         circle_surface = pygame.Surface((200, 200), pygame.SRCALPHA)  # 200x200 for radius 100
@@ -235,7 +248,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             scrn.blit(img_base_rat, (mouse[0] - 25, mouse[1] - 25))
             scrn.blit(circle_surface, (mouse[0] - 100, mouse[1] - 100))
 
-    if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower):
+    if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower) and tower == "mrcheese":
         tower_mrcheese = MrCheese((mouse[0], mouse[1]), radius=100, weapon="Cheese", damage=1,
                                   image_path="assets/base_rat.png", projectile_image="assets/projectile_cheese.png")
         towers.append(tower_mrcheese)
@@ -243,9 +256,6 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
         play_splash_animation(scrn, (mouse[0], mouse[1]))
         money -= 150
         return True
-
-    if tower == "NULL":
-        return False
 
     return False
 

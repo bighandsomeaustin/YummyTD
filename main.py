@@ -88,7 +88,7 @@ while running:
         game_tools.update_stats(screen, game_tools.user_health, game_tools.money, round_number)
 
         cursor_select = game_tools.check_game_menu_elements(screen)
-        if cursor_select is not "NULL":
+        if cursor_select is not ("NULL" or "nextround"):
             tower = cursor_select
             exit_new_tower = False
 
@@ -103,6 +103,7 @@ while running:
                 game_tools.RoundFlag = False
                 round_number += 1
                 game_tools.start_new_wave(round_number)
+                cursor_select = "NULL"
 
         pygame.display.flip()
         screen.blit(image_map, (0, 0))
