@@ -15,7 +15,9 @@ last_spawn_time = 0
 current_wave = 1
 hitbox_position = (0, 0)  # Top-left corner
 RoundFlag = False
-money = 250
+UpgradeFlag = False
+curr_upgrade_tower = None
+money = 200       # change for debugging
 user_health = 100
 
 # Load frames once globally
@@ -124,6 +126,8 @@ def fade_into_image(scrn: pygame.Surface, image_path: str, duration: int = 200):
 def check_game_menu_elements(scrn: pygame.surface) -> str:
     global RoundFlag
     global money
+    global UpgradeFlag
+    global curr_upgrade_tower
     purchase = pygame.mixer.Sound("assets/purchase_sound.mp3")
     img_tower_select = pygame.image.load("assets/tower_select.png").convert_alpha()
     img_mrcheese_text = pygame.image.load("assets/mrcheese_text.png").convert_alpha()
@@ -149,7 +153,37 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
             purchase.play()
             return "mrcheese"
 
+    # check if any tower is clicked after placement
+    for tower in towers:
+        if (tower.position[0] - 25) <= mouse[0] <= (tower.position[0] + 25) and (tower.position[1] - 25) <= mouse[1] \
+                <= (tower.position[1] + 25):
+            if detect_single_click():
+                UpgradeFlag = True
+                curr_upgrade_tower = tower
+
+    if UpgradeFlag:
+        handle_upgrade(scrn, curr_upgrade_tower)
+
     return "NULL"
+
+
+def handle_upgrade(scrn, tower):
+    global UpgradeFlag
+    mouse = pygame.mouse.get_pos()
+    if not ((tower.position[0] - 25) <= mouse[0] <= (tower.position[0] + 25) and (tower.position[1] - 25) <= mouse[1]
+            <= (tower.position[1] + 25)):
+        if detect_single_click():
+            UpgradeFlag = False
+            return
+    for event in pygame.event.get():
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                UpgradeFlag = False
+                return
+
+    circle_surface = pygame.Surface((2 * tower.radius, 2 * tower.radius), pygame.SRCALPHA)
+    pygame.draw.circle(circle_surface, (0, 0, 0, 128), (100, 100), tower.radius)  # Black with 50% opacity
+    scrn.blit(circle_surface, (tower.position[0] - 100, tower.position[1] - 100))
 
 
 def update_towers(scrn: pygame.surface):
@@ -459,7 +493,7 @@ class Projectile:
         target_x, target_y = self.target.position
         dx = target_x - self.position[0]
         dy = target_y - self.position[1]
-        distance = math.sqrt(dx**2 + dy**2)
+        distance = math.sqrt(dx ** 2 + dy ** 2)
 
         # Move the projectile towards the target
         if distance > 0:
@@ -489,7 +523,8 @@ def start_new_wave(round_number: int):
         4: {"spawn_interval": 1000, "wave_size": 20},
         5: {"spawn_interval": 750, "wave_size": 20},
         6: {"spawn_interval": 500, "wave_size": 30},
-        7: {"spawn_interval": 500, "wave_size": 30}
+        7: {"spawn_interval": 500, "wave_size": 30},
+        8: {"spawn_interval": 500, "wave_size": 45}
     }
 
     if round_number in wave_data:
@@ -586,6 +621,40 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
                 spawn_interval = 6000
             elif 25 <= enemies_spawned <= 30:
                 enemies.append(hornet)
+                spawn_interval = 50
+            last_spawn_time = current_time
+            enemies_spawned += 1
+
+    if round_number == 8:
+        if enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval:
+            ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
+            hornet = HornetEnemy((238, 500), 3, 2, house_path, "assets/hornet_base.png")
+            if enemies_spawned <= 9:
+                spawn_interval = 50
+                enemies.append(ant)
+            elif enemies_spawned == 9:
+                enemies.append(ant)
+                spawn_interval = 5000
+            elif 10 < enemies_spawned <= 14:
+                spawn_interval = 200
+                enemies.append(hornet)
+            elif enemies_spawned == 20:
+                enemies.append(hornet)
+                spawn_interval = 5000
+            elif 20 <= enemies_spawned <= 29:
+                enemies.append(ant)
+                spawn_interval = 50
+            elif enemies_spawned == 29:
+                enemies.append(ant)
+                spawn_interval = 5000
+            elif 30 <= enemies_spawned <= 34:
+                enemies.append(hornet)
+                spawn_interval = 200
+            elif enemies_spawned == 34:
+                enemies.append(hornet)
+                spawn_interval = 5000
+            elif 35 <= enemies_spawned <= 45:
+                enemies.append(ant)
                 spawn_interval = 50
             last_spawn_time = current_time
             enemies_spawned += 1
