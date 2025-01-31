@@ -1,0 +1,32 @@
+- add more towers
+  - rat training facility
+    - spawns rats that go against the path and kills enemies it runs into
+    - little baby dudes
+    - maybe upgrade that gives the rats the plague to spread
+  - rat bank
+    - add money into bank, stores it, collects interest, can withdraw
+    - upgrades maybe can include better interest rates?? loans??? could be fun to code
+  - rat soldier
+    - rat with a fucking gun
+  - rat king (duh)
+    - high tier tower with high damage, maybe can summon rats
+- add more enemies
+  - like a spider would be cool???
+  - some enemies with special traits only certain towers can hit
+  - termites??? with their own path??? that like goes through walls??
+- add sound volume slider
+- add save feature
+  - saves tower positions, money, health, and current round
+- would like to make better cleaner functions. hard coding so much stuff rn
+  - new wave spawn mechanic, where you can just give a list with enemies and intervals
+  - maybe function for calling animations
+  - maybe function for clicking elements instead of the hard-coded bounds
+- add tips/dialog box after each round (like in bloonsTD)
+- add some cute little rat noises for the towers
+- add death animation for bugs
+- add settings tab
+- also was thinking some upscaling tech might be cool??? base is locked at 1280x720p, all elements are tied to that res, so maybe 
+  an upscaler in fullscreen mode would be nice
+  - might fuck up bounds though??? not sure how tracking the cursor might be different with an upscaler
+- queue for projectiles (currently towers can target and shoot an enemy at the same time, kinda a waste, but makes for interesting strategies
+- add upgrades (currently working on)
