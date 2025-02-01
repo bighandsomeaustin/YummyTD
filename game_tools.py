@@ -17,7 +17,7 @@ hitbox_position = (0, 0)  # Top-left corner
 RoundFlag = False
 UpgradeFlag = False
 curr_upgrade_tower = None
-money = 200       # change for debugging
+money = 500  # change for debugging
 user_health = 100
 
 # Load frames once globally
@@ -26,6 +26,10 @@ house_path = [(237, 502), (221, 447), (186, 417), (136, 408), (113, 385), (113, 
               (137, 335), (297, 329), (322, 306), (339, 257), (297, 228), (460, 164),
               (680, 174), (687, 294), (703, 340), (884, 344), (897, 476), (826, 515),
               (727, 504), (580, 524)]
+recruit_path = [(580, 524), (727, 504), (826, 515), (897, 476), (884, 344), (703, 340),
+                (687, 294), (680, 174), (460, 164), (297, 228), (339, 257), (322, 306),
+                (297, 329), (137, 335), (113, 352), (113, 385), (136, 408), (186, 417),
+                (221, 447), (237, 502)]
 
 
 def play_splash_animation(scrn: pygame.Surface, pos: tuple[int, int], frame_delay: int = 5):
@@ -146,12 +150,21 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     if RoundFlag:
         scrn.blit(img_playbutton_unavail, (1110, 665))
 
+    # MRCHEESE
     if 1115 <= mouse[0] <= (1115 + 73) and 101 <= mouse[1] <= (101 + 88):
         scrn.blit(img_tower_select, (1115, 101))
         scrn.blit(img_mrcheese_text, (1113, 53))
         if detect_single_click() and money >= 150:  # Detect the transition from not pressed to pressed
             purchase.play()
             return "mrcheese"
+
+    # RAT CAMP
+    elif 1195 <= mouse[0] <= (1195 + 73) and 288 <= mouse[1] <= (288 + 88):
+        scrn.blit(img_tower_select, (1192, 288))
+        # add camp tower text
+        if detect_single_click() and money >= 500:  # Detect the transition from not pressed to pressed
+            purchase.play()
+            return "rattent"
 
     # check if any tower is clicked after placement
     for tower in towers:
@@ -186,14 +199,15 @@ def handle_upgrade(scrn, tower):
     # scrn.blit upgrade screen
     # check bounds of upgrade, return 1 or 2 for top or bottom choice
 
-    for tower in towers:
-            # add upgrades and whatnot in the tower class
-            # if top of bottom upgrade is clicked, track what upgrades so far too
-        UpgradeFlag = True
+    # add upgrades and whatnot in the tower class
+    # if top of bottom upgrade is clicked, track what upgrades so far too
+    tower.shoot_interval = 100
+    tower.radius = 1000  # right now just upgrades radius with single click, need to add upgrade screen
+    UpgradeFlag = True
 
     circle_surface = pygame.Surface((2 * tower.radius, 2 * tower.radius), pygame.SRCALPHA)
-    pygame.draw.circle(circle_surface, (0, 0, 0, 128), (100, 100), tower.radius)  # Black with 50% opacity
-    scrn.blit(circle_surface, (tower.position[0] - 100, tower.position[1] - 100))
+    pygame.draw.circle(circle_surface, (0, 0, 0, 128), (tower.radius, tower.radius), tower.radius)
+    scrn.blit(circle_surface, (tower.position[0] - tower.radius, tower.position[1] - tower.radius))
 
 
 def update_towers(scrn: pygame.surface):
@@ -201,8 +215,8 @@ def update_towers(scrn: pygame.surface):
     global enemies
     for tower in towers:
         tower.update(enemies)
-        tower.shoot()
         tower.render(scrn)
+        tower.shoot()
 
 
 def update_stats(scrn: pygame.surface, health: int, money: int, round_number: int):
@@ -212,6 +226,15 @@ def update_stats(scrn: pygame.surface, health: int, money: int, round_number: in
     text1 = health_font.render(f"{health}", True, (255, 255, 255))
     text2 = money_font.render(f"{money}", True, (255, 255, 255))
     text3 = round_font.render(f"Round {round_number}", True, (255, 255, 255))
+    # DEBUGGING CURSOR POS
+    mouse = pygame.mouse.get_pos()
+    x_font = pygame.font.SysFont("arial", 12)
+    y_font = pygame.font.SysFont("arial", 12)
+    text_x = x_font.render(f"x-axis: {mouse[0]}", True, (0, 255, 0))
+    text_y = y_font.render(f"y-axis: {mouse[1]}", True, (0, 255, 0))
+    scrn.blit(text_x, (1000, 670))
+    scrn.blit(text_y, (1000, 690))
+    # BACK TO REGULAR STUFF
     scrn.blit(text1, (55, 15))
     scrn.blit(text2, (65, 62))
     scrn.blit(text3, (1150, 10))
@@ -248,6 +271,33 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             scrn.blit(img_base_rat, (mouse[0] - 25, mouse[1] - 25))
             scrn.blit(circle_surface, (mouse[0] - 100, mouse[1] - 100))
 
+    elif tower == "rattent":
+        img_base_tent = pygame.image.load("assets/base_camp.png").convert_alpha()
+        # Create a surface for the circle
+        circle_surface = pygame.Surface((100, 100), pygame.SRCALPHA)
+        # quit selection if escape pressed
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return True
+        if check_hitbox(house_hitbox, relative_pos, towers):
+            pygame.draw.circle(circle_surface, (0, 0, 0, 128), (50, 50), 50)  # Black with 50% opacity
+            scrn.blit(img_base_tent, (mouse[0] - 25, mouse[1] - 25))
+            scrn.blit(circle_surface, (mouse[0] - 50, mouse[1] - 50))
+        elif not check_hitbox(house_hitbox, relative_pos, towers):
+            pygame.draw.circle(circle_surface, (255, 0, 0, 128), (50, 50), 50)  # Red with 50% opacity
+            scrn.blit(img_base_tent, (mouse[0] - 25, mouse[1] - 25))
+            scrn.blit(circle_surface, (mouse[0] - 50, mouse[1] - 50))
+
+        if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower):
+            tower_rattent = RatTent((mouse[0], mouse[1]), radius=50, weapon="Cheese", damage=1,
+                                    image_path="assets/base_camp.png", projectile_image="assets/rat_recruit.png")
+            towers.append(tower_rattent)
+            tower_click.play()
+            play_splash_animation(scrn, (mouse[0], mouse[1]))
+            money -= 500
+            return True
+
     if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower) and tower == "mrcheese":
         tower_mrcheese = MrCheese((mouse[0], mouse[1]), radius=100, weapon="Cheese", damage=1,
                                   image_path="assets/base_rat.png", projectile_image="assets/projectile_cheese.png")
@@ -277,16 +327,29 @@ class MrCheese:
         self.last_shot_time = 0  # Tracks the last time the tower shot
 
     def update(self, enemies):
-        # Find the closest enemy within the radius
         self.target = None
         closest_distance = self.radius
+        potential_targets = []
 
+        # Gather all enemies within range
         for enemy in enemies:
             distance = math.sqrt((enemy.position[0] - self.position[0]) ** 2 +
                                  (enemy.position[1] - self.position[1]) ** 2)
-            if distance <= closest_distance:
-                closest_distance = distance
+            if distance <= self.radius:
+                potential_targets.append((distance, enemy))
+
+        # Sort enemies by distance
+        potential_targets.sort(key=lambda x: x[0])
+
+        # Assign an enemy that is not already targeted by another tower
+        for _, enemy in potential_targets:
+            if not any(tower.target == enemy for tower in towers if tower != self):
                 self.target = enemy
+                break  # Stop once a unique target is found
+
+        # If all enemies are already targeted, pick the closest one
+        if self.target is None and potential_targets:
+            self.target = potential_targets[0][1]
 
         # Rotate towards the target if one is found
         if self.target:
@@ -300,9 +363,82 @@ class MrCheese:
         for projectile in self.projectiles[:]:
             projectile.move()
             if projectile.hit:  # Check if the projectile has hit the target
-                if self.target is not None:
-                    if self.target.is_alive:  # Apply damage if the target is still alive
-                        self.target.take_damage(self.damage)
+                if self.target is not None and self.target.is_alive:  # Apply damage if the target is still alive
+                    self.target.take_damage(self.damage)
+                self.projectiles.remove(projectile)
+
+    def render(self, screen):
+        # Draw the tower
+        screen.blit(self.image, self.rect.topleft)
+        # Optionally draw the radius for debugging
+        # pygame.draw.circle(screen, (0, 255, 0), self.position, self.radius, 1)
+
+        # Render all projectiles
+        for projectile in self.projectiles:
+            projectile.render(screen)
+
+    def shoot(self):
+        # Shoot a projectile if enough time has passed since the last shot
+        current_time = pygame.time.get_ticks()
+        if self.target and current_time - self.last_shot_time >= self.shoot_interval:
+            projectile = Projectile(
+                position=self.position,
+                target=self.target,
+                speed=10,  # Speed of the projectile
+                damage=self.damage,
+                image_path=self.projectile_image
+            )
+            self.projectiles.append(projectile)
+            self.last_shot_time = current_time
+
+
+class RatTent:
+    def __init__(self, position, radius, weapon, damage, image_path, projectile_image, shoot_interval=1000):
+        self.position = position  # (x, y) tuple
+        self.radius = radius
+        self.weapon = weapon
+        self.damage = damage
+        self.image = pygame.image.load(image_path).convert_alpha()
+        self.original_image = self.image
+        self.rect = self.image.get_rect(center=position)
+        self.angle = 0  # Default orientation
+        self.target = None  # Current target (e.g., enemy)
+        self.projectiles = []  # List to manage active projectiles
+        self.projectile_image = projectile_image  # Path to the projectile image
+        self.shoot_interval = shoot_interval  # Interval in milliseconds
+        self.last_shot_time = 0  # Tracks the last time the tower shot
+
+    def update(self, enemies):
+        self.target = None
+        closest_distance = self.radius
+        potential_targets = []
+
+        # Gather all enemies within range
+        for enemy in enemies:
+            distance = math.sqrt((enemy.position[0] - self.position[0]) ** 2 +
+                                 (enemy.position[1] - self.position[1]) ** 2)
+            if distance <= self.radius:
+                potential_targets.append((distance, enemy))
+
+        # Sort enemies by distance
+        potential_targets.sort(key=lambda x: x[0])
+
+        # Assign an enemy that is not already targeted by another tower
+        for _, enemy in potential_targets:
+            if not any(tower.target == enemy for tower in towers if tower != self):
+                self.target = enemy
+                break  # Stop once a unique target is found
+
+        # If all enemies are already targeted, pick the closest one
+        if self.target is None and potential_targets:
+            self.target = potential_targets[0][1]
+
+        # Update all projectiles
+        for projectile in self.projectiles[:]:
+            projectile.move()
+            if projectile.hit:  # Check if the projectile has hit the target
+                if self.target is not None and self.target.is_alive:  # Apply damage if the target is still alive
+                    self.target.take_damage(self.damage)
                 self.projectiles.remove(projectile)
 
     def render(self, screen):
@@ -520,6 +656,83 @@ class Projectile:
     def render(self, screen):
         # Draw the projectile
         screen.blit(self.image, self.rect.topleft)
+
+
+class RatRecruit:
+    global user_health
+
+    def __init__(self, position, health, speed, path, image_path):
+        self.position = position  # (x, y) tuple
+        self.health = health
+        self.speed = speed
+        self.path = path  # List of (x, y) points the enemy follows
+        self.original_image = pygame.image.load(image_path).convert_alpha()
+        self.image = self.original_image
+        self.rect = self.image.get_rect(center=position)
+        self.size = self.rect.size  # Width and height of the enemy
+        self.current_target = 0  # Current target index in the path
+        self.is_alive = True
+
+    def move(self):
+        # Move towards the next point in the path
+        global user_health
+        if self.current_target < len(self.path):
+            target_x, target_y = self.path[self.current_target]
+            dx = target_x - self.position[0]
+            dy = target_y - self.position[1]
+            distance = (dx ** 2 + dy ** 2) ** 0.5
+
+            if distance == 0:  # Avoid division by zero
+                return
+
+            # Calculate normalized direction vector
+            direction_x = dx / distance
+            direction_y = dy / distance
+
+            # Move enemy by speed in the direction of the target
+            self.position = (
+                self.position[0] + direction_x * self.speed,
+                self.position[1] + direction_y * self.speed
+            )
+            self.rect.center = self.position
+
+            # Rotate the enemy to face the target
+            self.update_orientation(direction_x, direction_y)
+
+            # Check if the enemy reached the target
+            if distance <= self.speed:
+                self.current_target += 1
+
+        # If the enemy has reached the end of the path
+        if self.current_target >= len(self.path):
+            self.is_alive = False  # Mark as no longer active (escaped)
+            user_health -= self.health
+
+    def update_orientation(self, direction_x, direction_y):
+        """Rotate the image to face the movement direction."""
+        # Calculate angle in radians and convert to degrees
+        angle = math.degrees(math.atan2(-direction_y, direction_x))  # Flip y-axis for Pygame
+        self.image = pygame.transform.rotate(self.original_image, angle - 90)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def take_damage(self, damage):
+        global money
+        self.health -= damage
+        if self.health <= 0:
+            self.is_alive = False
+            money += 5
+
+    def render(self, screen):
+        # Draw the enemy on the screen
+        if self.is_alive:
+            screen.blit(self.image, self.rect.topleft)
+            # Optionally, draw the health bar
+            # pygame.draw.rect(screen, (255, 0, 0), (*self.rect.topleft, self.size[0], 5))
+            # pygame.draw.rect(
+            #     screen,
+            #     (0, 255, 0),
+            #     (*self.rect.topleft, self.size[0] * (self.health / 100), 5)
+            # )
 
 
 def start_new_wave(round_number: int):
