@@ -1,0 +1,24 @@
+@startuml
+left to right direction
+
+actor :Gamer: #blue
+
+rectangle "Game" {
+    (Quit)
+    (Resume Game)
+    (Options)
+    (New Game)
+    (Start Round)
+    (New Tower)
+    (Upgrade Tower)
+}
+
+:Gamer: --> (Quit)
+:Gamer: --> (New Game)
+:Gamer: --> (Resume Game)
+:Gamer: --> (Options)
+:Gamer: --> (Start Round)
+:Gamer: --> (New Tower)
+:Gamer: --> (Upgrade Tower)
+
+@enduml
