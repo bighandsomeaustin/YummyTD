@@ -13,7 +13,7 @@ pygame.display.set_icon(Icon)
 pygame.init()
 mixer.init()
 mixer.music.load("assets/menu_music.mp3")
-mixer.music.set_volume(0.25)
+mixer.music.set_volume(0.0)
 screen = pygame.display.set_mode((1280, 720))
 clock = pygame.time.Clock()
 running = True
