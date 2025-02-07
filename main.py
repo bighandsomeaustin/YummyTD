@@ -13,13 +13,16 @@ pygame.display.set_icon(Icon)
 pygame.init()
 mixer.init()
 mixer.music.load("assets/menu_music.mp3")
-mixer.music.set_volume(0.25)
+mixer.music.set_volume(0.0)
 screen = pygame.display.set_mode((1280, 720))
 clock = pygame.time.Clock()
 running = True
 state = "Menu"
 resumeFlag = False
 mixer.music.play(loops=-1)
+curr_wave = False
+round_number = 1    # change for debugging
+PlayFlag = True
 
 while running:
     # poll for events
@@ -73,6 +76,7 @@ while running:
         game_tools.fade_into_image(screen, "assets/house_map_baselayer.png", 500)
         image_map = pygame.image.load(
             "assets/house_map_baselayer.png").convert_alpha()
+        game_tools.start_new_wave(round_number)
 
     while state == "New Game":
 
@@ -81,16 +85,25 @@ while running:
                 pygame.quit()
 
         game_tools.update_towers(screen)
+        game_tools.update_stats(screen, game_tools.user_health, game_tools.money, round_number)
 
         cursor_select = game_tools.check_game_menu_elements(screen)
-        if cursor_select is not "NULL":
+        if cursor_select is not ("NULL" or "nextround"):
             tower = cursor_select
             exit_new_tower = False
 
         if not exit_new_tower:
             exit_new_tower = game_tools.handle_newtower(screen, tower)
 
-        game_tools.send_wave(1)
+        if game_tools.RoundFlag:
+
+            curr_wave = game_tools.send_wave(screen, round_number)
+
+            if curr_wave:
+                game_tools.RoundFlag = False
+                round_number += 1
+                game_tools.start_new_wave(round_number)
+                cursor_select = "NULL"
 
         pygame.display.flip()
         screen.blit(image_map, (0, 0))

@@ -1,0 +1,57 @@
+- add more towers
+  - rat training facility
+    - spawns rats that go against the path and kills enemies it runs into
+    - little baby dudes
+    - maybe upgrade that gives the rats the plague to spread
+  - rat bank
+    - add money into bank, stores it, collects interest, can withdraw
+    - upgrades maybe can include better interest rates?? loans??? could be fun to code
+    - CHEDDAR FARGO
+    - dont pay back a loan??? REPO THE TOWERS!
+  - rat soldier
+    - rat with a fucking gun
+  - rat king (duh)
+    - high tier tower with high damage, maybe can summon rats
+  - plague doctor rat!!!
+    - summon plague obvi
+    - maybe some alchemy stuff
+    - aid the other towers and send out other little guys says girlfriend
+  - mr tiny
+    - catapult mouse (baby mouse with pacifier and diaper like nibbles from tom and jerry)
+    - shoots cookie crumbs/cookies
+    - aoe damage
+    - slow shots
+    - possible upgrades: increased aoe/firerate, double shot/schrapnel
+  - pat the fat rat
+    - very short range that eats the enemies
+    - eats one ant at a time but could generate extra money
+    - possible upgrades: increased eating capacity/money generated, increased eating rate/added turret damage to other enemies
+  - rat mage
+    - like alchemist monkey from bloonstd 
+    - buff firerate and damage of nearby rats
+    - could drop fireballs or ice on track to deal extra damage
+    - rat poison projectiles (safe for consumption)
+  - berry: bomber rat
+    - shoots explosive fruits
+    - aoe but high firerate (cost is less damage)
+    - could slow down track due to slippery fruit juice
+- add more enemies
+  - like a spider would be cool???
+  - some enemies with special traits only certain towers can hit
+  - termites??? with their own path??? that like goes through walls??
+- add sound volume slider
+- add save feature
+  - saves tower positions, money, health, and current round
+- would like to make better cleaner functions. hard coding so much stuff rn
+  - new wave spawn mechanic, where you can just give a list with enemies and intervals
+  - maybe function for calling animations
+  - maybe function for clicking elements instead of the hard-coded bounds
+- add tips/dialog box after each round (like in bloonsTD)
+- add some cute little rat noises for the towers
+- add death animation for bugs
+- add settings tab
+- also was thinking some upscaling tech might be cool??? base is locked at 1280x720p, all elements are tied to that res, so maybe 
+  an upscaler in fullscreen mode would be nice
+  - might fuck up bounds though??? not sure how tracking the cursor might be different with an upscaler
+- queue for projectiles (currently towers can target and shoot an enemy at the same time, kinda a waste, but makes for interesting strategies
+- add upgrades (currently working on)
