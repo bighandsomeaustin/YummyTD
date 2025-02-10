@@ -13,7 +13,7 @@ pygame.display.set_icon(Icon)
 pygame.init()
 mixer.init()
 mixer.music.load("assets/menu_music.mp3")
-mixer.music.set_volume(0.0)
+mixer.music.set_volume(0.15)
 screen = pygame.display.set_mode((1280, 720))
 clock = pygame.time.Clock()
 running = True
@@ -77,6 +77,9 @@ while running:
         image_map = pygame.image.load(
             "assets/house_map_baselayer.png").convert_alpha()
         game_tools.start_new_wave(round_number)
+        mixer.music.fadeout(1000)
+        mixer.music.load("assets/map_music.mp3")
+        mixer.music.play(-1)
 
     while state == "New Game":
 
@@ -96,14 +99,20 @@ while running:
             exit_new_tower = game_tools.handle_newtower(screen, tower)
 
         if game_tools.RoundFlag:
-
+            mixer.music.set_volume(0.35)
             curr_wave = game_tools.send_wave(screen, round_number)
 
             if curr_wave:
+                mixer.music.set_volume(0.10)
                 game_tools.RoundFlag = False
                 round_number += 1
                 game_tools.start_new_wave(round_number)
                 cursor_select = "NULL"
+
+        if game_tools.MogFlag:
+            game_tools.play_mog_animation(screen)
+            game_tools.MogFlag = False
+            mixer.music.unpause()
 
         pygame.display.flip()
         screen.blit(image_map, (0, 0))
