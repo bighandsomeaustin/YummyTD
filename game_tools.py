@@ -17,12 +17,44 @@ hitbox_position = (0, 0)  # Top-left corner
 RoundFlag = False
 UpgradeFlag = False
 curr_upgrade_tower = None
+MogFlag = False
 last_time_sfx = pygame.time.get_ticks()
 money = 25000  # change for debugging
 user_health = 100
 
 # Load frames once globally
 frames = [pygame.image.load(f"assets/splash/splash{i}.png").convert_alpha() for i in range(1, 8)]
+# mog frames
+frames_mog = [pygame.image.load(f"assets/rat_mog/mog{i}.png").convert_alpha() for i in range(0, 31)]
+# Define custom frame durations
+frame_durations = {0: 0,
+                   1: 0,
+                   2: 0,
+                   3: 0,
+                   4: 0,
+                   5: 0,
+                   6: 0,
+                   7: 0,
+                   8: 0,
+                   9: 0,
+                   10: 0,
+                   11: 0,
+                   12: 750,
+                   13: 75,
+                   14: 75,
+                   15: 75,
+                   16: 500,
+                   17: 75,
+                   18: 75,
+                   19: 75,
+                   22: 1000,
+                   31: 500
+                   }  # Frame timings
+# for 250ms
+
+for i in range(27, 31):
+    frame_durations[i] = 250
+
 house_path = [(237, 502), (221, 447), (186, 417), (136, 408), (113, 385), (113, 352),
               (137, 335), (297, 329), (322, 306), (339, 257), (297, 228), (460, 164),
               (680, 174), (687, 294), (703, 340), (884, 344), (897, 476), (826, 515),
@@ -47,6 +79,36 @@ def play_splash_animation(scrn: pygame.Surface, pos: tuple[int, int], frame_dela
                     exit()
 
         pygame.time.delay(16)  # Adjust timing to maintain responsiveness
+
+
+def play_mog_animation(scrn: pygame.Surface):
+    global MogFlag
+    mixer.music.pause()
+    mog_song = pygame.mixer.Sound("assets/mog_song.mp3")
+    pos = (0, 0)
+
+    mog_song.play()
+    fade_into_image(scrn, "assets/rat_mog/mog12.png", 1000)
+
+    for current_frame in range(len(frames_mog)):
+        if frame_durations.get(current_frame, 250) == 0:
+            continue
+        scrn.blit(frames_mog[current_frame], pos)
+        pygame.display.flip()  # Update the display
+
+        # Set frame duration dynamically
+        duration = frame_durations.get(current_frame, 250)  # Default is 250ms unless specified
+
+        # Keep event handling active while waiting
+        start_time = pygame.time.get_ticks()
+        while pygame.time.get_ticks() - start_time < duration:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+
+        # Set MogFlag correctly at the last frame
+        MogFlag = current_frame == 31
 
 
 def detect_single_click(delay=.3):
@@ -209,7 +271,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
 
 
 def handle_upgrade(scrn, tower):
-    global UpgradeFlag, money
+    global UpgradeFlag, money, MogFlag
     mouse = pygame.mouse.get_pos()
     purchase = pygame.mixer.Sound("assets/purchase_sound.mp3")
     img_upgrade_window = pygame.image.load("assets/upgrade_window.png").convert_alpha()
@@ -303,6 +365,7 @@ def handle_upgrade(scrn, tower):
                     elif tower.curr_top_upgrade == 2:
                         tower.image = pygame.image.load("assets/mrcheese_diploma+protein.png").convert_alpha()
                         tower.original_image = pygame.image.load("assets/mrcheese_diploma+protein.png").convert_alpha()
+                # culture injection
                 elif money >= 900 and tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade != 2:
                     purchase.play()
                     tower.damage = 5
@@ -311,6 +374,7 @@ def handle_upgrade(scrn, tower):
                     tower.shoot_interval -= 150
                     tower.curr_bottom_upgrade = 2
                     UpgradeFlag = True
+                    MogFlag = True
                     if tower.curr_top_upgrade == 0:
                         tower.image = pygame.image.load("assets/mrcheese_steroids.png").convert_alpha()
                         tower.original_image = pygame.image.load("assets/mrcheese_steroids.png").convert_alpha()
