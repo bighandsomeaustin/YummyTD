@@ -1097,163 +1097,77 @@ class RatRecruit:
 
 
 def start_new_wave(round_number: int):
-    """Initialize wave settings when a new wave starts."""
-    global enemies, enemies_spawned, wave_size, spawn_interval, last_spawn_time
+   """Initialize wave settings when a new wave starts."""
+   global enemies, enemies_spawned, wave_size, spawn_interval, last_spawn_time
 
-    wave_data = {
-        1: {"spawn_interval": 1000, "wave_size": 5},
-        2: {"spawn_interval": 750, "wave_size": 10},
-        3: {"spawn_interval": 500, "wave_size": 15},
-        4: {"spawn_interval": 1000, "wave_size": 20},
-        5: {"spawn_interval": 750, "wave_size": 20},
-        6: {"spawn_interval": 500, "wave_size": 30},
-        7: {"spawn_interval": 500, "wave_size": 30},
-        8: {"spawn_interval": 500, "wave_size": 45}
-    }
+   wave_data = {
+       1: {"spawn_interval": 1000, "wave_size": 5},
+       2: {"spawn_interval": 750, "wave_size": 10},
+       3: {"spawn_interval": 500, "wave_size": 15},
+       4: {"spawn_interval": 1000, "wave_size": 20},
+       5: {"spawn_interval": 750, "wave_size": 20},
+       6: {"spawn_interval": 500, "wave_size": 30},
+       7: {"spawn_interval": 500, "wave_size": 30},
+       8: {"spawn_interval": 500, "wave_size": 45},
+       9: {"spawn_interval": 500, "wave_size": 50},
+       10: {"spawn_interval": 500, "wave_size": 50},
+       11: {"spawn_interval": 500, "wave_size": 50},
+       12: {"spawn_interval": 500, "wave_size": 50},
+       13: {"spawn_interval": 500, "wave_size": 50},
+       14: {"spawn_interval": 500, "wave_size": 50},
+       15: {"spawn_interval": 500, "wave_size": 50},
+       16: {"spawn_interval": 500, "wave_size": 50},
+       17: {"spawn_interval": 500, "wave_size": 50},
+       18: {"spawn_interval": 500, "wave_size": 50},
+       19: {"spawn_interval": 500, "wave_size": 50},
+       20: {"spawn_interval": 500, "wave_size": 50}
+   }
 
-    if round_number in wave_data:
-        print(f"Starting Wave {round_number}")  # Debugging
-        enemies.clear()
-        enemies_spawned = 0
-        wave_size = wave_data[round_number]["wave_size"]
-        spawn_interval = wave_data[round_number]["spawn_interval"]
-        last_spawn_time = pygame.time.get_ticks()
-
+   if round_number in wave_data:
+       print(f"Starting Wave {round_number}")  # Debugging
+       enemies.clear()
+       enemies_spawned = 0
+       wave_size = wave_data[round_number]["wave_size"]
+       spawn_interval = wave_data[round_number]["spawn_interval"]
+       last_spawn_time = pygame.time.get_ticks()
 
 def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
-    global enemies, last_spawn_time, enemies_spawned, wave_size, spawn_interval, money
+   wave_1_10 = ["ANT" for _ in range(49)]
+   wave_1_10 += ["HORNET"]
+   wave_11_20 = ["ANT" for _ in range(20)]
+   wave_11_20 += ["HORNET" for _ in range(5)]
+   wave_11_20 += ["ANT" for _ in range(15)]
+   wave_11_20 += ["Hornet" for _ in range(15)]
 
-    current_time = pygame.time.get_ticks()
+   global enemies, last_spawn_time, enemies_spawned, wave_size, spawn_interval, money
+   current_time = pygame.time.get_ticks()
 
-    # Enemy Spawning Logic
-    if enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval and round_number < 4:
-        print(f"Spawning Enemy {enemies_spawned + 1}/{wave_size}")  # Debugging
-        ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
-        enemies.append(ant)
-        last_spawn_time = current_time
-        enemies_spawned += 1
+   # Enemy Spawning Logic
+   if enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval:
+       if 1 <= round_number < 11:
+           wave_used = wave_1_10
+       elif 11 <= round_number < 21:
+           wave_used = wave_11_20
+       print(f"Spawning Enemy {enemies_spawned + 1}/{wave_size}")  # Debugging
+       if wave_used[enemies_spawned] == "ANT":
+           ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
+           enemies.append(ant)
+       elif wave_used[enemies_spawned] == "HORNET":
+           hornet = HornetEnemy((238, 500), 3, 2, house_path, "assets/hornet_base.png")
+           enemies.append(hornet)
+       last_spawn_time = current_time
+       enemies_spawned += 1
 
-    if round_number == 4:
-        if enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval:
-            ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
-            enemies.append(ant)
-            if enemies_spawned < 10:
-                spawn_interval = 100
-            elif 10 <= enemies_spawned <= 20:
-                spawn_interval = 750
-            last_spawn_time = current_time
-            enemies_spawned += 1
+   # Update and Render Enemies
+   for enemy in enemies[:]:
+       enemy.render(scrn)
+       enemy.move()
+       if not enemy.is_alive:
+           enemies.remove(enemy)
 
-    if round_number == 5:
-        if enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval:
-            ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
-            hornet = HornetEnemy((238, 500), 3, 2, house_path, "assets/hornet_base.png")
-            if enemies_spawned <= 4:
-                enemies.append(ant)
-            elif enemies_spawned == 4:
-                enemies.append(ant)
-                spawn_interval = 3000
-            elif 5 < enemies_spawned <= 9:
-                spawn_interval = 750
-                enemies.append(hornet)
-            elif enemies_spawned == 9:
-                enemies.append(hornet)
-                spawn_interval = 6000
-            elif 10 <= enemies_spawned <= 20:
-                enemies.append(ant)
-                spawn_interval = 500
-            last_spawn_time = current_time
-            enemies_spawned += 1
-
-    if round_number == 6:
-        if enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval:
-            ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
-            hornet = HornetEnemy((238, 500), 3, 2, house_path, "assets/hornet_base.png")
-            if enemies_spawned <= 9:
-                spawn_interval = 50
-                enemies.append(ant)
-            elif enemies_spawned == 9:
-                enemies.append(ant)
-                spawn_interval = 5000
-            elif 10 < enemies_spawned <= 19:
-                spawn_interval = 50
-                enemies.append(ant)
-            elif enemies_spawned == 20:
-                enemies.append(ant)
-                spawn_interval = 6000
-            elif 20 <= enemies_spawned <= 30:
-                enemies.append(ant)
-                enemies.append(hornet)
-                spawn_interval = 500
-            last_spawn_time = current_time
-            enemies_spawned += 1
-    if round_number == 7:
-        if enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval:
-            ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
-            hornet = HornetEnemy((238, 500), 3, 2, house_path, "assets/hornet_base.png")
-            if enemies_spawned <= 4:
-                spawn_interval = 50
-                enemies.append(hornet)
-            elif enemies_spawned == 5:
-                enemies.append(hornet)
-                spawn_interval = 5000
-            elif 5 <= enemies_spawned <= 24:
-                spawn_interval = 50
-                enemies.append(ant)
-            elif enemies_spawned == 25:
-                enemies.append(ant)
-                spawn_interval = 6000
-            elif 25 <= enemies_spawned <= 30:
-                enemies.append(hornet)
-                spawn_interval = 50
-            last_spawn_time = current_time
-            enemies_spawned += 1
-
-    if round_number == 8:
-        if enemies_spawned < wave_size and current_time - last_spawn_time >= spawn_interval:
-            ant = AntEnemy((238, 500), 1, 1, house_path, "assets/ant_base.png")
-            hornet = HornetEnemy((238, 500), 3, 2, house_path, "assets/hornet_base.png")
-            if enemies_spawned <= 9:
-                spawn_interval = 50
-                enemies.append(ant)
-            elif enemies_spawned == 9:
-                enemies.append(ant)
-                spawn_interval = 5000
-            elif 10 < enemies_spawned <= 14:
-                spawn_interval = 200
-                enemies.append(hornet)
-            elif enemies_spawned == 20:
-                enemies.append(hornet)
-                spawn_interval = 5000
-            elif 20 <= enemies_spawned <= 29:
-                enemies.append(ant)
-                spawn_interval = 50
-            elif enemies_spawned == 29:
-                enemies.append(ant)
-                spawn_interval = 5000
-            elif 30 <= enemies_spawned <= 34:
-                enemies.append(hornet)
-                spawn_interval = 200
-            elif enemies_spawned == 34:
-                enemies.append(hornet)
-                spawn_interval = 5000
-            elif 35 <= enemies_spawned <= 45:
-                enemies.append(ant)
-                spawn_interval = 50
-            last_spawn_time = current_time
-            enemies_spawned += 1
-
-    # Update and Render Enemies
-    for enemy in enemies[:]:
-        enemy.render(scrn)
-        enemy.move()
-        if not enemy.is_alive:
-            enemies.remove(enemy)
-
-    # Check if the wave is complete (all enemies spawned & defeated)
-    if enemies_spawned >= wave_size and not enemies:
-        print(f"Wave {round_number} Complete!")  # Debugging
-        money += round(300 * (math.log(round_number + 1) / math.log(51)))
-        return True  # Signal wave completion
-
-    return False
+   # Check if the wave is complete (all enemies spawned & defeated)
+   if enemies_spawned >= wave_size and not enemies:
+       print(f"Wave {round_number} Complete!")  # Debugging
+       money += round(300 * (math.log(round_number + 1) / math.log(51)))
+       return True  # Signal wave completion
+   return False
