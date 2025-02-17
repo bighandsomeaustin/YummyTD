@@ -1140,6 +1140,7 @@ def start_new_wave(round_number: int):
         wave_size = wave_data[round_number]["wave_size"]
         spawn_interval = wave_data[round_number]["spawn_interval"]
         trigger_rush = wave_data[round_number]["trigger_rush"]
+        # initializing rush if it exists within the current wave
         if trigger_rush:
             rush_num = wave_data[round_number]["rush_num"]
             rush_speed = wave_data[round_number]["rush_speed"]
