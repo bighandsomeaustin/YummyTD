@@ -3,6 +3,7 @@ import pygame
 from pygame import mixer
 import mainmenu
 import game_tools
+from waves import (send_wave, start_new_wave)
 
 # pygame setup
 
@@ -76,7 +77,7 @@ while running:
         game_tools.fade_into_image(screen, "assets/house_map_baselayer.png", 500)
         image_map = pygame.image.load(
             "assets/house_map_baselayer.png").convert_alpha()
-        game_tools.start_new_wave(round_number)
+        start_new_wave(round_number)
         mixer.music.fadeout(1000)
         mixer.music.load("assets/map_music.mp3")
         mixer.music.play(-1)
@@ -100,13 +101,13 @@ while running:
 
         if game_tools.RoundFlag:
             mixer.music.set_volume(0.35)
-            curr_wave = game_tools.send_wave(screen, round_number)
+            curr_wave = send_wave(screen, round_number)
 
             if curr_wave:
                 mixer.music.set_volume(0.10)
                 game_tools.RoundFlag = False
                 round_number += 1
-                game_tools.start_new_wave(round_number)
+                start_new_wave(round_number)
                 cursor_select = "NULL"
 
         if game_tools.MogFlag:
