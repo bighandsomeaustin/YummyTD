@@ -22,7 +22,7 @@ state = "Menu"
 resumeFlag = False
 mixer.music.play(loops=-1)
 curr_wave = False
-round_number = 1    # change for debugging
+round_number = 5    # change for debugging
 PlayFlag = True
 
 while running:

@@ -277,14 +277,18 @@ def handle_upgrade(scrn, tower):
     purchase = pygame.mixer.Sound("assets/purchase_sound.mp3")
     img_upgrade_window = pygame.image.load("assets/upgrade_window.png").convert_alpha()
     img_upgrade_highlighted = pygame.image.load("assets/upgrade_window_highlighted.png")
+    img_sell_button = pygame.image.load("assets/sell_button.png").convert_alpha()
+    upgrade_font = pygame.font.SysFont("arial", 16)
 
     scrn.blit(img_upgrade_window, (882, 0))
+    scrn.blit(img_sell_button, (997, 298))
     if isinstance(tower, MrCheese):
+        text_sell = upgrade_font.render(f"SELL: ${tower.sell_amt}", True, (255, 255, 255))
+        scrn.blit(text_sell, (1015, 306))
         img_booksmart_upgrade = pygame.image.load("assets/upgrade_booksmart.png")
         img_protein_upgrade = pygame.image.load("assets/upgrade_protein.png")
         img_diploma_upgrade = pygame.image.load("assets/upgrade_diploma.png")
         img_steroids_upgrade = pygame.image.load("assets/upgrade_culture_injection.png")
-        upgrade_font = pygame.font.SysFont("arial", 16)
         text_booksmart = upgrade_font.render("Book Smart", True, (0, 0, 0))
         text_protein = upgrade_font.render("Protein 9000", True, (0, 0, 0))
         text_diploma = upgrade_font.render("College Diploma", True, (0, 0, 0))
@@ -597,6 +601,7 @@ class MrCheese:
         self.curr_top_upgrade = 0  # Tracks top upgrade status
         self.curr_bottom_upgrade = 0  # tracks bottom upgrade status
         self.penetration = False
+        self.sell_amt = 75
 
     def update(self, enemies):
         global last_time_sfx
