@@ -100,13 +100,14 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
         else:
             wave_used = waves[round_number]
         print(f"Spawning Enemy {enemies_spawned + 1}/{wave_size}")  # Debugging
-        # Check and spawn the correct enemy next in the wave
+        # Check what enemy is next to be spawned, spawn that enemy
         if wave_used[enemies_spawned] == "ANT":
             ant = game_tools.AntEnemy((238, 500), 1, 1, game_tools.house_path, "assets/ant_base.png")
             enemies.append(ant)
         elif wave_used[enemies_spawned] == "HORNET":
             hornet = game_tools.HornetEnemy((238, 500), 3, 2, game_tools.house_path, "assets/hornet_base.png")
             enemies.append(hornet)
+        # Update spawn time and how many enemies have been spawned
         last_spawn_time = current_time
         enemies_spawned += 1
 
