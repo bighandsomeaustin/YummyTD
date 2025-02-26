@@ -121,6 +121,6 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
     # Check if the wave is complete (all enemies spawned & defeated)
     if enemies_spawned >= wave_size and not enemies:
         print(f"Wave {round_number} Complete!")  # Debugging
-        game_tools.money += (150 * round(math.log(2, round_number + 1)))
+        game_tools.money += (150 * math.floor(math.log(2, round_number + 1)))
         return True  # Signal wave completion
     return False
