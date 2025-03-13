@@ -3,6 +3,7 @@ import pygame
 from pygame import mixer
 import mainmenu
 import game_tools
+from save_progress import (save_data, load_data)
 from waves import (send_wave, start_new_wave)
 
 # pygame setup
@@ -22,7 +23,7 @@ state = "Menu"
 resumeFlag = False
 mixer.music.play(loops=-1)
 curr_wave = False
-round_number = 5    # change for debugging
+round_number = 1    # change for debugging
 PlayFlag = True
 
 while running:
@@ -81,6 +82,17 @@ while running:
         mixer.music.fadeout(1000)
         mixer.music.load("assets/map_music.mp3")
         mixer.music.play(-1)
+        # save current new game data
+        # this will overwrite any previous saves
+        # save_data(game_tools.towers, "towers.pkl")
+        # save_data(game_tools.user_health, "health.pkl")
+        # save_data(round_number, "round_number.pkl")
+        # save_data(game_tools.money, "money.pkl")
+        # load new game values (default)
+        # game_tools.towers = load_data("towers.pkl")
+        # game_tools.user_health = load_data("health.pkl")
+        # game_tools.money = load_data("money.pkl")
+        # round_number = load_data("round_number.pkl")
 
     while state == "New Game":
 
@@ -107,6 +119,13 @@ while running:
                 mixer.music.set_volume(0.10)
                 game_tools.RoundFlag = False
                 round_number += 1
+                # save new state after starting new round
+                # save_data(game_tools.towers, "towers.pkl")
+                # Towers can't be pickled!! will need to use .json eventually
+                # save_data(game_tools.user_health, "health.pkl")
+                # save_data(round_number, "round_number.pkl")
+                # save_data(game_tools.money, "money.pkl")
+
                 start_new_wave(round_number)
                 cursor_select = "NULL"
 

@@ -19,9 +19,8 @@ UpgradeFlag = False
 curr_upgrade_tower = None
 MogFlag = False
 last_time_sfx = pygame.time.get_ticks()
-money = 25000  # change for debugging
+money = 250  # change for debugging
 user_health = 100
-
 
 # Load frames once globally
 frames = [pygame.image.load(f"assets/splash/splash{i}.png").convert_alpha() for i in range(1, 8)]
@@ -225,6 +224,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     img_tower_select = pygame.image.load("assets/tower_select.png").convert_alpha()
     img_mrcheese_text = pygame.image.load("assets/mrcheese_text.png").convert_alpha()
     img_ratcamp_text = pygame.image.load("assets/ratcamp_text.png").convert_alpha()
+    img_ozbourne_text = pygame.image.load("assets/ozbourne_text.png").convert_alpha()
     img_playbutton = pygame.image.load("assets/playbutton.png").convert_alpha()
     img_playbutton_unavail = pygame.image.load("assets/playbutton_unavail.png").convert_alpha()
 
@@ -253,9 +253,18 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
         scrn.blit(img_ratcamp_text, (1113, 53))
         scrn.blit(img_tower_select, (1192, 288))
         # add camp tower text
-        if detect_single_click() and money >= 500:  # Detect the transition from not pressed to pressed
+        if detect_single_click() and money >= 650:  # Detect the transition from not pressed to pressed
             purchase.play()
             return "rattent"
+
+    # CHEESY OZBOURNE
+    elif 1118 <= mouse[0] <= (1118 + 73) and 382 <= mouse[1] <= (382 + 88):
+        scrn.blit(img_ozbourne_text, (1113, 53))
+        scrn.blit(img_tower_select, (1118, 382))
+        # add ozbourne tower text
+        if detect_single_click() and money >= 500:  # Detect the transition from not pressed to pressed
+            purchase.play()
+            return "ozbourne"
 
     # check if any tower is clicked after placement
     for tower in towers:
@@ -282,9 +291,9 @@ def handle_upgrade(scrn, tower):
 
     scrn.blit(img_upgrade_window, (882, 0))
     scrn.blit(img_sell_button, (997, 298))
+    text_sell = upgrade_font.render(f"SELL: ${tower.sell_amt}", True, (255, 255, 255))
+    scrn.blit(text_sell, (1015, 306))
     if isinstance(tower, MrCheese):
-        text_sell = upgrade_font.render(f"SELL: ${tower.sell_amt}", True, (255, 255, 255))
-        scrn.blit(text_sell, (1015, 306))
         img_booksmart_upgrade = pygame.image.load("assets/upgrade_booksmart.png")
         img_protein_upgrade = pygame.image.load("assets/upgrade_protein.png")
         img_diploma_upgrade = pygame.image.load("assets/upgrade_diploma.png")
@@ -305,6 +314,14 @@ def handle_upgrade(scrn, tower):
         if tower.curr_bottom_upgrade == 1:
             scrn.blit(img_steroids_upgrade, (883, 194))
             scrn.blit(text_steroids, (954, 172))
+        # check bounds for sell button
+        if 997 <= mouse[0] <= (997 + 105) and 298 <= mouse[1] <= (298 + 35):
+            if detect_single_click():
+                # refund tower sell amount and remove tower
+                money += tower.sell_amt
+                towers.remove(tower)
+                UpgradeFlag = False
+                return
         # check bounds of upgrade, return 1 or 2 for top or bottom choice
         if 883 <= mouse[0] <= (883 + 218) and 65 <= mouse[1] <= (65 + 100):
             scrn.blit(img_upgrade_highlighted, (883, 65))
@@ -313,6 +330,7 @@ def handle_upgrade(scrn, tower):
                 if tower.curr_top_upgrade == 0 and money >= 400:
                     purchase.play()
                     money -= 400
+                    tower.sell_amt += 200
                     tower.radius = 150
                     tower.shoot_interval = 750
                     tower.curr_top_upgrade = 1
@@ -334,6 +352,7 @@ def handle_upgrade(scrn, tower):
                 elif money >= 1200 and tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade != 2:
                     purchase.play()
                     money -= 1200
+                    tower.sell_amt += 600
                     tower.radius = 200
                     # see holobugs
                     tower.shoot_interval = 250
@@ -356,6 +375,7 @@ def handle_upgrade(scrn, tower):
                     purchase.play()
                     tower.damage = 3
                     money -= 450
+                    tower.sell_amt += 225
                     tower.curr_bottom_upgrade = 1
                     UpgradeFlag = True
                     # condition if first upgrade
@@ -376,6 +396,7 @@ def handle_upgrade(scrn, tower):
                     tower.damage = 5
                     tower.penetration = True
                     money -= 900
+                    tower.sell_amt += 450
                     tower.shoot_interval -= 150
                     tower.curr_bottom_upgrade = 2
                     UpgradeFlag = True
@@ -407,6 +428,7 @@ def handle_upgrade(scrn, tower):
                 if tower.curr_top_upgrade == 0 and money >= 1250:
                     purchase.play()
                     money -= 1250
+                    tower.sell_amt += 625
                     tower.recruit_speed = 2
                     tower.spawn_interval = 750
                     tower.curr_top_upgrade = 1
@@ -426,6 +448,14 @@ def handle_upgrade(scrn, tower):
                         tower.image = pygame.image.load("assets/mrcheese_steroids+booksmart.png").convert_alpha()
                         tower.original_image = pygame.image.load(
                             "assets/mrcheese_steroids+booksmart.png").convert_alpha()
+        # check bounds for sell button
+        if 997 <= mouse[0] <= (997 + 105) and 298 <= mouse[1] <= (298 + 35):
+            if detect_single_click():
+                # refund tower sell amount and remove tower
+                money += tower.sell_amt
+                towers.remove(tower)
+                UpgradeFlag = False
+                return
         if 883 <= mouse[0] <= (883 + 218) and 194 <= mouse[1] <= (194 + 100):
             scrn.blit(img_upgrade_highlighted, (883, 194))
             if detect_single_click():
@@ -434,6 +464,7 @@ def handle_upgrade(scrn, tower):
                     purchase.play()
                     tower.recruit_health = 3
                     money -= 1000
+                    tower.sell_amt += 500
                     tower.curr_bottom_upgrade = 1
                     UpgradeFlag = True
                     # condition if first upgrade
@@ -441,6 +472,83 @@ def handle_upgrade(scrn, tower):
                         tower.image = pygame.image.load("assets/camp_stronger.png").convert_alpha()
                         tower.original_image = pygame.image.load("assets/camp_stronger.png").convert_alpha()
                         tower.recruit_image = "assets/rat_recruit_stronger.png"
+                    # condition if both upgrades
+                    elif tower.curr_top_upgrade == 1:
+                        tower.image = pygame.image.load("assets/camp_stronger+faster.png").convert_alpha()
+                        tower.original_image = pygame.image.load(
+                            "assets/camp_stronger+faster.png").convert_alpha()
+                        tower.recruit_image = "assets/rat_recruit_stronger+faster.png"
+                    elif tower.curr_top_upgrade == 2:
+                        tower.image = pygame.image.load("assets/mrcheese_diploma+protein.png").convert_alpha()
+                        tower.original_image = pygame.image.load("assets/mrcheese_diploma+protein.png").convert_alpha()
+
+    if isinstance(tower, Ozbourne):
+        img_amplifier_upgrade = pygame.image.load("assets/upgrade_amplifier.png")
+        img_longerriffs_upgrade = pygame.image.load("assets/upgrade_longerriffs.png")
+        upgrade_font = pygame.font.SysFont("arial", 16)
+        text_faster = upgrade_font.render("Amplifier", True, (0, 0, 0))
+        text_stronger = upgrade_font.render("Longer Riffs", True, (0, 0, 0))
+        if tower.curr_top_upgrade == 0:
+            scrn.blit(img_amplifier_upgrade, (883, 65))
+            scrn.blit(text_faster, (962, 42))
+        if tower.curr_bottom_upgrade == 0:
+            scrn.blit(img_longerriffs_upgrade, (883, 194))
+            scrn.blit(text_stronger, (962, 172))
+        if 883 <= mouse[0] <= (883 + 218) and 65 <= mouse[1] <= (65 + 100):
+            scrn.blit(img_upgrade_highlighted, (883, 65))
+            if detect_single_click():
+                # amplifier upgrade
+                if tower.curr_top_upgrade == 0 and money >= 350:
+                    purchase.play()
+                    money -= 350
+                    tower.sell_amt += 125
+                    tower.riff_blast_radius = 150
+                    tower.radius = 150
+                    tower.max_blast_radius = 150
+                    tower.curr_top_upgrade = 1
+                    UpgradeFlag = True
+                    # condition if first upgrade
+                    if tower.curr_bottom_upgrade == 0:
+                        tower.image = pygame.image.load("assets/alfredo_ozbourne_amplifier.png").convert_alpha()
+                        tower.original_image = pygame.image.load(
+                            "assets/alfredo_ozbourne_amplifier.png").convert_alpha()
+                    # condition if both upgrades
+                    elif tower.curr_bottom_upgrade == 1:
+                        tower.image = pygame.image.load("assets/camp_stronger+faster.png").convert_alpha()
+                        tower.original_image = pygame.image.load(
+                            "assets/camp_stronger+faster.png").convert_alpha()
+                        tower.recruit_image = "assets/rat_recruit_stronger+faster.png"
+                    elif tower.curr_bottom_upgrade == 2:
+                        tower.image = pygame.image.load("assets/mrcheese_steroids+booksmart.png").convert_alpha()
+                        tower.original_image = pygame.image.load(
+                            "assets/mrcheese_steroids+booksmart.png").convert_alpha()
+        # check bounds for sell button
+        if 997 <= mouse[0] <= (997 + 105) and 298 <= mouse[1] <= (298 + 35):
+            if detect_single_click():
+                # refund tower sell amount and remove tower
+                money += tower.sell_amt
+                towers.remove(tower)
+                UpgradeFlag = False
+                return
+        if 883 <= mouse[0] <= (883 + 218) and 194 <= mouse[1] <= (194 + 100):
+            scrn.blit(img_upgrade_highlighted, (883, 194))
+            if detect_single_click():
+                # longer riffs upgrade
+                if money >= 375 and tower.curr_bottom_upgrade == 0:
+                    purchase.play()
+                    money -= 375
+                    tower.sell_amt += 187
+                    tower.riff_interval = (1165 / 2)
+                    tower.blast_duration = (1165 / 2)
+                    tower.damage = 1
+                    tower.riff_sfx = pygame.mixer.Sound("assets/riff_longer.mp3")
+                    tower.curr_bottom_upgrade = 1
+                    UpgradeFlag = True
+                    # condition if first upgrade
+                    if tower.curr_top_upgrade == 0:
+                        tower.image = pygame.image.load("assets/alfredo_ozbourne_longer_riffs.png").convert_alpha()
+                        tower.original_image = pygame.image.load(
+                            "assets/alfredo_ozbourne_longer_riffs.png").convert_alpha()
                     # condition if both upgrades
                     elif tower.curr_top_upgrade == 1:
                         tower.image = pygame.image.load("assets/camp_stronger+faster.png").convert_alpha()
@@ -477,7 +585,7 @@ def update_towers(scrn: pygame.surface):
     for tower in towers:
         tower.update(enemies)
         tower.render(scrn)
-        if not isinstance(tower, RatTent):
+        if not isinstance(tower, RatTent) and not isinstance(tower, Ozbourne):
             tower.shoot()
 
 
@@ -560,17 +668,45 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             scrn.blit(text_checkpath, (mouse[0] - 35, mouse[1] + 50))
 
         if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower):
-            tower_rattent = RatTent((mouse[0], mouse[1]), radius=50, recruit_health=1, recruit_speed=1, recruit_damage=1,
+            tower_rattent = RatTent((mouse[0], mouse[1]), radius=50, recruit_health=1, recruit_speed=1,
+                                    recruit_damage=1,
                                     image_path='assets/base_camp.png', recruit_image="assets/rat_recruit.png",
                                     spawn_interval=2000)
             towers.append(tower_rattent)
+            tower_click.play()
+            play_splash_animation(scrn, (mouse[0], mouse[1]))
+            money -= 650
+            return True
+
+    elif tower == "ozbourne":
+        img_base_ozbourne = pygame.image.load("assets/alfredo_ozbourne_base.png").convert_alpha()
+        # Create a surface for the circle
+        circle_surface = pygame.Surface((150, 150), pygame.SRCALPHA)  # radius of 75
+        # quit selection if escape pressed
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return True
+        if check_hitbox(house_hitbox, relative_pos, towers):
+            pygame.draw.circle(circle_surface, (0, 0, 0, 128), (75, 75), 75)  # Black with 50% opacity
+            scrn.blit(img_base_ozbourne, (mouse[0] - 25, mouse[1] - 25))
+            scrn.blit(circle_surface, (mouse[0] - 75, mouse[1] - 75))
+        elif not check_hitbox(house_hitbox, relative_pos, towers):
+            pygame.draw.circle(circle_surface, (255, 0, 0, 128), (75, 75), 75)  # Red with 50% opacity
+            scrn.blit(img_base_ozbourne, (mouse[0] - 25, mouse[1] - 25))
+            scrn.blit(circle_surface, (mouse[0] - 75, mouse[1] - 75))
+
+        if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower):
+            tower_ozbourne = Ozbourne((mouse[0], mouse[1]), radius=100, weapon="guitar", damage=1, riff_blast_radius=75,
+                                      image_path="assets/alfredo_ozbourne_base.png")
+            towers.append(tower_ozbourne)
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
             money -= 500
             return True
 
     if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower) and tower == "mrcheese":
-        tower_mrcheese = MrCheese((mouse[0], mouse[1]), radius=100, weapon="Cheese", damage=1,
+        tower_mrcheese = MrCheese((mouse[0], mouse[1]), radius=75, weapon="Cheese", damage=1,
                                   image_path="assets/base_rat.png", projectile_image="assets/projectile_cheese.png")
         towers.append(tower_mrcheese)
         tower_click.play()
@@ -579,105 +715,6 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
         return True
 
     return False
-
-
-class MrCheese:
-    sfx_squeak = pygame.mixer.Sound("assets/mouse-squeak.mp3")
-
-    def __init__(self, position, radius, weapon, damage, image_path, projectile_image, shoot_interval=1000):
-        self.position = position  # (x, y) tuple
-        self.radius = radius
-        self.weapon = weapon
-        self.damage = damage
-        self.image = pygame.image.load(image_path).convert_alpha()
-        self.original_image = self.image
-        self.rect = self.image.get_rect(center=position)
-        self.angle = 0  # Default orientation
-        self.target = None  # Current target (e.g., enemy)
-        self.projectiles = []  # List to manage active projectiles
-        self.projectile_image = projectile_image  # Path to the projectile image
-        self.shoot_interval = shoot_interval  # Interval in milliseconds
-        self.last_shot_time = 0  # Tracks the last time the tower shot
-        self.curr_top_upgrade = 0  # Tracks top upgrade status
-        self.curr_bottom_upgrade = 0  # tracks bottom upgrade status
-        self.penetration = False
-        self.sell_amt = 75
-
-    def update(self, enemies):
-        global last_time_sfx
-        self.target = None
-        closest_distance = self.radius
-        potential_targets = []
-        current_time = pygame.time.get_ticks()
-        if current_time - last_time_sfx >= 15000:
-            self.sfx_squeak.play()
-            last_time_sfx = current_time
-        # Gather all enemies within range
-        for enemy in enemies:
-            distance = math.sqrt((enemy.position[0] - self.position[0]) ** 2 +
-                                 (enemy.position[1] - self.position[1]) ** 2)
-            if distance <= self.radius:
-                potential_targets.append((distance, enemy))
-
-        # Sort enemies by distance
-        potential_targets.sort(key=lambda x: x[0])
-
-        # Assign an enemy that is not already targeted by another tower
-        for _, enemy in potential_targets:
-            if not any(tower.target == enemy for tower in towers if tower != self and not isinstance(tower, RatTent)):
-                self.target = enemy
-                break  # Stop once a unique target is found
-
-        # If all enemies are already targeted, pick the closest one
-        if self.target is None and potential_targets:
-            self.target = potential_targets[0][1]
-
-        # Rotate towards the target if one is found
-        if self.target:
-            dx = self.target.position[0] - self.position[0]
-            dy = self.target.position[1] - self.position[1]
-            self.angle = math.degrees(math.atan2(-dy, dx))  # Negative for correct orientation
-            self.image = pygame.transform.rotate(self.original_image, self.angle)
-            self.rect = self.image.get_rect(center=self.position)
-
-        # Update all projectiles
-        for projectile in self.projectiles[:]:
-            projectile.move()
-            if projectile.hit:  # Check if the projectile has hit the target
-                if self.target is not None and self.target.is_alive:  # Apply damage if the target is still alive
-                    self.target.take_damage(self.damage)
-                if not self.penetration:
-                    self.projectiles.remove(projectile)
-                if self.penetration:
-                    projectile.penetration -= 1
-                    if projectile.penetration == 0:
-                        self.projectiles.remove(projectile)
-
-    def render(self, screen):
-        # Draw the tower
-        screen.blit(self.image, self.rect.topleft)
-        # Optionally draw the radius for debugging
-        # pygame.draw.circle(screen, (0, 255, 0), self.position, self.radius, 1)
-
-        # Render all projectiles
-        for projectile in self.projectiles:
-            projectile.render(screen)
-
-    def shoot(self):
-        # Shoot a projectile if enough time has passed since the last shot
-        current_time = pygame.time.get_ticks()
-        if self.target and current_time - self.last_shot_time >= self.shoot_interval:
-            projectile = Projectile(
-                position=self.position,
-                target=self.target,
-                speed=10,  # Speed of the projectile
-                damage=self.damage,
-                image_path=self.projectile_image
-            )
-            if self.penetration:
-                projectile.penetration = self.damage - round((self.damage / 2))
-            self.projectiles.append(projectile)
-            self.last_shot_time = current_time
 
 
 class RecruitEntity:
@@ -776,7 +813,8 @@ class RecruitEntity:
 
 class RatTent:
 
-    def __init__(self, position, radius, recruit_health, recruit_speed, recruit_damage, image_path, recruit_image, spawn_interval=2000):
+    def __init__(self, position, radius, recruit_health, recruit_speed, recruit_damage, image_path, recruit_image,
+                 spawn_interval=2000):
         self.position = position
         self.radius = radius
         self.recruit_health = recruit_health
@@ -790,6 +828,7 @@ class RatTent:
         self.recruit_image = recruit_image
         self.curr_bottom_upgrade = 0
         self.curr_top_upgrade = 0
+        self.sell_amt = 325
 
     def render(self, screen):
         screen.blit(self.image, self.rect.topleft)
@@ -801,7 +840,8 @@ class RatTent:
         if current_time - self.last_spawn_time >= self.spawn_interval and RoundFlag:
             recruit_entity = RecruitEntity(self.position, 1, 1, recruit_path, 1, self.recruit_image)
             closest_spawn_point, _ = recruit_entity.get_closest_point_on_path(self.position)
-            distance = ((closest_spawn_point[0] - self.position[0]) ** 2 + (closest_spawn_point[1] - self.position[1]) ** 2) ** 0.5
+            distance = ((closest_spawn_point[0] - self.position[0]) ** 2 + (
+                        closest_spawn_point[1] - self.position[1]) ** 2) ** 0.5
             if distance <= self.radius:
                 recruit = RecruitEntity(
                     position=closest_spawn_point,
@@ -820,6 +860,212 @@ class RatTent:
                 self.recruits.remove(recruit)
             if not RoundFlag:
                 self.recruits.remove(recruit)
+
+
+class MrCheese:
+    sfx_squeak = pygame.mixer.Sound("assets/mouse-squeak.mp3")
+
+    def __init__(self, position, radius, weapon, damage, image_path, projectile_image, shoot_interval=1000):
+        self.position = position  # (x, y) tuple
+        self.radius = radius
+        self.weapon = weapon
+        self.damage = damage
+        self.image = pygame.image.load(image_path).convert_alpha()
+        self.original_image = self.image
+        self.rect = self.image.get_rect(center=position)
+        self.angle = 0  # Default orientation
+        self.target = None  # Current target (e.g., enemy)
+        self.projectiles = []  # List to manage active projectiles
+        self.projectile_image = projectile_image  # Path to the projectile image
+        self.shoot_interval = shoot_interval  # Interval in milliseconds
+        self.last_shot_time = 0  # Tracks the last time the tower shot
+        self.curr_top_upgrade = 0  # Tracks top upgrade status
+        self.curr_bottom_upgrade = 0  # tracks bottom upgrade status
+        self.penetration = False
+        self.sell_amt = 75
+
+    def update(self, enemies):
+        global last_time_sfx
+        self.target = None
+        closest_distance = self.radius
+        potential_targets = []
+        current_time = pygame.time.get_ticks()
+        if current_time - last_time_sfx >= 15000:
+            self.sfx_squeak.play()
+            last_time_sfx = current_time
+        # Gather all enemies within range
+        for enemy in enemies:
+            distance = math.sqrt((enemy.position[0] - self.position[0]) ** 2 +
+                                 (enemy.position[1] - self.position[1]) ** 2)
+            if distance <= self.radius:
+                potential_targets.append((distance, enemy))
+
+        # Sort enemies by distance
+        potential_targets.sort(key=lambda x: x[0])
+
+        # Assign an enemy that is not already targeted by another tower
+        for _, enemy in potential_targets:
+            if not any(tower.target == enemy for tower in towers if tower != self and not isinstance(tower, RatTent) \
+                and not isinstance(tower, Ozbourne)):
+                self.target = enemy
+                break  # Stop once a unique target is found
+
+        # If all enemies are already targeted, pick the closest one
+        if self.target is None and potential_targets:
+            self.target = potential_targets[0][1]
+
+        # Rotate towards the target if one is found
+        if self.target:
+            dx = self.target.position[0] - self.position[0]
+            dy = self.target.position[1] - self.position[1]
+            self.angle = math.degrees(math.atan2(-dy, dx))  # Negative for correct orientation
+            self.image = pygame.transform.rotate(self.original_image, self.angle)
+            self.rect = self.image.get_rect(center=self.position)
+
+        # Update all projectiles
+        for projectile in self.projectiles[:]:
+            projectile.move()
+            if projectile.hit:  # Check if the projectile has hit the target
+                if self.target is not None and self.target.is_alive:  # Apply damage if the target is still alive
+                    self.target.take_damage(self.damage)
+                if not self.penetration:
+                    self.projectiles.remove(projectile)
+                if self.penetration:
+                    projectile.penetration -= 1
+                    if projectile.penetration == 0:
+                        self.projectiles.remove(projectile)
+
+    def render(self, screen):
+        # Draw the tower
+        screen.blit(self.image, self.rect.topleft)
+        # Optionally draw the radius for debugging
+        # pygame.draw.circle(screen, (0, 255, 0), self.position, self.radius, 1)
+
+        # Render all projectiles
+        for projectile in self.projectiles:
+            projectile.render(screen)
+
+    def shoot(self):
+        # Shoot a projectile if enough time has passed since the last shot
+        current_time = pygame.time.get_ticks()
+        if self.target and current_time - self.last_shot_time >= self.shoot_interval:
+            projectile = Projectile(
+                position=self.position,
+                target=self.target,
+                speed=10,  # Speed of the projectile
+                damage=self.damage,
+                image_path=self.projectile_image
+            )
+            if self.penetration:
+                projectile.penetration = self.damage - round((self.damage / 2))
+            self.projectiles.append(projectile)
+            self.last_shot_time = current_time
+
+
+class Ozbourne:
+    riff_sfx = pygame.mixer.Sound("assets/riff1.mp3")
+
+    def __init__(self, position, radius, weapon, damage, riff_blast_radius, image_path, riff_interval=4000):
+        self.position = position  # (x, y) tuple
+        self.radius = radius  # Targeting radius
+        self.weapon = weapon
+        self.damage = damage
+        self.image = pygame.image.load(image_path).convert_alpha()
+        self.original_image = self.image
+        self.rect = self.image.get_rect(center=position)
+        self.riff_interval = riff_interval  # Interval in milliseconds
+        self.riff_blast_radius = riff_blast_radius  # Blast effect radius
+        self.last_blast_time = 0  # Tracks last time the tower blasted
+        self.blast_active = False
+        self.blast_animation_timer = 0
+        self.blast_duration = 1165  # Duration of the blast effect in ms
+        self.blast_radius = 0  # Expanding effect
+        self.max_blast_radius = self.riff_blast_radius  # Maximum visual blast size
+        self.sell_amt = 250
+        self.curr_top_upgrade = 0
+        self.curr_bottom_upgrade = 0
+        self.riff_count = 0
+        self.damage_default = self.damage
+
+    def update(self, enemies):
+        current_time = pygame.time.get_ticks()
+
+        # Check if enough time has passed to trigger a blast
+        if current_time - self.last_blast_time >= self.riff_interval:
+            # Check if any enemies are in range
+            for enemy in enemies:
+                distance = math.sqrt((enemy.position[0] - self.position[0]) ** 2 +
+                                     (enemy.position[1] - self.position[1]) ** 2)
+                if distance <= self.radius:
+                    self.blast(enemies)
+                    break  # Stop checking once a blast is triggered
+                else:
+                    self.riff_count = 0
+                    self.riff_sfx.stop()
+                    self.damage = 1
+
+        # Handle blast animation timing
+        if self.blast_active:
+            self.blast_animation_timer += pygame.time.get_ticks() - self.last_blast_time
+            self.blast_radius += (self.max_blast_radius / self.blast_duration) * (
+                        pygame.time.get_ticks() - self.last_blast_time)
+
+            if self.blast_animation_timer >= self.blast_duration:
+                self.blast_active = False
+                self.blast_radius = 0  # Reset blast visual
+
+        if not RoundFlag:
+            self.damage = 1
+            self.riff_sfx.stop()
+            self.riff_count = 0
+
+    def blast(self, enemies):
+        """Triggers an AoE attack damaging enemies in range."""
+        if self.curr_bottom_upgrade < 1:
+            self.riff_sfx.play()
+        elif self.curr_bottom_upgrade >= 1:
+            self.riff_count += 1
+            if self.riff_count == 1:
+                self.riff_sfx.play()
+            elif self.riff_count >= 88:
+                self.riff_count = 0
+            self.damage += (self.riff_count * .1)
+
+        self.last_blast_time = pygame.time.get_ticks()
+        self.blast_active = True
+        self.blast_animation_timer = 0
+        self.blast_radius = 0  # Reset the expanding effect
+
+        # Apply damage to enemies within blast radius
+        for enemy in enemies:
+            distance = math.sqrt((enemy.position[0] - self.position[0]) ** 2 +
+                                 (enemy.position[1] - self.position[1]) ** 2)
+            if distance <= self.riff_blast_radius:
+                enemy.take_damage(self.damage)
+
+    def render(self, screen):
+        # Draw the tower
+        screen.blit(self.image, self.rect.topleft)
+        # Render the blast effect
+        if self.blast_active:
+            # Normalize damage scale between 0 (default) and 1 (fully red)
+            normalized_damage = (self.damage - 1) / (9.8 - 1)  # Scale between 1 and 4.25
+
+            # Ensure normalized_damage is clamped between 0 and 1
+            normalized_damage = max(0, min(1, normalized_damage))
+
+            # Interpolate color from (255, 200, 100) to (255, 0, 0)
+            r = 255  # Always stays at max
+            g = int(200 * (1 - normalized_damage))  # Decreases with damage
+            b = int(100 * (1 - normalized_damage))  # Decreases with damage
+
+            pygame.draw.circle(
+                screen,
+                (r, g, b),  # RGB without alpha (pygame doesn't support alpha in draw functions)
+                self.position,
+                int(self.blast_radius),
+                2  # Thin outline
+            )
 
 
 class AntEnemy:

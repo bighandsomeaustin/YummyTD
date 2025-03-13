@@ -1,6 +1,7 @@
 import math
 import pygame
 import game_tools
+import save_progress
 # initializes used variables
 enemy_data = [game_tools.AntEnemy, game_tools.HornetEnemy]
 wave_size = 0
