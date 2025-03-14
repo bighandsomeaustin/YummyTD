@@ -2,6 +2,7 @@ import pygame
 from pygame import mixer
 import math
 import time
+from towers import MrCheese, RatTent
 
 pygame.init()
 pygame.display.set_mode((1280, 720))
@@ -248,7 +249,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
             purchase.play()
             return "mrcheese"
 
-    # RAT CAMP
+    # RATCAMP
     elif 1195 <= mouse[0] <= (1195 + 73) and 288 <= mouse[1] <= (288 + 88):
         scrn.blit(img_ratcamp_text, (1113, 53))
         scrn.blit(img_tower_select, (1192, 288))
@@ -407,21 +408,21 @@ def handle_upgrade(scrn, tower):
                 if tower.curr_top_upgrade == 0 and money >= 1250:
                     purchase.play()
                     money -= 1250
-                    tower.recruit_speed = 2
-                    tower.spawn_interval = 750
+                    tower.speed = 2
+                    tower.shot_interval = 750
                     tower.curr_top_upgrade = 1
                     UpgradeFlag = True
                     # condition if first upgrade
                     if tower.curr_bottom_upgrade == 0:
                         tower.image = pygame.image.load("assets/camp_faster.png").convert_alpha()
                         tower.original_image = pygame.image.load("assets/camp_faster.png").convert_alpha()
-                        tower.recruit_image = "assets/rat_recruit_faster.png"
+                        tower.projectile_image = "assets/rat_recruit_faster.png"
                     # condition if both upgrades
                     elif tower.curr_bottom_upgrade == 1:
                         tower.image = pygame.image.load("assets/camp_stronger+faster.png").convert_alpha()
                         tower.original_image = pygame.image.load(
                             "assets/camp_stronger+faster.png").convert_alpha()
-                        tower.recruit_image = "assets/rat_recruit_stronger+faster.png"
+                        tower.projectile_image = "assets/rat_recruit_stronger+faster.png"
                     elif tower.curr_bottom_upgrade == 2:
                         tower.image = pygame.image.load("assets/mrcheese_steroids+booksmart.png").convert_alpha()
                         tower.original_image = pygame.image.load(
@@ -432,7 +433,7 @@ def handle_upgrade(scrn, tower):
                 # stronger upgrade
                 if money >= 1000 and tower.curr_bottom_upgrade == 0:
                     purchase.play()
-                    tower.recruit_health = 3
+                    tower.health = 3
                     money -= 1000
                     tower.curr_bottom_upgrade = 1
                     UpgradeFlag = True
@@ -440,13 +441,13 @@ def handle_upgrade(scrn, tower):
                     if tower.curr_top_upgrade == 0:
                         tower.image = pygame.image.load("assets/camp_stronger.png").convert_alpha()
                         tower.original_image = pygame.image.load("assets/camp_stronger.png").convert_alpha()
-                        tower.recruit_image = "assets/rat_recruit_stronger.png"
+                        tower.projectile_image = "assets/rat_recruit_stronger.png"
                     # condition if both upgrades
                     elif tower.curr_top_upgrade == 1:
                         tower.image = pygame.image.load("assets/camp_stronger+faster.png").convert_alpha()
                         tower.original_image = pygame.image.load(
                             "assets/camp_stronger+faster.png").convert_alpha()
-                        tower.recruit_image = "assets/rat_recruit_stronger+faster.png"
+                        tower.projectile_image = "assets/rat_recruit_stronger+faster.png"
                     elif tower.curr_top_upgrade == 2:
                         tower.image = pygame.image.load("assets/mrcheese_diploma+protein.png").convert_alpha()
                         tower.original_image = pygame.image.load("assets/mrcheese_diploma+protein.png").convert_alpha()
@@ -477,8 +478,7 @@ def update_towers(scrn: pygame.surface):
     for tower in towers:
         tower.update(enemies)
         tower.render(scrn)
-        if not isinstance(tower, RatTent):
-            tower.shoot()
+        tower.shoot(enemies)
 
 
 def update_stats(scrn: pygame.surface, health: int, money: int, round_number: int):
@@ -560,9 +560,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             scrn.blit(text_checkpath, (mouse[0] - 35, mouse[1] + 50))
 
         if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower):
-            tower_rattent = RatTent((mouse[0], mouse[1]), radius=50, recruit_health=1, recruit_speed=1, recruit_damage=1,
-                                    image_path='assets/base_camp.png', recruit_image="assets/rat_recruit.png",
-                                    spawn_interval=2000)
+            tower_rattent = RatTent((mouse[0], mouse[1]))
             towers.append(tower_rattent)
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
@@ -570,8 +568,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             return True
 
     if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower) and tower == "mrcheese":
-        tower_mrcheese = MrCheese((mouse[0], mouse[1]), radius=100, weapon="Cheese", damage=1,
-                                  image_path="assets/base_rat.png", projectile_image="assets/projectile_cheese.png")
+        tower_mrcheese = MrCheese((mouse[0], mouse[1]))
         towers.append(tower_mrcheese)
         tower_click.play()
         play_splash_animation(scrn, (mouse[0], mouse[1]))
@@ -579,106 +576,6 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
         return True
 
     return False
-
-
-class MrCheese:
-    sfx_squeak = pygame.mixer.Sound("assets/mouse-squeak.mp3")
-
-    def __init__(self, position, radius, weapon, damage, image_path, projectile_image, shoot_interval=1000):
-        self.position = position  # (x, y) tuple
-        self.radius = radius
-        self.weapon = weapon
-        self.damage = damage
-        self.image = pygame.image.load(image_path).convert_alpha()
-        self.original_image = self.image
-        self.rect = self.image.get_rect(center=position)
-        self.angle = 0  # Default orientation
-        self.target = None  # Current target (e.g., enemy)
-        self.projectiles = []  # List to manage active projectiles
-        self.projectile_image = projectile_image  # Path to the projectile image
-        self.shoot_interval = shoot_interval  # Interval in milliseconds
-        self.last_shot_time = 0  # Tracks the last time the tower shot
-        self.curr_top_upgrade = 0  # Tracks top upgrade status
-        self.curr_bottom_upgrade = 0  # tracks bottom upgrade status
-        self.penetration = False
-        self.sell_amt = 75
-
-    def update(self, enemies):
-        global last_time_sfx
-        self.target = None
-        closest_distance = self.radius
-        potential_targets = []
-        current_time = pygame.time.get_ticks()
-        if current_time - last_time_sfx >= 15000:
-            self.sfx_squeak.play()
-            last_time_sfx = current_time
-        # Gather all enemies within range
-        for enemy in enemies:
-            distance = math.sqrt((enemy.position[0] - self.position[0]) ** 2 +
-                                 (enemy.position[1] - self.position[1]) ** 2)
-            if distance <= self.radius:
-                potential_targets.append((distance, enemy))
-
-        # Sort enemies by distance
-        potential_targets.sort(key=lambda x: x[0])
-
-        # Assign an enemy that is not already targeted by another tower
-        for _, enemy in potential_targets:
-            if not any(tower.target == enemy for tower in towers if tower != self and not isinstance(tower, RatTent)):
-                self.target = enemy
-                break  # Stop once a unique target is found
-
-        # If all enemies are already targeted, pick the closest one
-        if self.target is None and potential_targets:
-            self.target = potential_targets[0][1]
-
-        # Rotate towards the target if one is found
-        if self.target:
-            dx = self.target.position[0] - self.position[0]
-            dy = self.target.position[1] - self.position[1]
-            self.angle = math.degrees(math.atan2(-dy, dx))  # Negative for correct orientation
-            self.image = pygame.transform.rotate(self.original_image, self.angle)
-            self.rect = self.image.get_rect(center=self.position)
-
-        # Update all projectiles
-        for projectile in self.projectiles[:]:
-            projectile.move()
-            if projectile.hit:  # Check if the projectile has hit the target
-                if self.target is not None and self.target.is_alive:  # Apply damage if the target is still alive
-                    self.target.take_damage(self.damage)
-                if not self.penetration:
-                    self.projectiles.remove(projectile)
-                if self.penetration:
-                    projectile.penetration -= 1
-                    if projectile.penetration == 0:
-                        self.projectiles.remove(projectile)
-
-    def render(self, screen):
-        # Draw the tower
-        screen.blit(self.image, self.rect.topleft)
-        # Optionally draw the radius for debugging
-        # pygame.draw.circle(screen, (0, 255, 0), self.position, self.radius, 1)
-
-        # Render all projectiles
-        for projectile in self.projectiles:
-            projectile.render(screen)
-
-    def shoot(self):
-        # Shoot a projectile if enough time has passed since the last shot
-        current_time = pygame.time.get_ticks()
-        if self.target and current_time - self.last_shot_time >= self.shoot_interval:
-            projectile = Projectile(
-                position=self.position,
-                target=self.target,
-                speed=10,  # Speed of the projectile
-                damage=self.damage,
-                image_path=self.projectile_image
-            )
-            if self.penetration:
-                projectile.penetration = self.damage - round((self.damage / 2))
-            self.projectiles.append(projectile)
-            self.last_shot_time = current_time
-
 
 class RecruitEntity:
     img_recruit_death = pygame.image.load("assets/splatter_recuit.png").convert_alpha()
@@ -772,54 +669,6 @@ class RecruitEntity:
             self.was_alive = False
         if self.is_alive:
             screen.blit(self.image, self.rect.topleft)
-
-
-class RatTent:
-
-    def __init__(self, position, radius, recruit_health, recruit_speed, recruit_damage, image_path, recruit_image, spawn_interval=2000):
-        self.position = position
-        self.radius = radius
-        self.recruit_health = recruit_health
-        self.recruit_speed = recruit_speed
-        self.recruit_damage = recruit_damage
-        self.image = pygame.image.load(image_path).convert_alpha()
-        self.rect = self.image.get_rect(center=position)
-        self.spawn_interval = spawn_interval
-        self.last_spawn_time = 0
-        self.recruits = []
-        self.recruit_image = recruit_image
-        self.curr_bottom_upgrade = 0
-        self.curr_top_upgrade = 0
-
-    def render(self, screen):
-        screen.blit(self.image, self.rect.topleft)
-        for recruit in self.recruits:
-            recruit.render(screen)
-
-    def update(self, enemies):
-        current_time = pygame.time.get_ticks()
-        if current_time - self.last_spawn_time >= self.spawn_interval and RoundFlag:
-            recruit_entity = RecruitEntity(self.position, 1, 1, recruit_path, 1, self.recruit_image)
-            closest_spawn_point, _ = recruit_entity.get_closest_point_on_path(self.position)
-            distance = ((closest_spawn_point[0] - self.position[0]) ** 2 + (closest_spawn_point[1] - self.position[1]) ** 2) ** 0.5
-            if distance <= self.radius:
-                recruit = RecruitEntity(
-                    position=closest_spawn_point,
-                    health=self.recruit_health,
-                    speed=self.recruit_speed,
-                    path=recruit_path,
-                    damage=self.recruit_damage,
-                    image_path=self.recruit_image
-                )
-                self.recruits.append(recruit)
-                self.last_spawn_time = current_time
-
-        for recruit in self.recruits[:]:
-            recruit.update(enemies)
-            if not recruit.is_alive:
-                self.recruits.remove(recruit)
-            if not RoundFlag:
-                self.recruits.remove(recruit)
 
 
 class AntEnemy:

@@ -3,6 +3,7 @@ import pygame
 from pygame import mixer
 import mainmenu
 import game_tools
+import math
 from waves import (send_wave, start_new_wave)
 
 # pygame setup
@@ -106,6 +107,7 @@ while running:
             if curr_wave:
                 mixer.music.set_volume(0.10)
                 game_tools.RoundFlag = False
+                # game_tools.money += round(300 * (math.log(round_number + 1) / math.log(51)))
                 round_number += 1
                 start_new_wave(round_number)
                 cursor_select = "NULL"
