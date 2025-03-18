@@ -249,4 +249,3 @@ class Ozbourne(Tower):
                 int(self.blast_radius),
                 2  # Thin outline
             )
-# towers
