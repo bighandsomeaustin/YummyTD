@@ -20,7 +20,7 @@ UpgradeFlag = False
 curr_upgrade_tower = None
 MogFlag = False
 last_time_sfx = pygame.time.get_ticks()
-money = 400  # change for debugging
+money = 4000  # change for debugging
 user_health = 100
 
 # Load frames once globally
@@ -515,7 +515,7 @@ def handle_upgrade(scrn, tower):
                             "assets/alfredo_ozbourne_amplifier.png").convert_alpha()
                     # condition if both upgrades
                     elif tower.curr_bottom_upgrade == 1:
-                        tower.image = pygame.image.load("assets/camp_stronger+faster.png").convert_alpha()
+                        tower.image = pygame.image.load("assets/alfredo_ozbourne_longer_riffs.png").convert_alpha()
                         tower.original_image = pygame.image.load(
                             "assets/camp_stronger+faster.png").convert_alpha()
                         tower.recruit_image = "assets/rat_recruit_stronger+faster.png"
@@ -806,171 +806,6 @@ class RecruitEntity:
             self.was_alive = False
         if self.is_alive:
             screen.blit(self.image, self.rect.topleft)
-
-
-class AntEnemy:
-    global user_health
-    sfx_splat = pygame.mixer.Sound("assets/splat_sfx.mp3")
-    img_death = pygame.image.load("assets/splatter.png").convert_alpha()
-
-    def __init__(self, position, health, speed, path, image_path):
-        self.position = position  # (x, y) tuple
-        self.health = health
-        self.speed = speed
-        self.path = path  # List of (x, y) points the enemy follows
-        self.original_image = pygame.image.load(image_path).convert_alpha()
-        self.image = self.original_image
-        self.rect = self.image.get_rect(center=position)
-        self.size = self.rect.size  # Width and height of the enemy
-        self.current_target = 0  # Current target index in the path
-        self.is_alive = True
-
-    def move(self):
-        # Move towards the next point in the path
-        global user_health
-        if self.current_target < len(self.path):
-            target_x, target_y = self.path[self.current_target]
-            dx = target_x - self.position[0]
-            dy = target_y - self.position[1]
-            distance = (dx ** 2 + dy ** 2) ** 0.5
-
-            if distance == 0:  # Avoid division by zero
-                return
-
-            # Calculate normalized direction vector
-            direction_x = dx / distance
-            direction_y = dy / distance
-
-            # Move enemy by speed in the direction of the target
-            self.position = (
-                self.position[0] + direction_x * self.speed,
-                self.position[1] + direction_y * self.speed
-            )
-            self.rect.center = self.position
-
-            # Rotate the enemy to face the target
-            self.update_orientation(direction_x, direction_y)
-
-            # Check if the enemy reached the target
-            if distance <= self.speed:
-                self.current_target += 1
-
-        # If the enemy has reached the end of the path
-        if self.current_target >= len(self.path):
-            self.is_alive = False  # Mark as no longer active (escaped)
-            user_health -= self.health
-
-    def update_orientation(self, direction_x, direction_y):
-        """Rotate the image to face the movement direction."""
-        # Calculate angle in radians and convert to degrees
-        angle = math.degrees(math.atan2(-direction_y, direction_x))  # Flip y-axis for Pygame
-        self.image = pygame.transform.rotate(self.original_image, angle - 90)
-        self.rect = self.image.get_rect(center=self.rect.center)
-
-    def take_damage(self, damage):
-        global money
-        self.health -= damage
-        if self.health <= 0:
-            self.is_alive = False
-            self.sfx_splat.play()
-            money += 5
-
-    def render(self, screen):
-        # Draw the enemy on the screen
-        if self.is_alive:
-            screen.blit(self.image, self.rect.topleft)
-        if not self.is_alive:
-            screen.blit(self.img_death, self.rect.topleft)
-            # Optionally, draw the health bar
-            # pygame.draw.rect(screen, (255, 0, 0), (*self.rect.topleft, self.size[0], 5))
-            # pygame.draw.rect(
-            #     screen,
-            #     (0, 255, 0),
-            #     (*self.rect.topleft, self.size[0] * (self.health / 100), 5)
-            # )
-
-
-class HornetEnemy:
-    global user_health
-    sfx_splat = pygame.mixer.Sound("assets/splat_sfx.mp3")
-    img_death = pygame.image.load("assets/splatter.png").convert_alpha()
-
-    def __init__(self, position, health, speed, path, image_path):
-        self.position = position  # (x, y) tuple
-        self.health = health
-        self.speed = speed
-        self.path = path  # List of (x, y) points the enemy follows
-        self.original_image = pygame.image.load(image_path).convert_alpha()
-        self.image = self.original_image
-        self.rect = self.image.get_rect(center=position)
-        self.size = self.rect.size  # Width and height of the enemy
-        self.current_target = 0  # Current target index in the path
-        self.is_alive = True
-
-    def move(self):
-        # Move towards the next point in the path
-        global user_health
-        if self.current_target < len(self.path):
-            target_x, target_y = self.path[self.current_target]
-            dx = target_x - self.position[0]
-            dy = target_y - self.position[1]
-            distance = (dx ** 2 + dy ** 2) ** 0.5
-
-            if distance == 0:  # Avoid division by zero
-                return
-
-            # Calculate normalized direction vector
-            direction_x = dx / distance
-            direction_y = dy / distance
-
-            # Move enemy by speed in the direction of the target
-            self.position = (
-                self.position[0] + direction_x * self.speed,
-                self.position[1] + direction_y * self.speed
-            )
-            self.rect.center = self.position
-
-            # Rotate the enemy to face the target
-            self.update_orientation(direction_x, direction_y)
-
-            # Check if the enemy reached the target
-            if distance <= self.speed:
-                self.current_target += 1
-
-        # If the enemy has reached the end of the path
-        if self.current_target >= len(self.path):
-            self.is_alive = False  # Mark as no longer active (escaped)
-            user_health -= self.health
-
-    def update_orientation(self, direction_x, direction_y):
-        """Rotate the image to face the movement direction."""
-        # Calculate angle in radians and convert to degrees
-        angle = math.degrees(math.atan2(-direction_y, direction_x))  # Flip y-axis for Pygame
-        self.image = pygame.transform.rotate(self.original_image, angle - 90)
-        self.rect = self.image.get_rect(center=self.rect.center)
-
-    def take_damage(self, damage):
-        global money
-        self.health -= damage
-        if self.health <= 0:
-            self.is_alive = False
-            self.sfx_splat.play()
-            money += 10
-
-    def render(self, screen):
-        # Draw the enemy on the screen
-        if self.is_alive:
-            screen.blit(self.image, self.rect.topleft)
-            # Optionally, draw the health bar
-            # pygame.draw.rect(screen, (255, 0, 0), (*self.rect.topleft, self.size[0], 5))
-            # pygame.draw.rect(
-            #     screen,
-            #     (0, 255, 0),
-            #     (*self.rect.topleft, self.size[0] * (self.health / 100), 5)
-            # )
-        if not self.is_alive:
-            screen.blit(self.img_death, self.rect.topleft)
-
 
 class Projectile:
     def __init__(self, position, target, speed, damage, image_path):

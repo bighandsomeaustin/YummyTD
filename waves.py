@@ -1,9 +1,9 @@
 import math
 import pygame
 import game_tools
+from enemies import AntEnemy, HornetEnemy
 # import save_progress
 # initializes used variables
-enemy_data = [game_tools.AntEnemy, game_tools.HornetEnemy]
 wave_size = 0
 spawn_interval = 0
 last_spawn_time = 0
@@ -112,10 +112,10 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
         print(f"Spawning Enemy {enemies_spawned + 1}/{wave_size}")  # Debugging
         # Check what enemy is next to be spawned, spawn that enemy
         if wave_used[enemies_spawned] == "ANT":
-            ant = game_tools.AntEnemy((238, 500), 1, 1, game_tools.house_path, "assets/ant_base.png")
+            ant = AntEnemy((238, 500))
             enemies.append(ant)
         elif wave_used[enemies_spawned] == "HORNET":
-            hornet = game_tools.HornetEnemy((238, 500), 3, 2, game_tools.house_path, "assets/hornet_base.png")
+            hornet = HornetEnemy((238, 500))
             enemies.append(hornet)
         # Update spawn time and how many enemies have been spawned
         last_spawn_time = current_time
