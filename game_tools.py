@@ -20,7 +20,7 @@ UpgradeFlag = False
 curr_upgrade_tower = None
 MogFlag = False
 last_time_sfx = pygame.time.get_ticks()
-money = 4000  # change for debugging
+money = 400000  # change for debugging
 user_health = 100
 
 # Load frames once globally
@@ -173,7 +173,6 @@ def within_spawn_point(cursor_position, path, radius=50):
         t = max(0, min(1, ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy)))
         return x1 + t * dx, y1 + t * dy
 
-    closest_point = None
     min_distance = float('inf')
 
     for i in range(len(path) - 1):
@@ -182,7 +181,6 @@ def within_spawn_point(cursor_position, path, radius=50):
         distance = ((px - cursor_position[0]) ** 2 + (py - cursor_position[1]) ** 2) ** 0.5
         if distance < min_distance:
             min_distance = distance
-            closest_point = (px, py)
 
     return min_distance <= radius
 
@@ -295,26 +293,20 @@ def handle_upgrade(scrn, tower):
     text_sell = upgrade_font.render(f"SELL: ${tower.sell_amt}", True, (255, 255, 255))
     scrn.blit(text_sell, (1015, 306))
     if isinstance(tower, MrCheese):
-        img_booksmart_upgrade = pygame.image.load("assets/upgrade_booksmart.png")
-        img_protein_upgrade = pygame.image.load("assets/upgrade_protein.png")
-        img_diploma_upgrade = pygame.image.load("assets/upgrade_diploma.png")
-        img_steroids_upgrade = pygame.image.load("assets/upgrade_culture_injection.png")
-        text_booksmart = upgrade_font.render("Book Smart", True, (0, 0, 0))
-        text_protein = upgrade_font.render("Protein 9000", True, (0, 0, 0))
-        text_diploma = upgrade_font.render("College Diploma", True, (0, 0, 0))
-        text_steroids = upgrade_font.render("Culture Injection", True, (0, 0, 0))
-        if tower.curr_top_upgrade == 0:
-            scrn.blit(img_booksmart_upgrade, (883, 65))
-            scrn.blit(text_booksmart, (962, 42))
-        if tower.curr_bottom_upgrade == 0:
-            scrn.blit(img_protein_upgrade, (883, 194))
-            scrn.blit(text_protein, (962, 172))
-        if tower.curr_top_upgrade == 1:
-            scrn.blit(img_diploma_upgrade, (883, 65))
-            scrn.blit(text_diploma, (952, 42))
-        if tower.curr_bottom_upgrade == 1:
-            scrn.blit(img_steroids_upgrade, (883, 194))
-            scrn.blit(text_steroids, (954, 172))
+        top_upgrades = [pygame.image.load("assets/upgrade_booksmart.png"),
+                        pygame.image.load("assets/upgrade_diploma.png")]
+        bottom_upgrades = [pygame.image.load("assets/upgrade_protein.png"),
+                           pygame.image.load("assets/upgrade_culture_injection.png")]
+        text_top = [upgrade_font.render("Book Smart", True, (0, 0, 0)),
+                    upgrade_font.render("College Diploma", True, (0, 0, 0))]
+        text_bottom = [upgrade_font.render("Protein 9000", True, (0, 0, 0)),
+                       upgrade_font.render("Culture Injection", True, (0, 0, 0))]
+        if tower.curr_top_upgrade < 2:
+            scrn.blit(top_upgrades[tower.curr_top_upgrade], (883, 65))
+            scrn.blit(text_top[tower.curr_top_upgrade], (962, 42))
+        if tower.curr_bottom_upgrade < 2:
+            scrn.blit(bottom_upgrades[tower.curr_bottom_upgrade], (883, 194))
+            scrn.blit(text_bottom[tower.curr_bottom_upgrade], (962, 172))
         # check bounds for sell button
         if 997 <= mouse[0] <= (997 + 105) and 298 <= mouse[1] <= (298 + 35):
             if detect_single_click():
@@ -337,18 +329,11 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 1
                     UpgradeFlag = True
                     # condition if first upgrade
-                    if tower.curr_bottom_upgrade == 0:
-                        tower.image = pygame.image.load("assets/mrcheese_booksmart.png").convert_alpha()
-                        tower.original_image = pygame.image.load("assets/mrcheese_booksmart.png").convert_alpha()
-                    # condition if both upgrades
-                    elif tower.curr_bottom_upgrade == 1:
-                        tower.image = pygame.image.load("assets/mrcheese_booksmart+protein.png").convert_alpha()
-                        tower.original_image = pygame.image.load(
-                            "assets/mrcheese_booksmart+protein.png").convert_alpha()
-                    elif tower.curr_bottom_upgrade == 2:
-                        tower.image = pygame.image.load("assets/mrcheese_steroids+booksmart.png").convert_alpha()
-                        tower.original_image = pygame.image.load(
-                            "assets/mrcheese_steroids+booksmart.png").convert_alpha()
+                    tower_images = [pygame.image.load("assets/mrcheese_booksmart.png"),
+                                    pygame.image.load("assets/mrcheese_booksmart+protein.png"),
+                                    pygame.image.load("assets/mrcheese_steroids+booksmart.png")]
+                    tower.image = tower_images[tower.curr_bottom_upgrade]
+                    tower.original_image = tower_images[tower.curr_bottom_upgrade]
                 # diploma upgrade
                 elif money >= 1200 and tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade != 2:
                     purchase.play()
@@ -360,13 +345,10 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 2
                     UpgradeFlag = True
                     # if no protein
-                    if tower.curr_bottom_upgrade == 0:
-                        tower.image = pygame.image.load("assets/mrcheese_diploma.png").convert_alpha()
-                        tower.original_image = pygame.image.load("assets/mrcheese_diploma.png").convert_alpha()
-                    # if protein
-                    elif tower.curr_bottom_upgrade == 1:
-                        tower.image = pygame.image.load("assets/mrcheese_diploma+protein.png").convert_alpha()
-                        tower.original_image = pygame.image.load("assets/mrcheese_diploma+protein.png").convert_alpha()
+                    tower_images = [pygame.image.load("assets/mrcheese_diploma.png").convert_alpha(),
+                                    pygame.image.load("assets/mrcheese_diploma+protein.png").convert_alpha()]
+                    tower.image = tower_images[tower.curr_bottom_upgrade]
+                    tower.original_image = tower_images[tower.curr_bottom_upgrade]
 
         if 883 <= mouse[0] <= (883 + 218) and 194 <= mouse[1] <= (194 + 100):
             scrn.blit(img_upgrade_highlighted, (883, 194))
@@ -380,17 +362,11 @@ def handle_upgrade(scrn, tower):
                     tower.curr_bottom_upgrade = 1
                     UpgradeFlag = True
                     # condition if first upgrade
-                    if tower.curr_top_upgrade == 0:
-                        tower.image = pygame.image.load("assets/mrcheese_protein.png").convert_alpha()
-                        tower.original_image = pygame.image.load("assets/mrcheese_protein.png").convert_alpha()
-                    # condition if both upgrades
-                    elif tower.curr_top_upgrade == 1:
-                        tower.image = pygame.image.load("assets/mrcheese_booksmart+protein.png").convert_alpha()
-                        tower.original_image = pygame.image.load(
-                            "assets/mrcheese_booksmart+protein.png").convert_alpha()
-                    elif tower.curr_top_upgrade == 2:
-                        tower.image = pygame.image.load("assets/mrcheese_diploma+protein.png").convert_alpha()
-                        tower.original_image = pygame.image.load("assets/mrcheese_diploma+protein.png").convert_alpha()
+                    tower_images = [pygame.image.load("assets/mrcheese_protein.png").convert_alpha(),
+                                    pygame.image.load("assets/mrcheese_booksmart+protein.png").convert_alpha(),
+                                    pygame.image.load("assets/mrcheese_diploma+protein.png").convert_alpha()]
+                    tower.image = tower_images[tower.curr_top_upgrade]
+                    tower.original_image = tower_images[tower.curr_top_upgrade]
                 # culture injection
                 elif money >= 900 and tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade != 2:
                     purchase.play()
@@ -402,14 +378,10 @@ def handle_upgrade(scrn, tower):
                     tower.curr_bottom_upgrade = 2
                     UpgradeFlag = True
                     MogFlag = True
-                    if tower.curr_top_upgrade == 0:
-                        tower.image = pygame.image.load("assets/mrcheese_steroids.png").convert_alpha()
-                        tower.original_image = pygame.image.load("assets/mrcheese_steroids.png").convert_alpha()
-                    # condition if both upgrades
-                    elif tower.curr_top_upgrade == 1:
-                        tower.image = pygame.image.load("assets/mrcheese_steroids+booksmart.png").convert_alpha()
-                        tower.original_image = pygame.image.load(
-                            "assets/mrcheese_steroids+booksmart.png").convert_alpha()
+                    tower_images = [pygame.image.load("assets/mrcheese_steroids.png").convert_alpha(),
+                                    pygame.image.load("assets/mrcheese_steroids+booksmart.png")]
+                    tower.image = tower_images[tower.curr_top_upgrade]
+                    tower.original_image = tower_images[tower.curr_top_upgrade]
     if isinstance(tower, RatTent):
         img_fasterrats_upgrade = pygame.image.load("assets/upgrade_fasterrats.png")
         img_strongrats_upgrade = pygame.image.load("assets/upgrade_strongerrats.png")
@@ -435,20 +407,10 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 1
                     UpgradeFlag = True
                     # condition if first upgrade
-                    if tower.curr_bottom_upgrade == 0:
-                        tower.image = pygame.image.load("assets/camp_faster.png").convert_alpha()
-                        tower.original_image = pygame.image.load("assets/camp_faster.png").convert_alpha()
-                        tower.recruit_image = "assets/rat_recruit_faster.png"
-                    # condition if both upgrades
-                    elif tower.curr_bottom_upgrade == 1:
-                        tower.image = pygame.image.load("assets/camp_stronger+faster.png").convert_alpha()
-                        tower.original_image = pygame.image.load(
-                            "assets/camp_stronger+faster.png").convert_alpha()
-                        tower.recruit_image = "assets/rat_recruit_stronger+faster.png"
-                    elif tower.curr_bottom_upgrade == 2:
-                        tower.image = pygame.image.load("assets/mrcheese_steroids+booksmart.png").convert_alpha()
-                        tower.original_image = pygame.image.load(
-                            "assets/mrcheese_steroids+booksmart.png").convert_alpha()
+                    tower_images = [pygame.image.load("assets/camp_faster.png").convert_alpha(),
+                                    pygame.image.load("assets/camp_stronger+faster.png").convert_alpha()]
+                    tower.image = tower_images[tower.curr_bottom_upgrade]
+                    tower.original_image = tower_images[tower.curr_bottom_upgrade]
         # check bounds for sell button
         if 997 <= mouse[0] <= (997 + 105) and 298 <= mouse[1] <= (298 + 35):
             if detect_single_click():
@@ -469,20 +431,10 @@ def handle_upgrade(scrn, tower):
                     tower.curr_bottom_upgrade = 1
                     UpgradeFlag = True
                     # condition if first upgrade
-                    if tower.curr_top_upgrade == 0:
-                        tower.image = pygame.image.load("assets/camp_stronger.png").convert_alpha()
-                        tower.original_image = pygame.image.load("assets/camp_stronger.png").convert_alpha()
-                        tower.projectile_image = "assets/rat_recruit_stronger.png"
-                    # condition if both upgrades
-                    elif tower.curr_top_upgrade == 1:
-                        tower.image = pygame.image.load("assets/camp_stronger+faster.png").convert_alpha()
-                        tower.original_image = pygame.image.load(
-                            "assets/camp_stronger+faster.png").convert_alpha()
-                        tower.projectile_image = "assets/rat_recruit_stronger+faster.png"
-                    elif tower.curr_top_upgrade == 2:
-                        tower.image = pygame.image.load("assets/mrcheese_diploma+protein.png").convert_alpha()
-                        tower.original_image = pygame.image.load("assets/mrcheese_diploma+protein.png").convert_alpha()
-
+                    tower_images = [pygame.image.load("assets/camp_stronger.png").convert_alpha(),
+                                    pygame.image.load("assets/camp_stronger+faster.png").convert_alpha()]
+                    tower.image = tower_images[tower.curr_top_upgrade]
+                    tower.image = tower_images[tower.curr_top_upgrade]
     if isinstance(tower, Ozbourne):
         img_amplifier_upgrade = pygame.image.load("assets/upgrade_amplifier.png")
         img_longerriffs_upgrade = pygame.image.load("assets/upgrade_longerriffs.png")
@@ -513,16 +465,6 @@ def handle_upgrade(scrn, tower):
                         tower.image = pygame.image.load("assets/alfredo_ozbourne_amplifier.png").convert_alpha()
                         tower.original_image = pygame.image.load(
                             "assets/alfredo_ozbourne_amplifier.png").convert_alpha()
-                    # condition if both upgrades
-                    elif tower.curr_bottom_upgrade == 1:
-                        tower.image = pygame.image.load("assets/alfredo_ozbourne_longer_riffs.png").convert_alpha()
-                        tower.original_image = pygame.image.load(
-                            "assets/camp_stronger+faster.png").convert_alpha()
-                        tower.recruit_image = "assets/rat_recruit_stronger+faster.png"
-                    elif tower.curr_bottom_upgrade == 2:
-                        tower.image = pygame.image.load("assets/mrcheese_steroids+booksmart.png").convert_alpha()
-                        tower.original_image = pygame.image.load(
-                            "assets/mrcheese_steroids+booksmart.png").convert_alpha()
         # check bounds for sell button
         if 997 <= mouse[0] <= (997 + 105) and 298 <= mouse[1] <= (298 + 35):
             if detect_single_click():
@@ -550,16 +492,6 @@ def handle_upgrade(scrn, tower):
                         tower.image = pygame.image.load("assets/alfredo_ozbourne_longer_riffs.png").convert_alpha()
                         tower.original_image = pygame.image.load(
                             "assets/alfredo_ozbourne_longer_riffs.png").convert_alpha()
-                    # condition if both upgrades
-                    elif tower.curr_top_upgrade == 1:
-                        tower.image = pygame.image.load("assets/camp_stronger+faster.png").convert_alpha()
-                        tower.original_image = pygame.image.load(
-                            "assets/camp_stronger+faster.png").convert_alpha()
-                        tower.recruit_image = "assets/rat_recruit_stronger+faster.png"
-                    elif tower.curr_top_upgrade == 2:
-                        tower.image = pygame.image.load("assets/mrcheese_diploma+protein.png").convert_alpha()
-                        tower.original_image = pygame.image.load("assets/mrcheese_diploma+protein.png").convert_alpha()
-
     # check if user quits upgrade handler
     if not ((tower.position[0] - 25) <= mouse[0] <= (tower.position[0] + 25) and (tower.position[1] - 25) <= mouse[
         1]
@@ -753,7 +685,7 @@ class RecruitEntity:
         if dx == dy == 0:
             return p1
         t = max(0, min(1, ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy)))
-        return (x1 + t * dx, y1 + t * dy)
+        return x1 + t * dx, y1 + t * dy
 
     def move(self):
         if self.current_target < len(self.path):
@@ -807,6 +739,7 @@ class RecruitEntity:
         if self.is_alive:
             screen.blit(self.image, self.rect.topleft)
 
+
 class Projectile:
     def __init__(self, position, target, speed, damage, image_path):
         self.position = list(position)  # Current position as [x, y]
@@ -844,78 +777,3 @@ class Projectile:
     def render(self, screen):
         # Draw the projectile
         screen.blit(self.image, self.rect.topleft)
-
-
-class RatRecruit:
-    global user_health
-
-    def __init__(self, position, health, speed, path, image_path):
-        self.position = position  # (x, y) tuple
-        self.health = health
-        self.speed = speed
-        self.path = path  # List of (x, y) points the enemy follows
-        self.original_image = pygame.image.load(image_path).convert_alpha()
-        self.image = self.original_image
-        self.rect = self.image.get_rect(center=position)
-        self.size = self.rect.size  # Width and height of the enemy
-        self.current_target = 0  # Current target index in the path
-        self.is_alive = True
-
-    def move(self):
-        # Move towards the next point in the path
-        global user_health
-        if self.current_target < len(self.path):
-            target_x, target_y = self.path[self.current_target]
-            dx = target_x - self.position[0]
-            dy = target_y - self.position[1]
-            distance = (dx ** 2 + dy ** 2) ** 0.5
-
-            if distance == 0:  # Avoid division by zero
-                return
-
-            # Calculate normalized direction vector
-            direction_x = dx / distance
-            direction_y = dy / distance
-
-            # Move enemy by speed in the direction of the target
-            self.position = (
-                self.position[0] + direction_x * self.speed,
-                self.position[1] + direction_y * self.speed
-            )
-            self.rect.center = self.position
-
-            # Rotate the enemy to face the target
-            self.update_orientation(direction_x, direction_y)
-
-            # Check if the enemy reached the target
-            if distance <= self.speed:
-                self.current_target += 1
-
-        # If the enemy has reached the end of the path
-        if self.current_target >= len(self.path):
-            self.is_alive = False  # Mark as no longer active (escaped)
-            user_health -= self.health
-
-    def update_orientation(self, direction_x, direction_y):
-        """Rotate the image to face the movement direction."""
-        # Calculate angle in radians and convert to degrees
-        angle = math.degrees(math.atan2(-direction_y, direction_x))  # Flip y-axis for Pygame
-        self.image = pygame.transform.rotate(self.original_image, angle - 90)
-        self.rect = self.image.get_rect(center=self.rect.center)
-
-    def take_damage(self, damage):
-        self.health -= damage
-        if self.health <= 0:
-            self.is_alive = False
-
-    def render(self, screen):
-        # Draw the enemy on the screen
-        if self.is_alive:
-            screen.blit(self.image, self.rect.topleft)
-            # Optionally, draw the health bar
-            # pygame.draw.rect(screen, (255, 0, 0), (*self.rect.topleft, self.size[0], 5))
-            # pygame.draw.rect(
-            #     screen,
-            #     (0, 255, 0),
-            #     (*self.rect.topleft, self.size[0] * (self.health / 100), 5)
-            # )
