@@ -1,9 +1,9 @@
 import math
 import pygame
 import game_tools
-import save_progress
+from enemies import AntEnemy, HornetEnemy
+# import save_progress
 # initializes used variables
-enemy_data = [game_tools.AntEnemy, game_tools.HornetEnemy]
 wave_size = 0
 spawn_interval = 0
 last_spawn_time = 0
@@ -16,12 +16,19 @@ rush_speed = -1
 
 # initializes enemies used in the waves
 waves = []
-wave_1 = ["ANT" for _ in range(10)]
-for i in range(1, 5):
-    wave_1 += ["ANT" for _ in range(10 - i)]
-    wave_1 += ["HORNET" for _ in range(i)]
-for i in range(10):
+wave_1 = ["ANT" for _ in range(19)]
+wave_1 += ["HORNET"]
+for i in range(4):
     waves.append(wave_1)
+wave_5 = ["ANT" for _ in range(14)]
+wave_5 += ["HORNET", "HORNET", "ANT", "ANT", "ANT", "ANT", "HORNET"]
+for i in range(19):
+    wave_5 += ["ANT"]
+wave_5 += ["HORNET", "HORNET", "HORNET", "HORNET", "HORNET"]
+wave_5 += ["ANT", "ANT", "ANT", "ANT", "ANT"]
+for i in range(6):
+    waves.append(wave_5)
+
 wave_11 = ["ANT" for _ in range(10)]
 for i in range(7, 10):
     wave_11 += ["ANT" for _ in range(10 - i)]
@@ -42,10 +49,12 @@ wave_14 = []
 for i in range(35):
     wave_14 += ["HORNET"]
 wave_15 = []
-wave_15 += ["ANT" for _ in range(15)]
-wave_15 += ["HORNET" for _ in range(15)]
-for i in range(15):
-    wave_15 += ["ANT", "HORNET"]
+wave_15 += ["HORNET" for _ in range(19)]
+wave_15 += ["ANT"]
+wave_15 += ["HORNET" for _ in range(19)]
+wave_15 += ["ANT"]
+for i in range(10):
+    wave_15 += ["HORNET", "ANT", "HORNET"]
 
 
 def start_new_wave(round_number: int):
@@ -58,7 +67,7 @@ def start_new_wave(round_number: int):
         2: {"spawn_interval": 1000, "wave_size": 10, "trigger_rush": -1},
         3: {"spawn_interval": 1000, "wave_size": 15, "trigger_rush": -1},
         4: {"spawn_interval": 750, "wave_size": 20, "trigger_rush": -1},
-        5: {"spawn_interval": 750, "wave_size": 20, "trigger_rush": 15, "rush_num": 5, "rush_speed": 250},
+        5: {"spawn_interval": 750, "wave_size": 20, "trigger_rush": -1},
         6: {"spawn_interval": 750, "wave_size": 30, "trigger_rush": -1},
         7: {"spawn_interval": 500, "wave_size": 30, "trigger_rush": -1},
         8: {"spawn_interval": 500, "wave_size": 45, "trigger_rush": -1},
@@ -67,7 +76,7 @@ def start_new_wave(round_number: int):
         11: {"spawn_interval": 500, "wave_size": 50, "trigger_rush": -1},
         12: {"spawn_interval": 500, "wave_size": 50, "trigger_rush": -1},
         13: {"spawn_interval": 500, "wave_size": 50, "trigger_rush": -1},
-        14: {"spawn_interval": 500, "wave_size": 35, "trigger_rush": -1},
+        14: {"spawn_interval": 500, "wave_size": 50, "trigger_rush": -1},
         15: {"spawn_interval": 500, "wave_size": 50, "trigger_rush": 15, "rush_num": 20, "rush_speed": 150},
     }
 
@@ -103,10 +112,10 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
         print(f"Spawning Enemy {enemies_spawned + 1}/{wave_size}")  # Debugging
         # Check what enemy is next to be spawned, spawn that enemy
         if wave_used[enemies_spawned] == "ANT":
-            ant = game_tools.AntEnemy((238, 500), 1, 1, game_tools.house_path, "assets/ant_base.png")
+            ant = AntEnemy((238, 500))
             enemies.append(ant)
         elif wave_used[enemies_spawned] == "HORNET":
-            hornet = game_tools.HornetEnemy((238, 500), 3, 2, game_tools.house_path, "assets/hornet_base.png")
+            hornet = HornetEnemy((238, 500))
             enemies.append(hornet)
         # Update spawn time and how many enemies have been spawned
         last_spawn_time = current_time
@@ -122,6 +131,6 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
     # Check if the wave is complete (all enemies spawned & defeated)
     if enemies_spawned >= wave_size and not enemies:
         print(f"Wave {round_number} Complete!")  # Debugging
-        game_tools.money += (150 * math.floor(math.log(2, round_number + 1)))
+        game_tools.money += 150 * math.floor((math.log2(round_number + 1)))
         return True  # Signal wave completion
     return False

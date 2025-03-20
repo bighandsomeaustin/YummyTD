@@ -3,7 +3,7 @@ import pygame
 from pygame import mixer
 import mainmenu
 import game_tools
-from save_progress import (save_data, load_data)
+# from save_progress import (save_data, load_data)
 from waves import (send_wave, start_new_wave)
 
 # pygame setup
@@ -125,7 +125,6 @@ while running:
                 # save_data(game_tools.user_health, "health.pkl")
                 # save_data(round_number, "round_number.pkl")
                 # save_data(game_tools.money, "money.pkl")
-
                 start_new_wave(round_number)
                 cursor_select = "NULL"
 
