@@ -166,7 +166,6 @@ class CentipedeEnemy:
           - Adjust the speed based on the number of non-head segments still alive.
           - Remove the centipede and subtract health if it reaches the end of the path.
         """
-        global user_health  # Ensure this matches how health is tracked in your game
 
         # Determine how many non-head segments are still alive.
         non_head_alive = sum(1 for seg in self.segments[1:] if seg.alive)
@@ -227,7 +226,6 @@ class CentipedeEnemy:
         self.update()
 
     def take_damage(self, damage):
-        global money
         """
         Apply damage to the centipede:
           - Damage is applied to the furthest (tail-first) alive segment among the links/tail.
@@ -248,7 +246,7 @@ class CentipedeEnemy:
         head.health -= damage
         if head.health <= 0:
             head.alive = False
-            money += 25
+            game_tools.money += 25
             self.sfx_splat.play()
             head.death_time = pygame.time.get_ticks()
 
