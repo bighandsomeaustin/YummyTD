@@ -1,5 +1,6 @@
 import pygame
 from pygame import mixer
+from towers import MrCheese, RatTent, Ozbourne
 import math
 import time
 
@@ -11,21 +12,25 @@ _asset_cache = {}
 _sound_cache = {}
 _font_cache = {}
 
+
 def load_image(path):
     if path not in _asset_cache:
         _asset_cache[path] = pygame.image.load(path).convert_alpha()
     return _asset_cache[path]
+
 
 def load_sound(path):
     if path not in _sound_cache:
         _sound_cache[path] = pygame.mixer.Sound(path)
     return _sound_cache[path]
 
+
 def get_font(name, size):
     key = (name, size)
     if key not in _font_cache:
         _font_cache[key] = pygame.font.SysFont(name, size)
     return _font_cache[key]
+
 
 towers = []
 enemies = []
@@ -83,6 +88,7 @@ recruit_path = [(580, 524), (727, 504), (826, 515), (897, 476), (884, 344), (703
                 (687, 294), (680, 174), (460, 164), (297, 228), (339, 257), (322, 306),
                 (297, 329), (137, 335), (113, 352), (113, 385), (136, 408), (186, 417),
                 (221, 447), (237, 502)]
+
 
 def play_splash_animation(scrn: pygame.Surface, pos: tuple, frame_delay: int = 5):
     for current_frame in range(len(frames)):
@@ -504,7 +510,7 @@ def update_towers(scrn: pygame.surface):
         tower.update(enemies)
         tower.render(scrn)
         if not isinstance(tower, RatTent) and not isinstance(tower, Ozbourne):
-            tower.shoot()
+            tower.shoot(enemies)
 
 
 def update_stats(scrn: pygame.surface, health: int, money: int, round_number: int, clock: pygame.time.Clock()):
@@ -587,10 +593,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             text_checkpath = checkpath_font.render("Ineligible Path", True, (255, 0, 0))
             scrn.blit(text_checkpath, (mouse[0] - 35, mouse[1] + 50))
         if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower):
-            tower_rattent = RatTent((mouse[0], mouse[1]), radius=50, recruit_health=1, recruit_speed=1,
-                                    recruit_damage=1,
-                                    image_path='assets/base_camp.png', recruit_image="assets/rat_recruit.png",
-                                    spawn_interval=2000)
+            tower_rattent = RatTent((mouse[0], mouse[1]))
             towers.append(tower_rattent)
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
@@ -714,535 +717,6 @@ class RecruitEntity:
             self.was_alive = False
         if self.is_alive:
             screen.blit(self.image, self.rect.topleft)
-
-class RatTent:
-    def __init__(self, position, radius, recruit_health, recruit_speed, recruit_damage, image_path, recruit_image, spawn_interval=2000):
-        self.position = position
-        self.radius = radius
-        self.recruit_health = recruit_health
-        self.recruit_speed = recruit_speed
-        self.recruit_damage = recruit_damage
-        self.image = load_image(image_path)
-        self.rect = self.image.get_rect(center=position)
-        self.spawn_interval = spawn_interval
-        self.last_spawn_time = 0
-        self.recruits = []
-        self.recruit_image = recruit_image
-        self.curr_bottom_upgrade = 0
-        self.curr_top_upgrade = 0
-        self.sell_amt = 325
-
-    def render(self, screen):
-        screen.blit(self.image, self.rect.topleft)
-        for recruit in self.recruits:
-            recruit.render(screen)
-
-    def update(self, enemies):
-        current_time = pygame.time.get_ticks()
-        if current_time - self.last_spawn_time >= self.spawn_interval and RoundFlag:
-            recruit_entity = RecruitEntity(self.position, 1, 1, recruit_path, 1, self.recruit_image)
-            closest_spawn_point, _ = recruit_entity.get_closest_point_on_path(self.position)
-            distance = ((closest_spawn_point[0] - self.position[0]) ** 2 + (closest_spawn_point[1] - self.position[1]) ** 2) ** 0.5
-            if distance <= self.radius:
-                recruit = RecruitEntity(
-                    position=closest_spawn_point,
-                    health=self.recruit_health,
-                    speed=self.recruit_speed,
-                    path=recruit_path,
-                    damage=self.recruit_damage,
-                    image_path=self.recruit_image
-                )
-                self.recruits.append(recruit)
-                self.last_spawn_time = current_time
-        for recruit in self.recruits[:]:
-            recruit.update(enemies)
-            if not recruit.is_alive:
-                self.recruits.remove(recruit)
-            if not RoundFlag:
-                self.recruits.remove(recruit)
-
-class MrCheese:
-    sfx_squeak = load_sound("assets/mouse-squeak.mp3")
-    def __init__(self, position, radius, weapon, damage, image_path, projectile_image, shoot_interval=1000):
-        self.position = position
-        self.radius = radius
-        self.weapon = weapon
-        self.damage = damage
-        self.image = load_image(image_path)
-        self.original_image = self.image
-        self.rect = self.image.get_rect(center=position)
-        self.angle = 0
-        self.target = None
-        self.projectiles = []
-        self.projectile_image = projectile_image
-        self.shoot_interval = shoot_interval
-        self.last_shot_time = 0
-        self.curr_top_upgrade = 0
-        self.curr_bottom_upgrade = 0
-        self.penetration = False
-        self.sell_amt = 75
-
-    def update(self, enemies):
-        global last_time_sfx
-        self.target = None
-        closest_distance = self.radius
-        potential_targets = []
-        current_time = pygame.time.get_ticks()
-        if current_time - last_time_sfx >= 15000:
-            self.sfx_squeak.play()
-            last_time_sfx = current_time
-        for enemy in enemies:
-            distance = math.sqrt((enemy.position[0] - self.position[0]) ** 2 +
-                                 (enemy.position[1] - self.position[1]) ** 2)
-            if distance <= self.radius:
-                potential_targets.append((distance, enemy))
-        potential_targets.sort(key=lambda x: x[0])
-        for _, enemy in potential_targets:
-            if not any(tower.target == enemy for tower in towers if tower != self and not isinstance(tower, RatTent) and not isinstance(tower, Ozbourne)):
-                self.target = enemy
-                break
-        if self.target is None and potential_targets:
-            self.target = potential_targets[0][1]
-        if self.target:
-            dx = self.target.position[0] - self.position[0]
-            dy = self.target.position[1] - self.position[1]
-            self.angle = math.degrees(math.atan2(-dy, dx))
-            self.image = pygame.transform.rotate(self.original_image, self.angle)
-            self.rect = self.image.get_rect(center=self.position)
-        for projectile in self.projectiles[:]:
-            projectile.move()
-            if projectile.hit:
-                if self.target is not None and self.target.is_alive:
-                    self.target.take_damage(self.damage)
-                if not self.penetration:
-                    self.projectiles.remove(projectile)
-                if self.penetration:
-                    projectile.penetration -= 1
-                    if projectile.penetration == 0:
-                        self.projectiles.remove(projectile)
-
-    def render(self, screen):
-        screen.blit(self.image, self.rect.topleft)
-        for projectile in self.projectiles:
-            projectile.render(screen)
-
-    def shoot(self):
-        current_time = pygame.time.get_ticks()
-        if self.target and current_time - self.last_shot_time >= self.shoot_interval:
-            projectile = Projectile(
-                position=self.position,
-                target=self.target,
-                speed=10,
-                damage=self.damage,
-                image_path=self.projectile_image
-            )
-            if self.penetration:
-                projectile.penetration = self.damage - round((self.damage / 2))
-            self.projectiles.append(projectile)
-            self.last_shot_time = current_time
-
-class Ozbourne:
-    riff_sfx = load_sound("assets/riff1.mp3")
-    def __init__(self, position, radius, weapon, damage, riff_blast_radius, image_path, riff_interval=4000):
-        self.position = position
-        self.radius = radius
-        self.weapon = weapon
-        self.damage = damage
-        self.image = load_image(image_path)
-        self.original_image = self.image
-        self.rect = self.image.get_rect(center=position)
-        self.riff_interval = riff_interval
-        self.riff_blast_radius = riff_blast_radius
-        self.last_blast_time = 0
-        self.blast_active = False
-        self.blast_animation_timer = 0
-        self.blast_duration = 1165
-        self.blast_radius = 0
-        self.max_blast_radius = self.riff_blast_radius
-        self.sell_amt = 250
-        self.curr_top_upgrade = 0
-        self.curr_bottom_upgrade = 0
-        self.riff_count = 0
-        self.damage_default = self.damage
-
-    def update(self, enemies):
-        current_time = pygame.time.get_ticks()
-        if current_time - self.last_blast_time >= self.riff_interval:
-            for enemy in enemies:
-                distance = math.sqrt((enemy.position[0] - self.position[0]) ** 2 +
-                                     (enemy.position[1] - self.position[1]) ** 2)
-                if distance <= self.radius:
-                    self.blast(enemies)
-                    break
-                else:
-                    self.riff_count = 0
-                    self.riff_sfx.stop()
-                    mixer.music.unpause()
-                    self.damage = 1
-        if self.blast_active:
-            self.blast_animation_timer += pygame.time.get_ticks() - self.last_blast_time
-            self.blast_radius += (self.max_blast_radius / self.blast_duration) * (pygame.time.get_ticks() - self.last_blast_time)
-            if self.blast_animation_timer >= self.blast_duration:
-                self.blast_active = False
-                self.blast_radius = 0
-        if not RoundFlag:
-            self.damage = 1
-            self.riff_sfx.stop()
-            mixer.music.unpause()
-            self.riff_count = 0
-
-    def blast(self, enemies):
-        if self.curr_bottom_upgrade < 1:
-            self.riff_sfx.play()
-        elif self.curr_bottom_upgrade >= 1:
-            self.riff_count += 1
-            if self.riff_count == 1:
-                mixer.music.pause()
-                self.riff_sfx.play()
-            elif self.riff_count >= 88:
-                self.riff_count = 0
-            self.damage += (self.riff_count * .1)
-        self.last_blast_time = pygame.time.get_ticks()
-        self.blast_active = True
-        self.blast_animation_timer = 0
-        self.blast_radius = 0
-        for enemy in enemies:
-            distance = math.sqrt((enemy.position[0] - self.position[0]) ** 2 +
-                                 (enemy.position[1] - self.position[1]) ** 2)
-            if distance <= self.riff_blast_radius:
-                enemy.take_damage(self.damage)
-
-    def render(self, screen):
-        screen.blit(self.image, self.rect.topleft)
-        if self.blast_active:
-            normalized_damage = (self.damage - 1) / (9.8 - 1)
-            normalized_damage = max(0, min(1, normalized_damage))
-            r = 255
-            g = int(200 * (1 - normalized_damage))
-            b = int(100 * (1 - normalized_damage))
-            pygame.draw.circle(
-                screen,
-                (r, g, b),
-                self.position,
-                int(self.blast_radius),
-                2
-            )
-
-class AntEnemy:
-    sfx_splat = load_sound("assets/splat_sfx.mp3")
-    img_death = load_image("assets/splatter.png")
-    def __init__(self, position, health, speed, path, image_path):
-        self.position = position
-        self.health = health
-        self.speed = speed
-        self.path = path
-        self.original_image = load_image(image_path)
-        self.image = self.original_image
-        self.rect = self.image.get_rect(center=position)
-        self.size = self.rect.size
-        self.current_target = 0
-        self.is_alive = True
-
-    def move(self):
-        global user_health
-        if self.current_target < len(self.path):
-            target_x, target_y = self.path[self.current_target]
-            dx = target_x - self.position[0]
-            dy = target_y - self.position[1]
-            distance = (dx ** 2 + dy ** 2) ** 0.5
-            if distance == 0:
-                return
-            direction_x = dx / distance
-            direction_y = dy / distance
-            self.position = (
-                self.position[0] + direction_x * self.speed,
-                self.position[1] + direction_y * self.speed
-            )
-            self.rect.center = self.position
-            self.update_orientation(direction_x, direction_y)
-            if distance <= self.speed:
-                self.current_target += 1
-        if self.current_target >= len(self.path):
-            self.is_alive = False
-            user_health -= self.health
-
-    def update_orientation(self, direction_x, direction_y):
-        angle = math.degrees(math.atan2(-direction_y, direction_x))
-        self.image = pygame.transform.rotate(self.original_image, angle - 90)
-        self.rect = self.image.get_rect(center=self.rect.center)
-
-    def take_damage(self, damage):
-        global money
-        self.health -= damage
-        if self.health <= 0:
-            self.is_alive = False
-            self.sfx_splat.play()
-            money += 5
-
-    def render(self, screen):
-        if self.is_alive:
-            screen.blit(self.image, self.rect.topleft)
-        if not self.is_alive:
-            screen.blit(self.img_death, self.rect.topleft)
-
-class HornetEnemy:
-    sfx_splat = load_sound("assets/splat_sfx.mp3")
-    img_death = load_image("assets/splatter.png")
-    def __init__(self, position, health, speed, path, image_path):
-        self.position = position
-        self.health = health
-        self.speed = speed
-        self.path = path
-        self.original_image = load_image(image_path)
-        self.image = self.original_image
-        self.rect = self.image.get_rect(center=position)
-        self.size = self.rect.size
-        self.current_target = 0
-        self.is_alive = True
-
-    def move(self):
-        global user_health
-        if self.current_target < len(self.path):
-            target_x, target_y = self.path[self.current_target]
-            dx = target_x - self.position[0]
-            dy = target_y - self.position[1]
-            distance = (dx ** 2 + dy ** 2) ** 0.5
-            if distance == 0:
-                return
-            direction_x = dx / distance
-            direction_y = dy / distance
-            self.position = (
-                self.position[0] + direction_x * self.speed,
-                self.position[1] + direction_y * self.speed
-            )
-            self.rect.center = self.position
-            self.update_orientation(direction_x, direction_y)
-            if distance <= self.speed:
-                self.current_target += 1
-        if self.current_target >= len(self.path):
-            self.is_alive = False
-            user_health -= self.health
-
-    def update_orientation(self, direction_x, direction_y):
-        angle = math.degrees(math.atan2(-direction_y, direction_x))
-        self.image = pygame.transform.rotate(self.original_image, angle - 90)
-        self.rect = self.image.get_rect(center=self.rect.center)
-
-    def take_damage(self, damage):
-        global money
-        self.health -= damage
-        if self.health <= 0:
-            self.is_alive = False
-            self.sfx_splat.play()
-            money += 10
-
-    def render(self, screen):
-        if self.is_alive:
-            screen.blit(self.image, self.rect.topleft)
-        if not self.is_alive:
-            screen.blit(self.img_death, self.rect.topleft)
-
-
-class CentipedeEnemy:
-    """
-    A composite enemy consisting of:
-      - Head (health=6)
-      - 4 Link segments (each health=3)
-      - Tail (health=3)
-    Movement is fluid: each segment follows the one ahead with a smoothing delay.
-    Damage is applied to the furthest (tail-first) alive segment until only the head remains.
-    Speed is 1 initially, increases to 2 when 3 or fewer non-head segments remain,
-    and becomes 3 when only the head is left.
-    The images are flipped horizontally in rendering.
-    """
-    sfx_splat = load_sound("assets/splat_sfx.mp3")
-    img_death = load_image("assets/splatter.png")
-
-    class Segment:
-        def __init__(self, role, health, image, position):
-            self.role = role  # "head", "link", or "tail"
-            self.health = health
-            self.image = image
-            self.position = position  # (x, y)
-            self.angle = 0  # in degrees; 0 means "facing up"
-            self.alive = True
-            self.death_time = None  # Stores the time of death
-            self.rect = self.image.get_rect(center=position)
-
-        def update_rect(self):
-            self.rect = self.image.get_rect(center=self.position)
-
-    def __init__(self, position, path):
-        """
-        :param position: Starting position (tuple)
-        :param path: List of points (tuples) for the centipede head to follow.
-        """
-        self.path = path
-        self.current_target = 0  # Index in the path for head movement
-        self.base_speed = 1      # Initial speed
-        self.speed = self.base_speed
-
-        # Load images
-        head_img = load_image("assets/centipede_head.png")
-        link_img = load_image("assets/centipede_link.png")
-        tail_img = load_image("assets/centipede_tail.png")
-
-        # Calculate desired gap distances (so segments appear connected)
-        # Gaps are computed based on half-heights of adjacent images.
-        self.gap_distances = []
-        gap_head_link = (head_img.get_height() / 4) + (link_img.get_height() / 4)
-        self.gap_distances.append(gap_head_link)
-        # For the gaps between the 4 links (using link height)
-        for _ in range(5):
-            gap_link_link = link_img.get_height() / 4
-            self.gap_distances.append(gap_link_link)
-        gap_link_tail = (link_img.get_height() / 4) + (tail_img.get_height() / 4)
-        self.gap_distances.append(gap_link_tail)
-
-        # Create segments. All segments start at the same initial position.
-        self.segments = []
-        # Head segment with health 6.
-        self.segments.append(self.Segment("head", 6, head_img, position))
-        # 6 link segments, each with health 2.
-        for _ in range(6):
-            self.segments.append(self.Segment("link", 2, link_img, position))
-        # Tail segment with health 3.
-        self.segments.append(self.Segment("tail", 3, tail_img, position))
-
-    def update(self):
-        """
-        Update the centipede:
-          - Move the head along its path.
-          - Smoothly update each following segment so that it trails its predecessor.
-          - Adjust the speed based on the number of non-head segments still alive.
-          - Remove the centipede and subtract health if it reaches the end of the path.
-        """
-        global user_health  # Ensure this matches how health is tracked in your game
-
-        # Determine how many non-head segments are still alive.
-        non_head_alive = sum(1 for seg in self.segments[1:] if seg.alive)
-        if non_head_alive >= 4:
-            self.speed = 1
-        elif non_head_alive > 0:
-            self.speed = 2
-        else:
-            self.speed = 3
-
-        # === Move the head along the path ===
-        head = self.segments[0]
-        if self.current_target < len(self.path):
-            target_point = self.path[self.current_target]
-            dx = target_point[0] - head.position[0]
-            dy = target_point[1] - head.position[1]
-            distance = math.hypot(dx, dy)
-            if distance:
-                dir_x = dx / distance
-                dir_y = dy / distance
-                move_dist = self.speed
-                new_x = head.position[0] + dir_x * move_dist
-                new_y = head.position[1] + dir_y * move_dist
-                head.position = (new_x, new_y)
-                head.angle = math.degrees(math.atan2(dir_x, -dir_y))
-                head.update_rect()
-                if distance <= move_dist:
-                    self.current_target += 1
-        else:
-            # Centipede reaches the end of the path
-            user_health -= head.health  # Subtract health when the enemy escapes
-            self.segments.clear()  # Remove all segments so it disappears
-            return
-
-        # === Smoothly update each following segment ===
-        alpha = 0.2  # Smoothing factor
-        for i in range(1, len(self.segments)):
-            prev_seg = self.segments[i - 1]
-            seg = self.segments[i]
-            desired_gap = self.gap_distances[i - 1]
-            vec_x = prev_seg.position[0] - seg.position[0]
-            vec_y = prev_seg.position[1] - seg.position[1]
-            dist = math.hypot(vec_x, vec_y)
-            if dist:
-                dir_x = vec_x / dist
-                dir_y = vec_y / dist
-                target_x = prev_seg.position[0] - desired_gap * dir_x
-                target_y = prev_seg.position[1] - desired_gap * dir_y
-                new_x = seg.position[0] + alpha * (target_x - seg.position[0])
-                new_y = seg.position[1] + alpha * (target_y - seg.position[1])
-                seg.position = (new_x, new_y)
-                desired_angle = math.degrees(math.atan2(dir_x, -dir_y))
-                seg.angle += alpha * ((desired_angle - seg.angle + 180) % 360 - 180)
-                seg.update_rect()
-
-    def move(self):
-        """Alias move() to update() for compatibility with the game loop."""
-        self.update()
-
-    def take_damage(self, damage):
-        global money
-        """
-        Apply damage to the centipede:
-          - Damage is applied to the furthest (tail-first) alive segment among the links/tail.
-          - Only if all non-head segments are destroyed is damage applied to the head.
-        """
-        for seg in reversed(self.segments[1:]):  # Prioritize tail & links first
-            if seg.alive:
-                seg.health -= damage
-                if seg.health <= 0:
-                    seg.alive = False
-                    money += 15
-                    self.sfx_splat.play()
-                    seg.death_time = pygame.time.get_ticks()  # Mark the time of death
-                return  # Exit after applying damage.
-
-        # If all non-head segments are destroyed, apply damage to the head.
-        head = self.segments[0]
-        head.health -= damage
-        if head.health <= 0:
-            head.alive = False
-            money += 25
-            self.sfx_splat.play()
-            head.death_time = pygame.time.get_ticks()
-
-    def render(self, screen: pygame.Surface):
-        """
-        Render each alive segment with its current rotation.
-        Show the splatter effect for a brief time after death.
-        """
-        current_time = pygame.time.get_ticks()
-        SPLATTER_DURATION = 100  # Time in milliseconds to show the splatter (0.5 seconds)
-
-        for seg in self.segments:
-            if seg.alive:
-                # Render living segments
-                rotated_image = pygame.transform.rotate(seg.image, seg.angle)
-                rotated_image = pygame.transform.flip(rotated_image, True, False)  # Flip horizontally
-                rect = rotated_image.get_rect(center=seg.position)
-                screen.blit(rotated_image, rect.topleft)
-            elif seg.death_time and current_time - seg.death_time <= SPLATTER_DURATION:
-                # Render splatter effect for a limited time
-                rotated_splatter = pygame.transform.rotate(self.img_death, seg.angle)
-                rotated_splatter = pygame.transform.flip(rotated_splatter, True, False)
-                rect = rotated_splatter.get_rect(center=seg.position)
-                screen.blit(rotated_splatter, rect.topleft)
-
-    @property
-    def position(self):
-        """
-        Expose the centipede's effective position as the position of the furthest (tail-most)
-        alive segment. This helps towers target the centipede's remaining body.
-        """
-        for seg in reversed(self.segments):
-            if seg.alive:
-                return seg.position
-        return self.segments[0].position
-
-    @property
-    def is_alive(self):
-        """
-        The centipede is considered alive as long as its head is alive.
-        If all segments are cleared (e.g., reached the end), return False.
-        """
-        return bool(self.segments) and self.segments[0].alive
 
 
 class Projectile:

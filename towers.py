@@ -4,8 +4,6 @@ import pygame
 
 
 class Tower:
-    # sfx_squeak = pygame.mixer.Sound("assets/mouse-squeak.mp3")
-
     def __init__(self, position, radius, weapon, damage, image_path, projectile_image,
                  speed, cost, shoot_interval=1000):
         self.position = position  # (x, y) tuple
@@ -13,7 +11,7 @@ class Tower:
         self.radius = radius
         self.weapon = weapon
         self.damage = damage
-        self.image = pygame.image.load(image_path).convert_alpha()
+        self.image = game_tools.load_image(image_path)
         self.original_image = self.image
         self.rect = self.image.get_rect(center=position)
         self.angle = 0  # Default orientation
@@ -168,7 +166,7 @@ class Ozbourne(Tower):
         self.max_blast_radius = self.riff_blast_radius  # Maximum visual blast size
         self.riff_count = 0
         self.damage_default = self.damage
-        self.riff_sfx = pygame.mixer.Sound("assets/riff1.mp3")
+        self.riff_sfx = game_tools.load_sound("assets/riff1.mp3")
 
     def update(self, enemies):
         current_time = pygame.time.get_ticks()
