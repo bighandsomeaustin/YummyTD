@@ -2,7 +2,7 @@ import math
 import pygame
 import game_tools
 from enemies import AntEnemy, HornetEnemy, CentipedeEnemy, CentipedeBoss
-import save_progress
+
 
 # initializes used variables
 enemy_data = [AntEnemy, HornetEnemy]
@@ -50,7 +50,7 @@ waves.append(wave_15)
 wave_16 = []
 wave_16 += ["CENTIPEDE"] * 3
 waves.append(wave_16)
-wave_17 = ["CENTIPEDEBOSS"] * 30
+wave_17 = ["CENTIPEDEBOSS"] * 100
 waves.append(wave_17)
 
 
@@ -76,7 +76,7 @@ def start_new_wave(round_number: int):
         14: {"spawn_interval": 500, "wave_size": 35, "trigger_rush": -1},
         15: {"spawn_interval": 500, "wave_size": 50, "trigger_rush": 15, "rush_num": 20, "rush_speed": 150},
         16: {"spawn_interval": 3500, "wave_size": 3, "trigger_rush": -1},
-        17: {"spawn_interval": 50, "wave_size": 30, "trigger_rush": -1}
+        17: {"spawn_interval": 150, "wave_size": 100, "trigger_rush": -1}
     }
 
     if round_number in wave_data:
@@ -116,16 +116,14 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
             enemies.append(centipede)
         elif wave_used[enemies_spawned] == "CENTIPEDEBOSS":
             if enemies_spawned == 0:
-                centipede_boss = CentipedeBoss(enemies_spawned, (238, 500), speed=2,
-                                               image_path="assets/centipede_head.png")
-            elif enemies_spawned < 29:
-                centipede_boss = CentipedeBoss(enemies_spawned, (238, 500), speed=2,
-                                               image_path="assets/centipede_link.png")
+                centipede_boss = CentipedeBoss(enemies_spawned, (238, 500), image_path="assets/centipede_head.png")
+            elif enemies_spawned < 99:
+                centipede_boss = CentipedeBoss(enemies_spawned, (238, 500), image_path="assets/centipede_link.png")
             else:
-                centipede_boss = CentipedeBoss(enemies_spawned, (238, 500), speed=2,
-                                               image_path="assets/centipede_tail.png")
+                centipede_boss = CentipedeBoss(enemies_spawned, (238, 500), image_path="assets/centipede_tail.png")
+                centipede_boss.speed = 0.5
                 for e in enemies:
-                    e.speed = 1
+                    e.speed = 0.5
             enemies.append(centipede_boss)
         last_spawn_time = current_time
         enemies_spawned += 1

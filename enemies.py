@@ -293,19 +293,26 @@ class CentipedeEnemy:
 
 
 class CentipedeBoss(Enemy):
-    def __init__(self, index, position=(238, 500), health=5, money=15, speed=1, image_path="assets/centipede_head.png"):
+    def __init__(self, index, position=(238, 500), health=15, money=15,
+                 speed=0.75, image_path="assets/centipede_head.png"):
         super().__init__(position, health, money, speed, image_path)
         self.index = index
+        self.link_health = 250
 
-    def update_orientation(self, direction_x, direction_y):
+    def move(self):
         if self.index == game_tools.enemies[0].index:
-            self.image = game_tools.load_image("assets/centipede_head.png")
-        super().update_orientation(direction_x, direction_y)
+            self.original_image = game_tools.load_image("assets/centipede_head.png")
+        elif self.index == game_tools.enemies[len(game_tools.enemies)-1].index:
+            self.original_image = game_tools.load_image("assets/centipede_tail.png")
+        super().move()
 
     def take_damage(self, damage):
-        if self.index == game_tools.enemies[0].index:
+        if (self.index == game_tools.enemies[0].index or
+                self.index == game_tools.enemies[len(game_tools.enemies)-1].index):
             self.health -= damage
-        if self.health <= 0:
+        else:
+            self.link_health -= damage
+        if self.health <= 0 or self.link_health <= 0:
             self.is_alive = False
             self.sfx_splat.play()
             game_tools.money += self.money
