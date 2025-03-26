@@ -3,7 +3,7 @@ import pygame
 from pygame import mixer
 import mainmenu
 import game_tools
-# from save_progress import (save_data, load_data)
+from save_progress import (save_data, load_data)
 from waves import (send_wave, start_new_wave)
 
 # pygame setup
@@ -23,7 +23,7 @@ state = "Menu"
 resumeFlag = False
 mixer.music.play(loops=-1)
 curr_wave = False
-round_number = 1    # change for debugging
+round_number = 16    # change for debugging
 PlayFlag = True
 
 while running:
@@ -35,7 +35,6 @@ while running:
 
     # MAIN MENU
     while state == "Menu":
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -58,26 +57,21 @@ while running:
         exit_new_tower = True
 
     while state == "Play":
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
 
         option = mainmenu.playscreen_control(screen, resumeFlag)
-
         if option == "close":
             state = "Menu"
-
         if option == "New":
             state = "New Game"
-
         pygame.display.flip()
         clock.tick(60)  # limits FPS to 60
 
     if state == "New Game":
         game_tools.fade_into_image(screen, "assets/house_map_baselayer.png", 500)
-        image_map = pygame.image.load(
-            "assets/house_map_baselayer.png").convert_alpha()
+        image_map = pygame.image.load("assets/house_map_baselayer.png").convert_alpha()
         start_new_wave(round_number)
         mixer.music.fadeout(1000)
         mixer.music.load("assets/map_music.mp3")
@@ -95,13 +89,12 @@ while running:
         # round_number = load_data("round_number.pkl")
 
     while state == "New Game":
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
 
         game_tools.update_towers(screen)
-        game_tools.update_stats(screen, game_tools.user_health, game_tools.money, round_number)
+        game_tools.update_stats(screen, game_tools.user_health, game_tools.money, round_number, clock)
 
         cursor_select = game_tools.check_game_menu_elements(screen)
         if cursor_select is not ("NULL" or "nextround"):
@@ -114,7 +107,6 @@ while running:
         if game_tools.RoundFlag:
             mixer.music.set_volume(0.35)
             curr_wave = send_wave(screen, round_number)
-
             if curr_wave:
                 mixer.music.set_volume(0.10)
                 game_tools.RoundFlag = False
@@ -137,4 +129,6 @@ while running:
         screen.blit(image_map, (0, 0))
         clock.tick(60)  # limits FPS to 60
 
+    pygame.display.flip()
+    clock.tick(60)
 pygame.quit()
