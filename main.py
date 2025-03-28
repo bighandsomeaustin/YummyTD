@@ -5,6 +5,7 @@ import mainmenu
 import game_tools
 from save_progress import (save_data, load_data)
 from waves import (send_wave, start_new_wave)
+from game_tools import music_volume
 
 # pygame setup
 
@@ -14,16 +15,14 @@ Icon = pygame.image.load('assets/icon.png')
 pygame.display.set_icon(Icon)
 pygame.init()
 mixer.init()
-mixer.music.load("assets/menu_music.mp3")
-mixer.music.set_volume(0.15)
+mixer.music.set_volume(music_volume)
 screen = pygame.display.set_mode((1280, 720))
 clock = pygame.time.Clock()
 running = True
 state = "Menu"
 resumeFlag = False
-mixer.music.play(loops=-1)
 curr_wave = False
-round_number = 17   # change for debugging
+round_number = 1    # change for debugging
 PlayFlag = True
 
 while running:
@@ -32,6 +31,10 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
+
+    if state == "Menu":
+        mixer.music.load("assets/menu_music.mp3")
+        mixer.music.play(loops=-1)
 
     # MAIN MENU
     while state == "Menu":
@@ -89,15 +92,27 @@ while running:
         # round_number = load_data("round_number.pkl")
 
     while state == "New Game":
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+        for events in pygame.event.get():
+            for tower_bank in game_tools.towers:
+                if isinstance(tower_bank, game_tools.RatBank):
+                    tower_bank.update_user_text(events)
+                    pygame.event.clear()
+            if events.type == pygame.QUIT:
                 pygame.quit()
+            if events.type == pygame.KEYDOWN:
+                if events.key == pygame.K_ESCAPE:
+                    exit_new_tower = True
 
         game_tools.update_towers(screen)
         game_tools.update_stats(screen, game_tools.user_health, game_tools.money, round_number, clock)
+        game_tools.current_wave = round_number
 
         cursor_select = game_tools.check_game_menu_elements(screen)
-        if cursor_select is not ("NULL" or "nextround"):
+        if cursor_select == "saveandquit":
+            # save game
+            state = "Menu"
+
+        if cursor_select is not ("NULL" or "nextround" or "saveandquit"):
             tower = cursor_select
             exit_new_tower = False
 
@@ -105,18 +120,14 @@ while running:
             exit_new_tower = game_tools.handle_newtower(screen, tower)
 
         if game_tools.RoundFlag:
-            mixer.music.set_volume(0.35)
             curr_wave = send_wave(screen, round_number)
             if curr_wave:
-                mixer.music.set_volume(0.10)
+                for tower in game_tools.towers:
+                    if isinstance(tower, game_tools.RatBank):
+                        tower.process_loan_payment()
+                        tower.process_interest()
                 game_tools.RoundFlag = False
                 round_number += 1
-                # save new state after starting new round
-                # save_data(game_tools.towers, "towers.pkl")
-                # Towers can't be pickled!! will need to use .json eventually
-                # save_data(game_tools.user_health, "health.pkl")
-                # save_data(round_number, "round_number.pkl")
-                # save_data(game_tools.money, "money.pkl")
                 start_new_wave(round_number)
                 cursor_select = "NULL"
 
