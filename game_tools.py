@@ -656,8 +656,8 @@ def handle_upgrade(scrn, tower):
                         tower.reload_time = 5374
                         tower.shoot_interval = 1895
                         tower.reload_sound = load_sound("assets/shotgun_reload.mp3")
-                        tower.shoot_sound = load_sound("assets/shotgun_shoot.mp3")
-                        tower.radius = 50
+                        tower.radius = 75
+                    tower.shoot_sound = load_sound("assets/shotgun_shoot.mp3")
                     tower.curr_top_upgrade = 2
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
@@ -680,7 +680,9 @@ def handle_upgrade(scrn, tower):
                     tower.curr_bottom_upgrade = 1
                     tower.radius = 150
                     tower.reload_time = 2500
-                    tower.shoot_sound = load_sound("assets/launcher_shoot.mp3")
+                    if tower.curr_top_upgrade < 1:
+                        tower.shoot_sound = load_sound("assets/launcher_shoot.mp3")
+                    tower.reload_sound = load_sound("assets/commando_reload.mp3")
                     UpgradeFlag = True
                     if tower.curr_top_upgrade == 0:
                         tower.image = load_image("assets/soldier_shotgun.png")
