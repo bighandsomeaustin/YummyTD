@@ -49,7 +49,7 @@ for i in range(15):
     wave_15 += ["ANT", "HORNET"]
 waves.append(wave_15)
 wave_16 = []
-wave_16 += ["CENTIPEDE"] * 3
+wave_16 += ["CENTIPEDE_BOSS"]
 waves.append(wave_16)
 
 
@@ -74,7 +74,7 @@ def start_new_wave(round_number: int):
         13: {"spawn_interval": 500, "wave_size": 50, "trigger_rush": -1},
         14: {"spawn_interval": 500, "wave_size": 35, "trigger_rush": -1},
         15: {"spawn_interval": 500, "wave_size": 50, "trigger_rush": 15, "rush_num": 20, "rush_speed": 150},
-        16: {"spawn_interval": 3500, "wave_size": 3, "trigger_rush": -1}
+        16: {"spawn_interval": 3500, "wave_size": 1, "trigger_rush": -1}
     }
 
     if round_number in wave_data:
@@ -113,6 +113,9 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
             enemies.append(hornet)
         elif wave_used[enemies_spawned] == "CENTIPEDE":
             centipede = game_tools.CentipedeEnemy((238, 500), game_tools.house_path)
+            enemies.append(centipede)
+        elif wave_used[enemies_spawned] == "CENTIPEDE_BOSS":
+            centipede = game_tools.CentipedeEnemy((238, 500), game_tools.house_path, links=18)
             enemies.append(centipede)
         last_spawn_time = current_time
         enemies_spawned += 1
