@@ -5,7 +5,7 @@ import mainmenu
 import game_tools
 from save_progress import (save_data, load_data)
 from waves import (send_wave, start_new_wave)
-from game_tools import music_volume
+from game_tools import music_volume, load_image
 
 # pygame setup
 
@@ -79,6 +79,10 @@ while running:
         mixer.music.fadeout(1000)
         mixer.music.load("assets/map_music.mp3")
         mixer.music.play(-1)
+        game_tools.user_health = 100
+        game_tools.money = 250
+        round_number = 1
+        state = "Game"
         # save current new game data
         # this will overwrite any previous saves
         # save_data(game_tools.towers, "towers.pkl")
@@ -91,7 +95,7 @@ while running:
         # game_tools.money = load_data("money.pkl")
         # round_number = load_data("round_number.pkl")
 
-    while state == "New Game":
+    while state == "Game":
         for events in pygame.event.get():
             for tower_bank in game_tools.towers:
                 if isinstance(tower_bank, game_tools.RatBank):
@@ -111,6 +115,10 @@ while running:
         if cursor_select == "saveandquit":
             # save game
             state = "Menu"
+        if cursor_select == "newgame":
+            state = "New Game"
+        if cursor_select == 'menu':
+            state = 'Menu'
 
         if cursor_select is not ("NULL" or "nextround" or "saveandquit"):
             tower = cursor_select
@@ -138,7 +146,7 @@ while running:
 
         pygame.display.flip()
         screen.blit(image_map, (0, 0))
-        clock.tick(60)  # limits FPS to 60
+        clock.tick(60 * game_tools.game_speed_multiplier)  # limits FPS to 60
 
     pygame.display.flip()
     clock.tick(60)

@@ -2,6 +2,7 @@ import pygame
 from pygame import mixer
 import math
 import time
+import random
 
 pygame.init()
 pygame.display.set_mode((1280, 720))
@@ -44,12 +45,15 @@ UpgradeFlag = False
 SettingsFlag = False
 curr_upgrade_tower = None
 MogFlag = False
+gameoverFlag = False
 last_time_sfx = pygame.time.get_ticks()
-money = 25000  # change for debugging
+money = 250  # change for debugging
 user_health = 100
 music_volume = 1.0
 user_volume = 1.0
 slider_dragging = False
+game_speed_multiplier = 1  # Add at top with other globals
+last_frame_time = 0  # Track frame timing
 
 # Load frames once globally
 frames = [load_image(f"assets/splash/splash{i}.png") for i in range(1, 8)]
@@ -91,6 +95,20 @@ recruit_path = [(580, 524), (727, 504), (826, 515), (897, 476), (884, 344), (703
                 (687, 294), (680, 174), (460, 164), (297, 228), (339, 257), (322, 306),
                 (297, 329), (137, 335), (113, 352), (113, 385), (136, 408), (186, 417),
                 (221, 447), (237, 502)]
+
+
+def get_scaled_time():
+    """Returns time adjusted for game speed"""
+    global last_frame_time
+    current_time = pygame.time.get_ticks()
+    delta = current_time - last_frame_time
+    last_frame_time = current_time
+    return delta * game_speed_multiplier
+
+
+def get_scaled_delta():
+    """Returns time delta adjusted for game speed"""
+    return (1000/60) * (1/game_speed_multiplier)  # Approximate frame delta
 
 
 def play_splash_animation(scrn: pygame.Surface, pos: tuple, frame_delay: int = 5):
@@ -219,7 +237,8 @@ def fade_into_image(scrn: pygame.Surface, image_path: str, duration: int = 200):
 
 
 def check_game_menu_elements(scrn: pygame.surface) -> str:
-    global RoundFlag, money, UpgradeFlag, curr_upgrade_tower, SettingsFlag, music_volume, slider_dragging, user_volume
+    global RoundFlag, money, UpgradeFlag, curr_upgrade_tower, SettingsFlag, music_volume, slider_dragging, user_volume \
+        , gameoverFlag, enemies, current_wave, user_health, game_speed_multiplier
     purchase = load_sound("assets/purchase_sound.mp3")
     img_tower_select = load_image("assets/tower_select.png")
     img_mrcheese_text = load_image("assets/mrcheese_text.png")
@@ -228,7 +247,8 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     img_ozbourne_text = load_image("assets/ozbourne_text.png")
     img_commando_text = load_image("assets/commando_text.png")
     img_playbutton = load_image("assets/playbutton.png")
-    img_playbutton_unavail = load_image("assets/playbutton_unavail.png")
+    img_playbutton_1x = load_image("assets/playbutton_1x.png")
+    img_playbutton_2x = load_image("assets/playbutton_2x.png")
     img_settingsbutton = load_image("assets/settingsbutton.png")
     img_settings_window = load_image("assets/ingame_settings.png")
     img_music_slider = load_image("assets/music_slider.png")
@@ -244,6 +264,27 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     # Calculate slider x based on music_volume (0.0 to 1.0)
     slider_x = slider_min + user_volume * (slider_max - slider_min)
 
+    if user_health <= 0 and not gameoverFlag:
+        user_health = 0
+        gameoverFlag = True
+        mixer.music.load("assets/song_gameover.mp3")
+        mixer.music.play(-1)
+        enemies.clear()
+        towers.clear()
+        current_wave = 1
+        RoundFlag = False
+    if gameoverFlag:
+        img_gameover = load_image("assets/gameover.png")
+        scrn.blit(img_gameover, (0, 0))
+        if 332 <= mouse[0] <= 332 + 298 and 372 <= mouse[1] <= 372 + 153:
+            if detect_single_click():
+                gameoverFlag = False
+                return "newgame"
+        if 664 <= mouse[0] <= 664 + 298 and 372 <= mouse[1] <= 372 + 153:
+            if detect_single_click():
+                gameoverFlag = False
+                return "menu"
+
     if RoundFlag:
         music_volume = user_volume
     else:
@@ -258,7 +299,14 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
                 RoundFlag = True
                 return "nextround"
     if RoundFlag:
-        scrn.blit(img_playbutton_unavail, (1110, 665))
+        if game_speed_multiplier == 1:
+            scrn.blit(img_playbutton_1x, (1110, 665))
+        else:
+            scrn.blit(img_playbutton_2x, (1110, 665))
+        # 2x speed
+        if 1110 <= mouse[0] <= 1110 + 81 and 665 <= mouse[1] <= 665 + 50:
+            if detect_single_click():
+                game_speed_multiplier = 3 if game_speed_multiplier == 1 else 1
 
     # settings button
     scrn.blit(img_settingsbutton, (1192, 665))
@@ -280,7 +328,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
         if 550 <= mouse[0] <= 550 + 199 and 286 <= mouse[1] <= 286 + 114:
             if detect_single_click():
                 SettingsFlag = False
-                return "saveandquit"    # change to quit w/o saving later
+                return "saveandquit"  # change to quit w/o saving later
         # If left mouse button is pressed, check for dragging
         if mouse_pressed:
             # If not already dragging, check if the click is near the slider knob
@@ -293,7 +341,6 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
                 user_volume = (new_x - slider_min) / (slider_max - slider_min)
         else:
             slider_dragging = False
-
 
     # MRCHEESE
     if 1115 <= mouse[0] <= 1115 + 73 and 101 <= mouse[1] <= 101 + 88:
@@ -615,15 +662,17 @@ def handle_upgrade(scrn, tower):
                         tower.image = load_image("assets/rat_bank_fargo_skyscraper.png")
                         tower.original_image = load_image("assets/rat_bank_fargo_skyscraper.png")
     if isinstance(tower, CheddarCommando):
-        img_shotgun_upgrade = load_image("assets/upgrade_better_credit.png")
-        img_rpg_upgrade = load_image("assets/upgrade_cheese_fargo.png")
+        img_shotgun_upgrade = load_image("assets/upgrade_shotgun.png")
+        img_rpg_upgrade = load_image("assets/upgrade_rocket.png")
+        img_piercing_upgrade = load_image("assets/upgrade_piercing.png")
+        img_thumper_upgrade = load_image("assets/upgrade_thumper.png")
         upgrade_font = get_font("arial", 16)
         text_shotgun = upgrade_font.render("Shotgun", True, (0, 0, 0))
         text_piercing = upgrade_font.render("Piercing Rounds", True, (0, 0, 0))
         text_rpg = upgrade_font.render("Explosive Rounds", True, (0, 0, 0))
         text_grenade = upgrade_font.render("Grenade Launcher", True, (0, 0, 0))
         if tower.curr_top_upgrade == 0:
-            scrn.blit(img_shotgun_upgrade, (883, 65))
+            scrn.blit(img_piercing_upgrade, (883, 65))
             scrn.blit(text_piercing, (952, 42))
         elif tower.curr_top_upgrade == 1:
             scrn.blit(img_shotgun_upgrade, (883, 65))
@@ -633,9 +682,9 @@ def handle_upgrade(scrn, tower):
             scrn.blit(img_rpg_upgrade, (883, 194))
             scrn.blit(text_rpg, (942, 172))
         elif tower.curr_bottom_upgrade == 1:
-            scrn.blit(img_rpg_upgrade, (883, 194))
+            scrn.blit(img_thumper_upgrade, (883, 194))
             scrn.blit(text_grenade, (941, 172))
-        # shotgun upgrade
+        # piercing upgrade
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
             scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
@@ -646,12 +695,13 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
-                        tower.image = load_image("assets/soldier_shotgun.png")
-                        tower.original_image = load_image("assets/soldier_shotgun.png")
-                elif tower.curr_top_upgrade == 1 and money >= 600 and tower.curr_bottom_upgrade != 2:
+                        tower.image = load_image("assets/soldier_piercing.png")
+                        tower.original_image = load_image("assets/soldier_piercing.png")
+                # shotgun upgrade
+                elif tower.curr_top_upgrade == 1 and money >= 750 and tower.curr_bottom_upgrade != 2:
                     purchase.play()
-                    money -= 600
-                    tower.sell_amt += 300
+                    money -= 750
+                    tower.sell_amt += 375
                     if tower.curr_bottom_upgrade < 1:
                         tower.reload_time = 5374
                         tower.shoot_interval = 1895
@@ -660,7 +710,7 @@ def handle_upgrade(scrn, tower):
                     tower.shoot_sound = load_sound("assets/shotgun_shoot.mp3")
                     tower.curr_top_upgrade = 2
                     UpgradeFlag = True
-                    if tower.curr_bottom_upgrade == 0:
+                    if tower.curr_bottom_upgrade <= 1:
                         tower.image = load_image("assets/soldier_shotgun.png")
                         tower.original_image = load_image("assets/soldier_shotgun.png")
         if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
@@ -682,14 +732,10 @@ def handle_upgrade(scrn, tower):
                     tower.reload_time = 2500
                     if tower.curr_top_upgrade < 1:
                         tower.shoot_sound = load_sound("assets/launcher_shoot.mp3")
+                        tower.image = load_image("assets/soldier_rocket.png")
+                        tower.original_image = load_image("assets/soldier_rocket.png")
                     tower.reload_sound = load_sound("assets/commando_reload.mp3")
                     UpgradeFlag = True
-                    if tower.curr_top_upgrade == 0:
-                        tower.image = load_image("assets/soldier_shotgun.png")
-                        tower.original_image = load_image("assets/soldier_shotgun.png")
-                    elif tower.curr_top_upgrade == 1:
-                        tower.image = load_image("assets/soldier_shotgun.png")
-                        tower.original_image = load_image("assets/soldier_shotgun.png")
                 elif money >= 900 and tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade != 2:
                     purchase.play()
                     money -= 900
@@ -700,12 +746,8 @@ def handle_upgrade(scrn, tower):
                     tower.reload_time = 5500
                     tower.reload_sound = load_sound("assets/shotgun_reload.mp3")
                     UpgradeFlag = True
-                    if tower.curr_top_upgrade == 0:
-                        tower.image = load_image("assets/soldier_shotgun.png")
-                        tower.original_image = load_image("assets/soldier_shotgun.png")
-                    elif tower.curr_top_upgrade == 1:
-                        tower.image = load_image("assets/soldier_shotgun.png")
-                        tower.original_image = load_image("assets/soldier_shotgun.png")
+                    tower.image = load_image("assets/soldier_thumper.png")
+                    tower.original_image = load_image("assets/soldier_thumper.png")
 
     if detect_single_click() and not (
             (tower.position[0] - 25) <= mouse[0] <= (tower.position[0] + 25) and (tower.position[1] - 25) <= mouse[
@@ -810,13 +852,13 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
                 if event.key == pygame.K_ESCAPE:
                     return True
         if check_hitbox(house_hitbox, relative_pos, towers):
-            pygame.draw.circle(circle_surface, (0, 0, 0, 128), (100, 100), 100)
+            pygame.draw.circle(circle_surface, (0, 0, 0, 128), (75, 75), 75)
             scrn.blit(img_base_soldier, (mouse[0] - 25, mouse[1] - 25))
-            scrn.blit(circle_surface, (mouse[0] - 100, mouse[1] - 100))
+            scrn.blit(circle_surface, (mouse[0] - 75, mouse[1] - 75))
         elif not check_hitbox(house_hitbox, relative_pos, towers):
-            pygame.draw.circle(circle_surface, (255, 0, 0, 128), (100, 100), 100)
+            pygame.draw.circle(circle_surface, (255, 0, 0, 128), (75, 75), 75)
             scrn.blit(img_base_soldier, (mouse[0] - 25, mouse[1] - 25))
-            scrn.blit(circle_surface, (mouse[0] - 100, mouse[1] - 100))
+            scrn.blit(circle_surface, (mouse[0] - 75, mouse[1] - 75))
         if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower) and tower == "soldier":
             tower_commando = CheddarCommando((mouse[0], mouse[1]))
             towers.append(tower_commando)
@@ -1012,8 +1054,8 @@ class RatTent:
             recruit.render(screen)
 
     def update(self, enemies):
-        current_time = pygame.time.get_ticks()
-        if current_time - self.last_spawn_time >= self.spawn_interval and RoundFlag:
+        scaled_interval = self.spawn_interval / game_speed_multiplier
+        if pygame.time.get_ticks() - self.last_spawn_time >= scaled_interval and RoundFlag:
             recruit_entity = RecruitEntity(self.position, 1, 1, recruit_path, 1, self.recruit_image)
             closest_spawn_point, _ = recruit_entity.get_closest_point_on_path(self.position)
             distance = ((closest_spawn_point[0] - self.position[0]) ** 2 + (
@@ -1028,7 +1070,7 @@ class RatTent:
                     image_path=self.recruit_image
                 )
                 self.recruits.append(recruit)
-                self.last_spawn_time = current_time
+                self.last_spawn_time = pygame.time.get_ticks()
         for recruit in self.recruits[:]:
             recruit.update(enemies)
             if not recruit.is_alive:
@@ -1106,19 +1148,20 @@ class MrCheese:
             projectile.render(screen)
 
     def shoot(self):
-        current_time = pygame.time.get_ticks()
-        if self.target and current_time - self.last_shot_time >= self.shoot_interval:
-            projectile = Projectile(
-                position=self.position,
-                target=self.target,
-                speed=10,
-                damage=self.damage,
-                image_path=self.projectile_image
-            )
-            if self.penetration:
-                projectile.penetration = self.damage - round((self.damage / 2))
-            self.projectiles.append(projectile)
-            self.last_shot_time = current_time
+        scaled_interval = self.shoot_interval / game_speed_multiplier
+        if self.target and self.target.is_alive:  # Add target validation
+            if pygame.time.get_ticks() - self.last_shot_time >= scaled_interval:
+                projectile = Projectile(
+                    position=self.position,
+                    target=self.target,
+                    speed=10 * game_speed_multiplier,  # Scaled projectile speed
+                    damage=self.damage,
+                    image_path=self.projectile_image
+                )
+                if self.penetration:
+                    projectile.penetration = self.damage - round((self.damage / 2))
+                self.projectiles.append(projectile)
+                self.last_shot_time = pygame.time.get_ticks()
 
 
 class RatBank:
@@ -1129,16 +1172,16 @@ class RatBank:
         self.radius = 0
         # Investment properties
         self.interest_rate = 1.03  # Base interest rate (3% per round)
-        self.cash_invested = 0     # Total cash invested by the user
-        self.cash_generated = 0    # Interest generated on the invested cash
-        self.stock_value = 0       # Calculated as 10% of total towers’ sell_amt
+        self.cash_invested = 0  # Total cash invested by the user
+        self.cash_generated = 0  # Interest generated on the invested cash
+        self.stock_value = 0  # Calculated as 10% of total towers’ sell_amt
         self.investment_window_open = False
         self.open_new_investment = False
         self.open_withdraw_window = False
         # Loan properties (unlocked with the Cheese Fargo HQ upgrade)
-        self.loan_amount = 0       # Outstanding loan balance
-        self.loan_payment = 0      # Payment due each round for the active loan
-        self.loan_type = None      # Either "provoloan" or "briefund"
+        self.loan_amount = 0  # Outstanding loan balance
+        self.loan_payment = 0  # Payment due each round for the active loan
+        self.loan_type = None  # Either "provoloan" or "briefund"
         self.provoloan = 5000
         self.provoloan_payment = 285
         self.provoloanFlag = False
@@ -1146,7 +1189,7 @@ class RatBank:
         self.briefund_payment = 720
         self.briefundFlag = False
         # Upgrade flags
-        self.curr_top_upgrade = 0   # For interest rate improvement (Cheese Fargo upgrade)
+        self.curr_top_upgrade = 0  # For interest rate improvement (Cheese Fargo upgrade)
         self.curr_bottom_upgrade = 0  # For loan functionality (Cheese Fargo HQ upgrade)
         self.invested_round = current_wave  # Round tracking for investment updates
         self.curr_round = current_wave
@@ -1300,7 +1343,7 @@ class RatBank:
         self.curr_round = current_wave
         round_diff = self.curr_round - self.invested_round
         self.cash_generated += int((self.cash_invested + self.cash_generated) *
-                                  (self.interest_rate - 1))
+                                   (self.interest_rate - 1))
 
     def process_loan_payment(self):
         """
@@ -1389,6 +1432,7 @@ class CommandoProjectile:
         self.speed = speed
         self.damage = damage
         self.radius = 3  # bullet radius for drawing
+        self.penetration = 5  # Add penetration counter
         self.hit = False
         self.piercing = piercing
         self.explosive = False
@@ -1428,17 +1472,17 @@ class CheddarCommando:
         self.shot_count = 0
         self.reload_time = reload_time
         self.is_reloading = False
-
+        self.has_fired = False  # Tracks whether the unit has fired at least once
         # Explosion properties (for debugging, explosion radius set to 100)
         self.explosion_active = False
         self.explosion_damage = 1
         self.explosion_pos = (0, 0)
         self.explosion_animation_timer = 0
-        self.explosion_duration = 100      # Explosion lasts 50ms
-        self.max_explosion_radius = 50     # Explosion damage radius (debug value; adjust as needed)
-        self.explosion_radius = 0           # Animated explosion radius
-        self.last_explosion_update = 0      # For delta time tracking
-
+        self.explosion_duration = 100  # Explosion lasts 50ms
+        self.max_explosion_radius = 50  # Explosion damage radius (debug value; adjust as needed)
+        self.explosion_radius = 0  # Animated explosion radius
+        self.last_explosion_update = 0  # For delta time tracking
+        self.reloadFlag = False
         self.reload_start_time = 0
 
         # Upgrade levels (externally modified)
@@ -1453,14 +1497,18 @@ class CheddarCommando:
 
     def update(self, enemies):
         """Update targeting, projectiles, explosion animation, and reload state."""
+        # Reset ammo when round ends
+        if not RoundFlag:
+            self.shot_count = 0
         # Targeting logic
         self.target = None
         potential_targets = []
-        for enemy in enemies:
-            distance = math.hypot(enemy.position[0] - self.position[0],
-                                  enemy.position[1] - self.position[1])
-            if distance <= self.radius:
-                potential_targets.append((distance, enemy))
+        if not self.is_reloading:
+            for enemy in enemies:
+                distance = math.hypot(enemy.position[0] - self.position[0],
+                                      enemy.position[1] - self.position[1])
+                if distance <= self.radius:
+                    potential_targets.append((distance, enemy))
         potential_targets.sort(key=lambda x: x[0])
         if potential_targets:
             self.target = potential_targets[0][1]
@@ -1494,7 +1542,7 @@ class CheddarCommando:
                 dist = math.hypot(projectile.position[0] - enemy_center[0],
                                   projectile.position[1] - enemy_center[1])
                 if dist < enemy.rect.width / 2:
-                    enemy.take_damage(projectile.damage)
+                    enemy.take_damage(projectile.damage, projectile=projectile)
                     if projectile.explosive:
                         self.explosion_pos = enemy.rect.center
                         self.explosion(enemies)
@@ -1502,13 +1550,21 @@ class CheddarCommando:
                     projectile.hit = True
                     if not projectile.piercing:
                         break
-            if projectile.hit and not projectile.piercing:
-                self.projectiles.remove(projectile)
+            # Remove the redundant damage application here
+            if projectile.hit:
+                if not projectile.piercing:
+                    self.projectiles.remove(projectile)
+                else:
+                    projectile.penetration -= 1
+                    if projectile.penetration <= 0:
+                        self.projectiles.remove(projectile)
 
         # Reload handling
-        if self.is_reloading and pygame.time.get_ticks() - self.reload_start_time >= self.reload_time:
-            self.is_reloading = False
-            self.shot_count = 0
+        if self.is_reloading:
+            scaled_reload = self.reload_time / game_speed_multiplier
+            if pygame.time.get_ticks() - self.reload_start_time >= scaled_reload:
+                self.is_reloading = False
+                self.shot_count = 0
 
     def explosion(self, enemies):
         """
@@ -1520,13 +1576,22 @@ class CheddarCommando:
         self.explosion_animation_timer = 0
         self.explosion_radius = self.max_explosion_radius  # Immediate damage radius
         self.last_explosion_update = pygame.time.get_ticks()
+
+        class ExplosiveProjectile:
+            armor_break = True
+            explosive = True
+
         for enemy in enemies:
             enemy_center = enemy.rect.center
             dist = math.hypot(enemy_center[0] - self.explosion_pos[0],
                               enemy_center[1] - self.explosion_pos[1])
-            # Allow enemy to be hit if any part is within the blast (adding half enemy width)
+
             if dist <= self.max_explosion_radius + enemy.rect.width / 2:
-                enemy.take_damage(self.explosion_damage)
+                if isinstance(enemy, BeetleEnemy):
+                    # Pass dummy projectile to force armor break
+                    enemy.take_damage(self.explosion_damage, ExplosiveProjectile())
+                else:
+                    enemy.take_damage(self.explosion_damage)
 
     def render(self, screen):
         """Render the tower, its projectiles, explosion animation, and reloading graphic."""
@@ -1539,8 +1604,8 @@ class CheddarCommando:
                                int(self.explosion_radius), 2)
         # Restore original reloading graphic: a progress bar drawn above the tower.
         if self.is_reloading:
-            current_time = pygame.time.get_ticks()
-            progress = (current_time - self.reload_start_time) / self.reload_time
+            scaled_reload = self.reload_time / game_speed_multiplier
+            progress = (pygame.time.get_ticks() - self.reload_start_time) / scaled_reload
             if progress > 1:
                 progress = 1
             bar_width = self.rect.width
@@ -1553,11 +1618,13 @@ class CheddarCommando:
             pygame.draw.rect(screen, (0, 255, 0), (bar_x, bar_y, int(bar_width * progress), bar_height))
 
     def shoot(self):
+        global RoundFlag
         """Fire projectiles toward the target, applying upgrade effects."""
         current_time = pygame.time.get_ticks()
-        if self.target and not self.is_reloading and current_time - self.last_shot_time >= self.shoot_interval:
+        scaled_interval = self.shoot_interval / game_speed_multiplier
+        if self.target and not self.is_reloading and pygame.time.get_ticks() - self.last_shot_time >= scaled_interval:
             self.shoot_sound.play()
-
+            self.has_fired = True
             # If top upgrade is active, fire a spread shot
             if self.curr_top_upgrade > 1:
                 spread_angles = [-20, -10, 0, 10, 20]
@@ -1578,7 +1645,7 @@ class CheddarCommando:
                     proj.piercing = True
                 self.projectiles.append(proj)
 
-            self.last_shot_time = current_time
+            self.last_shot_time = pygame.time.get_ticks()
             self.shot_count += 1  # Increment shot count
 
             # DEBUG: Print statements to check values
@@ -1588,22 +1655,22 @@ class CheddarCommando:
             if self.curr_bottom_upgrade == 1:
                 print("Reloading after one shot (Explosive Rounds Active)")
                 self.is_reloading = True
-                self.reload_start_time = current_time
+                self.reload_start_time = pygame.time.get_ticks()
                 self.reload_sound.play()
                 self.shot_count = 0  # Reset shot count IMMEDIATELY to prevent standard reload logic
 
             # **Standard Reload Logic**
             elif self.curr_top_upgrade > 1 and self.shot_count >= 7:
                 self.is_reloading = True
-                self.reload_start_time = current_time
+                self.reload_start_time = pygame.time.get_ticks()
                 self.reload_sound.play()
             elif self.curr_bottom_upgrade > 1 and self.shot_count >= 6:
                 self.is_reloading = True
-                self.reload_start_time = current_time
+                self.reload_start_time = pygame.time.get_ticks()
                 self.reload_sound.play()
             elif self.shot_count >= 12:
                 self.is_reloading = True
-                self.reload_start_time = current_time
+                self.reload_start_time = pygame.time.get_ticks()
                 self.reload_sound.play()
 
 
@@ -1633,13 +1700,15 @@ class Ozbourne:
         self.damage_default = self.damage
 
     def update(self, enemies):
-        current_time = pygame.time.get_ticks()
-        if current_time - self.last_blast_time >= self.riff_interval:
+        scaled_interval = self.riff_interval / game_speed_multiplier
+        scaled_duration = self.blast_duration / game_speed_multiplier
+        if pygame.time.get_ticks() - self.last_blast_time >= scaled_interval:
             for enemy in enemies:
                 distance = math.sqrt((enemy.position[0] - self.position[0]) ** 2 +
                                      (enemy.position[1] - self.position[1]) ** 2)
                 if distance <= self.radius:
                     self.blast(enemies)
+                    self.last_blast_time = pygame.time.get_ticks()
                     break
                 else:
                     self.riff_count = 0
@@ -1648,9 +1717,9 @@ class Ozbourne:
                     self.damage = 1
         if self.blast_active:
             self.blast_animation_timer += pygame.time.get_ticks() - self.last_blast_time
-            self.blast_radius += (self.max_blast_radius / self.blast_duration) * (
+            self.blast_radius += (self.max_blast_radius / scaled_duration) * (
                     pygame.time.get_ticks() - self.last_blast_time)
-            if self.blast_animation_timer >= self.blast_duration:
+            if self.blast_animation_timer >= scaled_duration:
                 self.blast_active = False
                 self.blast_radius = 0
         if not RoundFlag:
@@ -1713,6 +1782,7 @@ class AntEnemy:
         self.size = self.rect.size
         self.current_target = 0
         self.is_alive = True
+        self.shards = []  # New: Particle storage
 
     def move(self):
         global user_health
@@ -1737,14 +1807,41 @@ class AntEnemy:
             self.is_alive = False
             user_health -= self.health
 
+    def spawn_shards(self, count=8):
+        for _ in range(count):
+            shard = {
+                'pos': [self.position[0], self.position[1]],
+                'vel': [random.uniform(-3, 3), random.uniform(-3, 3)],
+                'lifetime': random.randint(100, 600),
+                'start_time': pygame.time.get_ticks(),
+                'radius': random.randint(1, 3)
+            }
+            self.shards.append(shard)
+
+    def update_shards(self, screen):
+        current_time = pygame.time.get_ticks()
+        for shard in self.shards[:]:
+            elapsed = current_time - shard['start_time']
+            if elapsed > shard['lifetime']:
+                self.shards.remove(shard)
+            else:
+                shard['pos'][0] += shard['vel'][0]
+                shard['pos'][1] += shard['vel'][1]
+                alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
+                color = (255, 255, 255, alpha)
+                shard_surface = pygame.Surface((shard['radius'] * 2, shard['radius'] * 2), pygame.SRCALPHA)
+                pygame.draw.circle(shard_surface, color, (shard['radius'], shard['radius']), shard['radius'])
+                screen.blit(shard_surface, (shard['pos'][0], shard['pos'][1]))
+
     def update_orientation(self, direction_x, direction_y):
         angle = math.degrees(math.atan2(-direction_y, direction_x))
         self.image = pygame.transform.rotate(self.original_image, angle - 90)
         self.rect = self.image.get_rect(center=self.rect.center)
 
-    def take_damage(self, damage):
+    def take_damage(self, damage, projectile=None):
         global money
         self.health -= damage
+        self.spawn_shards()
         if self.health <= 0:
             self.is_alive = False
             self.sfx_splat.play()
@@ -1753,8 +1850,193 @@ class AntEnemy:
     def render(self, screen):
         if self.is_alive:
             screen.blit(self.image, self.rect.topleft)
-        if not self.is_alive:
+        else:
             screen.blit(self.img_death, self.rect.topleft)
+            self.update_shards(screen)  # NEW: Render particles
+
+
+class BeetleEnemy:
+    def __init__(self, position, path):
+        """
+        Initialize a BeetleEnemy.
+        :param position: Starting (x, y) tuple.
+        :param path: List of waypoints (tuples) to follow.
+        """
+        # Movement properties
+        self.position = position
+        self.path = path
+        self.current_target = 1  # start toward the second point
+        self.speed = 0.5  # Half as fast as the Ant (which moves at 1)
+
+        # Health and armor properties
+        self.base_health = 6  # Health after armor is gone
+        self.health = self.base_health
+        self.total_armor_layers = 3  # Three layers of armor
+        self.current_armor_layer = self.total_armor_layers
+        self.current_layer_health = 5  # Each armor layer has 5 health
+
+        # Load images
+        self.base_image = load_image("assets/beetle_base.png")
+        self.image = self.base_image
+        self.original_image = self.image
+
+        # Set up rect for positioning/collision
+        self.rect = self.image.get_rect(center=self.position)
+
+        self.is_alive = True
+
+        # Load sound effects
+        self.armor_hit_sound = load_sound("assets/armor_hit.mp3")
+        self.armor_break_sound = load_sound("assets/armor_break.mp3")
+
+        # Shard effect properties for armor break
+        self.shards = []  # List to store shard particles
+
+    def move(self):
+        """
+        Move the beetle along its predefined path.
+        """
+        if self.current_target < len(self.path):
+            target_point = self.path[self.current_target]
+            dx = target_point[0] - self.position[0]
+            dy = target_point[1] - self.position[1]
+            distance = math.hypot(dx, dy)
+            if distance == 0:
+                return
+            direction_x = dx / distance
+            direction_y = dy / distance
+            self.position = (
+                self.position[0] + direction_x * self.speed,
+                self.position[1] + direction_y * self.speed
+            )
+            self.rect.center = self.position
+            self.update_orientation(direction_x, direction_y)
+            if distance <= self.speed:
+                self.current_target += 1
+        else:
+            # Reached the end of the path; mark as not alive
+            self.is_alive = False
+
+    def update_orientation(self, direction_x, direction_y):
+        """
+        Rotate the image so that the beetle faces its moving direction.
+        """
+        angle = math.degrees(math.atan2(-direction_y, direction_x))
+        self.image = pygame.transform.rotate(self.original_image, angle - 90)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def spawn_shards(self, count=10):
+        """
+        Spawn a burst of shards to simulate armor breaking.
+        Each shard is represented as a dictionary with position, velocity, lifetime, and start_time.
+        """
+        for _ in range(count):
+            shard = {
+                'pos': [self.position[0], self.position[1]],
+                'vel': [random.uniform(-3, 8), random.uniform(-3, 3)],
+                'lifetime': random.randint(100, 600),  # lifetime in milliseconds
+                'start_time': pygame.time.get_ticks(),
+                'radius': random.randint(1, 3)
+            }
+            self.shards.append(shard)
+
+    def update_shards(self, screen):
+        """
+        Update and render shard particles.
+        """
+        current_time = pygame.time.get_ticks()
+        for shard in self.shards[:]:
+            elapsed = current_time - shard['start_time']
+            if elapsed > shard['lifetime']:
+                self.shards.remove(shard)
+            else:
+                # Update position
+                shard['pos'][0] += shard['vel'][0]
+                shard['pos'][1] += shard['vel'][1]
+                # Fade out effect: alpha decreases over time
+                alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
+                color = (255, 255, 255, alpha)
+                # Create a surface for the shard
+                shard_surface = pygame.Surface((shard['radius']*2, shard['radius']*2), pygame.SRCALPHA)
+                pygame.draw.circle(shard_surface, color, (shard['radius'], shard['radius']), shard['radius'])
+                screen.blit(shard_surface, (shard['pos'][0], shard['pos'][1]))
+
+    def render(self, screen: pygame.Surface):
+        """
+        Render the beetle on the given screen along with shard particles if any.
+        """
+        screen.blit(self.image, self.rect.topleft)
+        # Render shard particles
+        self.update_shards(screen)
+
+    def take_damage(self, damage, projectile=None):
+        """
+        Process incoming damage. If the projectile has an attribute armor_break,
+        remove all armor instantly and spawn shards. Otherwise, apply damage to armor first.
+        """
+        # Check if the projectile has the armor_break attribute
+        if projectile is not None and getattr(projectile, "armor_break", False):
+            # Play the armor break sound only if there is still armor
+            if self.current_armor_layer > 0:
+                self.armor_break_sound.play()
+
+            # Spawn shards effect
+            self.spawn_shards(count=15)
+
+            # Instantly remove all armor layers
+            self.current_armor_layer = 0
+            self.current_layer_health = 0
+
+            # Update the image to final damage state
+            self.original_image = load_image("assets/beetle_damage3.png")
+            self.image = self.original_image
+
+            # Apply full damage to base health
+            self.health -= damage
+            if self.health <= 0:
+                self.is_alive = False
+            return  # Exit immediately to prevent normal armor processing
+
+        # For every hit, play the armor hit sound if armor is present
+        if self.current_armor_layer > 0:
+            self.armor_hit_sound.play()
+
+        # Normal damage processing (when not armor_break)
+        if self.current_armor_layer > 0:
+            self.current_layer_health -= damage
+            if self.current_layer_health <= 0:
+                overflow = -self.current_layer_health
+                self.current_armor_layer -= 1
+
+                # Spawn shards effect on armor layer break
+                self.spawn_shards(count=10)
+
+                # If breaking the last armor layer, play the armor break sound
+                if self.current_armor_layer == 0:
+                    self.armor_break_sound.play()
+
+                # Update the image based on armor remaining
+                if self.current_armor_layer == 2:
+                    self.original_image = load_image("assets/beetle_damage1.png")
+                elif self.current_armor_layer == 1:
+                    self.original_image = load_image("assets/beetle_damage2.png")
+                elif self.current_armor_layer == 0:
+                    self.original_image = load_image("assets/beetle_damage3.png")
+                self.image = self.original_image
+
+                # Reset armor health unless all armor is broken
+                if self.current_armor_layer > 0:
+                    self.current_layer_health = 5
+
+                # If there is overflow damage after breaking armor, apply it to health
+                if self.current_armor_layer == 0 and overflow > 0:
+                    self.health -= overflow
+        else:
+            # No armor remains; apply damage directly to base health.
+            self.health -= damage
+
+        if self.health <= 0:
+            self.is_alive = False
 
 
 class HornetEnemy:
@@ -1772,6 +2054,7 @@ class HornetEnemy:
         self.size = self.rect.size
         self.current_target = 0
         self.is_alive = True
+        self.shards = []  # NEW: Particle storage
 
     def move(self):
         global user_health
@@ -1796,14 +2079,42 @@ class HornetEnemy:
             self.is_alive = False
             user_health -= self.health
 
+    # NEW: Shard particle methods (same as AntEnemy)
+    def spawn_shards(self, count=10):
+        for _ in range(count):
+            shard = {
+                'pos': [self.position[0], self.position[1]],
+                'vel': [random.uniform(-5, 5), random.uniform(-5, 5)],
+                'lifetime': random.randint(100, 600),
+                'start_time': pygame.time.get_ticks(),
+                'radius': random.randint(1, 3)
+            }
+            self.shards.append(shard)
+
+    def update_shards(self, screen):
+        current_time = pygame.time.get_ticks()
+        for shard in self.shards[:]:
+            elapsed = current_time - shard['start_time']
+            if elapsed > shard['lifetime']:
+                self.shards.remove(shard)
+            else:
+                shard['pos'][0] += shard['vel'][0]
+                shard['pos'][1] += shard['vel'][1]
+                alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
+                color = (255, 255, 255, alpha)
+                shard_surface = pygame.Surface((shard['radius']*2, shard['radius']*2), pygame.SRCALPHA)
+                pygame.draw.circle(shard_surface, color, (shard['radius'], shard['radius']), shard['radius'])
+                screen.blit(shard_surface, (shard['pos'][0], shard['pos'][1]))
+
     def update_orientation(self, direction_x, direction_y):
         angle = math.degrees(math.atan2(-direction_y, direction_x))
         self.image = pygame.transform.rotate(self.original_image, angle - 90)
         self.rect = self.image.get_rect(center=self.rect.center)
 
-    def take_damage(self, damage):
+    def take_damage(self, damage, projectile=None):
         global money
         self.health -= damage
+        self.spawn_shards()  # NEW: Create particles on hit
         if self.health <= 0:
             self.is_alive = False
             self.sfx_splat.play()
@@ -1812,21 +2123,22 @@ class HornetEnemy:
     def render(self, screen):
         if self.is_alive:
             screen.blit(self.image, self.rect.topleft)
-        if not self.is_alive:
+        else:
             screen.blit(self.img_death, self.rect.topleft)
+        self.update_shards(screen)  # NEW: Render particles
 
 
 class CentipedeEnemy:
     """
     A composite enemy consisting of:
       - Head (health=6)
-      - 4 Link segments (each health=3)
+      - Several Link segments (each with health=2)
       - Tail (health=3)
     Movement is fluid: each segment follows the one ahead with a smoothing delay.
-    Damage is applied to the furthest (tail-first) alive segment until only the head remains.
-    Speed is 1 initially, increases to 2 when 3 or fewer non-head segments remain,
-    and becomes 3 when only the head is left.
-    The images are flipped horizontally in rendering.
+    Damage is applied to any non-head segment (links or tail) when hit – the head is only damaged after all
+    other segments are destroyed. Additionally, when a link is destroyed, a burst of particle shards is spawned,
+    similar to the beetle enemy’s armor-break effect. When segments are removed, the remaining segments are
+    repositioned so that they remain in contact (i.e. no gaps appear).
     """
     sfx_splat = load_sound("assets/splat_sfx.mp3")
     img_death = load_image("assets/splatter.png")
@@ -1839,7 +2151,7 @@ class CentipedeEnemy:
             self.position = position  # (x, y)
             self.angle = 0  # in degrees; 0 means "facing up"
             self.alive = True
-            self.death_time = None  # Stores the time of death
+            self.death_time = None  # time when the segment died
             self.rect = self.image.get_rect(center=position)
 
         def update_rect(self):
@@ -1849,10 +2161,11 @@ class CentipedeEnemy:
         """
         :param position: Starting position (tuple)
         :param path: List of points (tuples) for the centipede head to follow.
+        :param links: Number of link segments between the head and tail.
         """
         self.path = path
         self.current_target = 0  # Index in the path for head movement
-        self.base_speed = 1  # Initial speed
+        self.base_speed = 1
         self.speed = self.base_speed
         self.links = links
 
@@ -1861,39 +2174,69 @@ class CentipedeEnemy:
         link_img = load_image("assets/centipede_link.png")
         tail_img = load_image("assets/centipede_tail.png")
 
-        # Calculate desired gap distances (so segments appear connected)
-        # Gaps are computed based on half-heights of adjacent images.
+        # Calculate desired gap distances for smooth connectivity between segments.
         self.gap_distances = []
         gap_head_link = (head_img.get_height() / 4) + (link_img.get_height() / 4)
         self.gap_distances.append(gap_head_link)
-        # For the gaps between the 6 links (using link height)
         for _ in range(self.links - 1):
             gap_link_link = link_img.get_height() / 4
             self.gap_distances.append(gap_link_link)
         gap_link_tail = (link_img.get_height() / 4) + (tail_img.get_height() / 4)
         self.gap_distances.append(gap_link_tail)
 
-        # Create segments. All segments start at the same initial position.
+        # Create segments: head, links, and tail.
         self.segments = []
-        # Head segment with health 6.
-        self.segments.append(self.Segment("head", 6, head_img, position))
-        # 6 link segments, each with health 2.
+        self.segments.append(self.Segment("head", 3, head_img, position))
         for _ in range(self.links):
             self.segments.append(self.Segment("link", 2, link_img, position))
-        # Tail segment with health 3.
         self.segments.append(self.Segment("tail", 3, tail_img, position))
+
+        # Initialize shard particles list.
+        self.shards = []
+
+    def spawn_shards(self, count=10):
+        """
+        Spawn a burst of shard particles to simulate a link breaking.
+        """
+        for _ in range(count):
+            shard = {
+                'pos': [self.position[0], self.position[1]],
+                'vel': [random.uniform(-3, 8), random.uniform(-3, 3)],
+                'lifetime': random.randint(100, 600),
+                'start_time': pygame.time.get_ticks(),
+                'radius': random.randint(1, 3)
+            }
+            self.shards.append(shard)
+
+    def update_shards(self, screen):
+        """
+        Update and render shard particles.
+        """
+        current_time = pygame.time.get_ticks()
+        for shard in self.shards[:]:
+            elapsed = current_time - shard['start_time']
+            if elapsed > shard['lifetime']:
+                self.shards.remove(shard)
+            else:
+                shard['pos'][0] += shard['vel'][0]
+                shard['pos'][1] += shard['vel'][1]
+                alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
+                color = (255, 255, 255, alpha)
+                shard_surface = pygame.Surface((shard['radius']*2, shard['radius']*2), pygame.SRCALPHA)
+                pygame.draw.circle(shard_surface, color, (shard['radius'], shard['radius']), shard['radius'])
+                screen.blit(shard_surface, (shard['pos'][0], shard['pos'][1]))
 
     def update(self):
         """
         Update the centipede:
           - Move the head along its path.
-          - Smoothly update each following segment so that it trails its predecessor.
-          - Adjust the speed based on the number of non-head segments still alive.
-          - Remove the centipede and subtract health if it reaches the end of the path.
+          - Smoothly update each following segment to trail its predecessor.
+          - Adjust speed based on remaining non-head segments.
+          - If the centipede reaches the end of its path, subtract health from the user.
         """
-        global user_health  # Ensure this matches how health is tracked in your game
+        global user_health
 
-        # Determine how many non-head segments are still alive.
+        # Adjust speed based on number of alive non-head segments.
         non_head_alive = sum(1 for seg in self.segments[1:] if seg.alive)
         if non_head_alive >= 4:
             self.speed = 1
@@ -1902,7 +2245,7 @@ class CentipedeEnemy:
         else:
             self.speed = 3
 
-        # === Move the head along the path ===
+        # Move the head along the path.
         head = self.segments[0]
         if self.current_target < len(self.path):
             target_point = self.path[self.current_target]
@@ -1921,14 +2264,14 @@ class CentipedeEnemy:
                 if distance <= move_dist:
                     self.current_target += 1
         else:
-            # Centipede reaches the end of the path
+            # If the head reaches the end of the path, subtract remaining health from the user.
             tot_health = sum(1 for seg in self.segments[1:] if seg.alive)
-            user_health -= head.health + tot_health * 2  # Subtract health when the enemy escapes
-            self.segments.clear()  # Remove all segments so it disappears
+            user_health -= head.health + tot_health * 2
+            self.segments.clear()
             return
 
-        # === Smoothly update each following segment ===
-        alpha = 0.2  # Smoothing factor
+        # Smoothly update each following segment.
+        alpha = 0.2  # smoothing factor
         for i in range(1, len(self.segments)):
             prev_seg = self.segments[i - 1]
             seg = self.segments[i]
@@ -1945,97 +2288,176 @@ class CentipedeEnemy:
                 new_y = seg.position[1] + alpha * (target_y - seg.position[1])
                 seg.position = (new_x, new_y)
                 desired_angle = math.degrees(math.atan2(dir_x, -dir_y))
-                seg.angle += alpha * ((desired_angle - seg.angle + 180) % 360 - 180)
+                seg.angle += alpha * (((desired_angle - seg.angle + 180) % 360) - 180)
                 seg.update_rect()
 
     def move(self):
-        """Alias move() to update() for compatibility with the game loop."""
+        """
+        Alias for update, allowing external calls to move the enemy.
+        """
         self.update()
 
-    def take_damage(self, damage):
-        global money
+    def take_damage(self, damage, hit_position=None, projectile=None, area_center=None, area_radius=0):
         """
-        Apply damage to the centipede:
-          - Damage is applied to the furthest (tail-first) alive segment among the links/tail.
-          - Only if all non-head segments are destroyed is damage applied to the head.
+        Apply incoming damage:
+          - If a projectile is provided and its explosive flag is True, then set default explosion parameters.
+          - If area_center and area_radius (or those set via an explosive projectile) are provided,
+            apply damage to every non-head segment whose center is within the explosion radius.
+          - Else if hit_position is provided, apply damage to the non-head segment closest to that point.
+          - Otherwise, when no extra parameters are provided, assume a radial (area) damage effect
+            and apply damage to every non-head segment.
+          - Damage to the head is applied only once all non-head segments are destroyed.
         """
-        for seg in reversed(self.segments[1:]):  # Prioritize tail & links first
+        # Check for explosive projectile.
+        if projectile is not None and getattr(projectile, "explosive", False):
+            if area_center is None:
+                area_center = projectile.position
+            if area_radius == 0:
+                area_radius = getattr(projectile, "explosion_radius", 50)
+
+        # Radial (area) damage branch.
+        if area_center is not None and area_radius > 0:
+            any_hit = False
+            for seg in self.segments[1:][:]:
+                if seg.alive:
+                    seg_center = seg.rect.center
+                    tolerance = seg.rect.width * 0.5
+                    if math.hypot(seg_center[0] - area_center[0], seg_center[1] - area_center[1]) <= area_radius + tolerance:
+                        seg.health -= damage
+                        any_hit = True
+                        if seg.health <= 0:
+                            seg.alive = False
+                            seg.death_time = pygame.time.get_ticks()
+                            self.spawn_shards(count=10)
+                            self.remove_segment(seg)
+            if any_hit:
+                return
+            # If no non-head segments were hit, apply damage to the head.
+            head = self.segments[0]
+            head.health -= damage
+            if head.health <= 0:
+                head.alive = False
+                head.death_time = pygame.time.get_ticks()
+            return
+
+        # Damage by hit position branch.
+        if hit_position is not None:
+            try:
+                hp = (float(hit_position[0]), float(hit_position[1]))
+            except (TypeError, ValueError):
+                return
+            candidates = [seg for seg in self.segments[1:] if seg.alive and seg.rect.collidepoint(hp)]
+            if candidates:
+                seg = min(candidates, key=lambda s: math.hypot(s.rect.centerx - hp[0], s.rect.centery - hp[1]))
+                seg.health -= damage
+                if seg.health <= 0:
+                    seg.alive = False
+                    seg.death_time = pygame.time.get_ticks()
+                    self.spawn_shards(count=10)
+                    self.remove_segment(seg)
+                return
+            return
+
+        # Fallback: if no parameters, apply damage to furthest alive non-head segment
+        for seg in reversed(self.segments[1:]):
             if seg.alive:
                 seg.health -= damage
                 if seg.health <= 0:
                     seg.alive = False
-                    money += 15
-                    self.sfx_splat.play()
-                    seg.death_time = pygame.time.get_ticks()  # Mark the time of death
-                return  # Exit after applying damage.
+                    seg.death_time = pygame.time.get_ticks()
+                    self.spawn_shards(count=10)
+                    self.remove_segment(seg)
+                return  # Exit after damaging one segment
 
-        # If all non-head segments are destroyed, apply damage to the head.
+        # If no non-head segments are alive, apply damage to the head.
         head = self.segments[0]
         head.health -= damage
         if head.health <= 0:
             head.alive = False
-            money += 25
-            self.sfx_splat.play()
             head.death_time = pygame.time.get_ticks()
 
-    def render(self, screen: pygame.Surface):
+    def remove_segment(self, seg):
         """
-        Render each alive segment with its current rotation.
-        Show the splatter effect for a brief time after death.
+        Remove a destroyed segment and recalculate gap distances so that the remaining segments remain connected.
         """
-        current_time = pygame.time.get_ticks()
-        SPLATTER_DURATION = 100  # Time in milliseconds to show the splatter (0.5 seconds)
+        if seg in self.segments:
+            self.segments.remove(seg)
+            head_img = load_image("assets/centipede_head.png")
+            link_img = load_image("assets/centipede_link.png")
+            tail_img = load_image("assets/centipede_tail.png")
+            new_gaps = []
+            if len(self.segments) > 1:
+                new_gaps.append((head_img.get_height() / 4) + (link_img.get_height() / 4))
+                for _ in range(len(self.segments) - 2):
+                    new_gaps.append(link_img.get_height() / 4)
+                new_gaps.append((link_img.get_height() / 4) + (tail_img.get_height() / 4))
+            self.gap_distances = new_gaps
 
-        for seg in self.segments:
-            if seg.alive:
-                # Render living segments
-                rotated_image = pygame.transform.rotate(seg.image, seg.angle)
-                rotated_image = pygame.transform.flip(rotated_image, True, False)  # Flip horizontally
-                rect = rotated_image.get_rect(center=seg.position)
-                screen.blit(rotated_image, rect.topleft)
-            elif seg.death_time and current_time - seg.death_time <= SPLATTER_DURATION:
-                # Render splatter effect for a limited time
-                rotated_splatter = pygame.transform.rotate(self.img_death, seg.angle)
-                rotated_splatter = pygame.transform.flip(rotated_splatter, True, False)
-                rect = rotated_splatter.get_rect(center=seg.position)
-                screen.blit(rotated_splatter, rect.topleft)
+    @property
+    def rect(self):
+        """
+        Returns the union of the hitboxes for all alive non-head segments,
+        or the head's rect if no non-head segments are alive.
+        """
+        alive_rects = [seg.rect for seg in self.segments[1:] if seg.alive]
+        if alive_rects:
+            union_rect = alive_rects[0].copy()
+            for r in alive_rects[1:]:
+                union_rect.union_ip(r)
+            return union_rect
+        return self.segments[0].rect
 
     @property
     def position(self):
         """
-        Expose the centipede's effective position as the position of the furthest (tail-most)
-        alive segment. This helps towers target the centipede's remaining body.
+        Returns the center of the union of all alive non-head segments,
+        or the head's position if no non-head segments are alive.
+        This allows towers to target any part of the centipede body.
         """
-        for seg in reversed(self.segments):
-            if seg.alive:
-                return seg.position
+        alive_rects = [seg.rect for seg in self.segments[1:] if seg.alive]
+        if alive_rects:
+            union_rect = alive_rects[0].copy()
+            for r in alive_rects[1:]:
+                union_rect.union_ip(r)
+            return union_rect.center
         return self.segments[0].position
 
     @property
     def is_alive(self):
         """
-        The centipede is considered alive as long as its head is alive.
-        If all segments are cleared (e.g., reached the end), return False.
+        Returns True if any segment is still alive.
         """
-        return bool(self.segments) and self.segments[0].alive
+        return any(seg.alive for seg in self.segments)
 
-    @property
-    def rect(self):
+    def render(self, screen: pygame.Surface):
         """
-        Returns the rect of the furthest (tail-most) alive segment.
-        This ensures the entity is still targetable by other game objects.
+        Render each segment (applying rotation and flipping as needed).
+        Also, render a splatter effect for segments that have recently died and update shard particles.
         """
-        for seg in reversed(self.segments):
+        current_time = pygame.time.get_ticks()
+        SPLATTER_DURATION = 100  # Duration in milliseconds to show splatter effect
+
+        for seg in self.segments:
             if seg.alive:
-                return seg.rect
-        return self.segments[0].rect  # Default to head's rect if all else is dead
+                rotated_image = pygame.transform.rotate(seg.image, seg.angle)
+                rotated_image = pygame.transform.flip(rotated_image, True, False)
+                rect = rotated_image.get_rect(center=seg.position)
+                screen.blit(rotated_image, rect.topleft)
+            elif seg.death_time and current_time - seg.death_time <= SPLATTER_DURATION:
+                rotated_splatter = pygame.transform.rotate(self.img_death, seg.angle)
+                rotated_splatter = pygame.transform.flip(rotated_splatter, True, False)
+                rect = rotated_splatter.get_rect(center=seg.position)
+                screen.blit(rotated_splatter, rect.topleft)
+        self.update_shards(screen)
+
+
 
 
 class Projectile:
     def __init__(self, position, target, speed, damage, image_path):
         self.position = list(position)
         self.target = target
-        self.speed = speed
+        self.speed = speed * game_speed_multiplier  # Scaled at creation
         self.damage = damage
         self.image = load_image(image_path)
         self.rect = self.image.get_rect(center=position)
