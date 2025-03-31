@@ -22,7 +22,7 @@ running = True
 state = "Menu"
 resumeFlag = False
 curr_wave = False
-round_number = 1    # change for debugging
+round_number = 15    # change for debugging
 PlayFlag = True
 
 while running:
@@ -80,8 +80,8 @@ while running:
         mixer.music.load("assets/map_music.mp3")
         mixer.music.play(-1)
         game_tools.user_health = 100
-        game_tools.money = 250
-        round_number = 1
+        game_tools.money = 25000
+        round_number = 15
         state = "Game"
         # save current new game data
         # this will overwrite any previous saves

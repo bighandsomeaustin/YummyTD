@@ -47,7 +47,7 @@ curr_upgrade_tower = None
 MogFlag = False
 gameoverFlag = False
 last_time_sfx = pygame.time.get_ticks()
-money = 250  # change for debugging
+money = 25000  # change for debugging
 user_health = 100
 music_volume = 1.0
 user_volume = 1.0
@@ -246,6 +246,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     img_ratbank_text = load_image("assets/ratbank_text.png")
     img_ozbourne_text = load_image("assets/ozbourne_text.png")
     img_commando_text = load_image("assets/commando_text.png")
+    img_minigun_text = load_image("assets/minigun_text.png")
     img_playbutton = load_image("assets/playbutton.png")
     img_playbutton_1x = load_image("assets/playbutton_1x.png")
     img_playbutton_2x = load_image("assets/playbutton_2x.png")
@@ -306,7 +307,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
         # 2x speed
         if 1110 <= mouse[0] <= 1110 + 81 and 665 <= mouse[1] <= 665 + 50:
             if detect_single_click():
-                game_speed_multiplier = 3 if game_speed_multiplier == 1 else 1
+                game_speed_multiplier = 2 if game_speed_multiplier == 1 else 1
 
     # settings button
     scrn.blit(img_settingsbutton, (1192, 665))
@@ -378,6 +379,15 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
         if detect_single_click() and money >= 250:
             purchase.play()
             return "soldier"
+
+    # MINIGUN
+    elif 1118 <= mouse[0] <= 1118 + 73 and 475 <= mouse[1] <= 475 + 88:
+        scrn.blit(img_minigun_text, (1113, 53))
+        scrn.blit(img_tower_select, (1118, 475))
+        if detect_single_click() and money >= 600:
+            purchase.play()
+            return "minigun"
+
     # check if any tower is clicked after placement
     for tower in towers:
         if (tower.position[0] - 25) <= mouse[0] <= (tower.position[0] + 25) and (tower.position[1] - 25) <= mouse[
@@ -594,6 +604,8 @@ def handle_upgrade(scrn, tower):
                 money += tower.sell_amt
                 towers.remove(tower)
                 UpgradeFlag = False
+                mixer.music.load("assets/map_music.mp3")
+                mixer.music.play(-1)
                 return
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
             scrn.blit(img_upgrade_highlighted, (883, 194))
@@ -661,6 +673,134 @@ def handle_upgrade(scrn, tower):
                     elif tower.curr_top_upgrade == 1:
                         tower.image = load_image("assets/rat_bank_fargo_skyscraper.png")
                         tower.original_image = load_image("assets/rat_bank_fargo_skyscraper.png")
+    if isinstance(tower, MinigunTower):
+        img_fasterspool_upgrade = load_image("assets/upgrade_faster_spool.png")
+        img_biggermags_upgrade = load_image("assets/upgrade_bigger_mags.png")
+        img_twinguns_upgrade = load_image("assets/upgrade_twinguns.png")
+        img_flamebullets_upgrade = load_image("assets/upgrade_flame.png")
+        img_deathray_upgrade = load_image("assets/upgrade_deathray.png")
+        upgrade_font = get_font("arial", 16)
+        text_faster_spool = upgrade_font.render("Faster Spool", True, (0, 0, 0))
+        text_biggermags = upgrade_font.render("Bigger Mags", True, (0, 0, 0))
+        text_twinguns = upgrade_font.render("Twin Guns", True, (0, 0, 0))
+        text_flame = upgrade_font.render("Flaming Fromage", True, (0, 0, 0))
+        text_deathray = upgrade_font.render("Death Ray", True, (0, 0, 0))
+        if tower.curr_top_upgrade == 0:
+            scrn.blit(img_fasterspool_upgrade, (883, 65))
+            scrn.blit(text_faster_spool, (962, 42))
+        elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
+            scrn.blit(img_biggermags_upgrade, (883, 65))
+            scrn.blit(text_biggermags, (962, 42))
+        elif tower.curr_top_upgrade == 2 and tower.curr_bottom_upgrade < 2:
+            scrn.blit(img_twinguns_upgrade, (883, 65))
+            scrn.blit(text_twinguns, (962, 42))
+        if tower.curr_bottom_upgrade == 0:
+            scrn.blit(img_flamebullets_upgrade, (883, 194))
+            scrn.blit(text_flame, (954, 172))
+        elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 3:
+            scrn.blit(img_deathray_upgrade, (883, 194))
+            scrn.blit(text_deathray, (962, 172))
+        # TOP UPGRADE PATH
+        if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+            scrn.blit(img_upgrade_highlighted, (883, 65))
+            if detect_single_click():
+                # faster spool
+                if tower.curr_top_upgrade == 0 and money >= 400:
+                    purchase.play()
+                    money -= 400
+                    tower.sell_amt += 200
+                    tower.max_spool += 10
+                    tower.curr_top_upgrade = 1
+                    UpgradeFlag = True
+                    if tower.curr_bottom_upgrade == 0:
+                        tower.image = load_image("assets/minigun_faster_spool.png")
+                        tower.original_image = load_image("assets/minigun_faster_spool.png")
+                    elif tower.curr_bottom_upgrade == 1:
+                        tower.image = load_image("assets/minigun_faster_spool+flame.png")
+                        tower.original_image = load_image("assets/minigun_faster_spool+flame.png")
+                    elif tower.curr_bottom_upgrade == 2:
+                        tower.image = load_image("assets/minigun_deathray+faster_spool.png")
+                        tower.original_image = load_image("assets/minigun_deathray+faster_spool.png")
+                # bigger mags
+                elif tower.curr_top_upgrade == 1 and money >= 350:
+                    purchase.play()
+                    money -= 350
+                    tower.sell_amt += 175
+                    tower.base_magazine = 120
+                    tower.curr_top_upgrade = 2
+                    UpgradeFlag = True
+                    if tower.curr_bottom_upgrade == 0:
+                        tower.image = load_image("assets/minigun_bigger_mags.png")
+                        tower.original_image = load_image("assets/minigun_bigger_mags.png")
+                    elif tower.curr_bottom_upgrade == 1:
+                        tower.image = load_image("assets/minigun_bigger_mags+flame.png")
+                        tower.original_image = load_image("assets/minigun_bigger_mags+flame.png")
+                # twin guns
+                elif tower.curr_top_upgrade == 2 and money >= 1250:
+                    purchase.play()
+                    money -= 1250
+                    tower.sell_amt += 625
+                    tower.magazine_size = 240
+                    tower.max_spool *= 2
+                    tower.damage += 1
+                    tower.reload_time *= 2
+                    tower.curr_top_upgrade = 3
+                    UpgradeFlag = True
+                    if tower.curr_bottom_upgrade == 0:
+                        tower.image = load_image("assets/minigun_twin_guns.png")
+                        tower.original_image = load_image("assets/minigun_twin_guns.png")
+                    elif tower.curr_bottom_upgrade == 1:
+                        tower.image = load_image("assets/minigun_twin_guns+flame.png")
+                        tower.original_image = load_image("assets/minigun_twin_guns+flame.png")
+        if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
+            if detect_single_click():
+                money += tower.sell_amt
+                towers.remove(tower)
+                UpgradeFlag = False
+                return
+        # BOTTOM UPGRADE PATH
+        if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+            scrn.blit(img_upgrade_highlighted, (883, 194))
+            if detect_single_click():
+                # flaming fromage
+                if tower.curr_bottom_upgrade == 0 and money >= 550:
+                    purchase.play()
+                    money -= 550
+                    tower.sell_amt += 275
+                    tower.damage = 1.5
+                    tower.curr_bottom_upgrade = 1
+                    UpgradeFlag = True
+                    if tower.curr_top_upgrade == 0:
+                        tower.image = load_image("assets/minigun_flamebullets.png")
+                        tower.original_image = load_image("assets/minigun_flamebullets.png")
+                    elif tower.curr_top_upgrade == 1:
+                        tower.image = load_image("assets/minigun_faster_spool+flame.png")
+                        tower.original_image = load_image("assets/minigun_faster_spool+flame.png")
+                    elif tower.curr_top_upgrade == 2:
+                        tower.image = load_image("assets/minigun_bigger_mags+flame.png")
+                        tower.original_image = load_image("assets/minigun_bigger_mags+flame.png")
+                    elif tower.curr_top_upgrade == 3:
+                        tower.image = load_image("assets/minigun_twin_guns+flame.png")
+                        tower.original_image = load_image("assets/minigun_twin_guns+flame.png")
+                # death ray
+                elif tower.curr_bottom_upgrade == 1 and money >= 2500 and tower.curr_top_upgrade < 2:
+                    purchase.play()
+                    money -= 2500
+                    tower.sell_amt += 1250
+                    tower.spool_rate = 70.0
+                    tower.max_spool = 70
+                    tower.damage = 0.2
+                    tower.radius = 175
+                    tower.reload_time = 0.1
+                    tower.cooldown_rate = 0.0
+                    tower.curr_bottom_upgrade = 2
+                    UpgradeFlag = True
+                    if tower.curr_top_upgrade == 0:
+                        tower.image = load_image("assets/minigun_deathray.png")
+                        tower.original_image = load_image("assets/minigun_deathray.png")
+                    elif tower.curr_top_upgrade == 1:
+                        tower.image = load_image("assets/minigun_deathray+faster_spool.png")
+                        tower.original_image = load_image("assets/minigun_deathray+faster_spool.png")
     if isinstance(tower, CheddarCommando):
         img_shotgun_upgrade = load_image("assets/upgrade_shotgun.png")
         img_rpg_upgrade = load_image("assets/upgrade_rocket.png")
@@ -938,6 +1078,28 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
             money -= 500
+            return True
+    elif tower == "minigun":
+        img_base_minigun = load_image("assets/base_minigun.png")
+        circle_surface = pygame.Surface((150, 150), pygame.SRCALPHA)
+        for event in pygame.event.get():
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_ESCAPE:
+                    return True
+        if check_hitbox(house_hitbox, relative_pos, towers):
+            pygame.draw.circle(circle_surface, (0, 0, 0, 128), (75, 75), 75)
+            scrn.blit(img_base_minigun, (mouse[0] - 25, mouse[1] - 25))
+            scrn.blit(circle_surface, (mouse[0] - 75, mouse[1] - 75))
+        elif not check_hitbox(house_hitbox, relative_pos, towers):
+            pygame.draw.circle(circle_surface, (255, 0, 0, 128), (75, 75), 75)
+            scrn.blit(img_base_minigun, (mouse[0] - 25, mouse[1] - 25))
+            scrn.blit(circle_surface, (mouse[0] - 75, mouse[1] - 75))
+        if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower):
+            tower_minigun = MinigunTower((mouse[0], mouse[1]))
+            towers.append(tower_minigun)
+            tower_click.play()
+            play_splash_animation(scrn, (mouse[0], mouse[1]))
+            money -= 600
             return True
 
     return False
@@ -1674,8 +1836,280 @@ class CheddarCommando:
                 self.reload_sound.play()
 
 
+class MinigunTower:
+    def __init__(self, position):
+        self.position = position
+        self.image = load_image("assets/base_minigun.png")
+        self.original_image = self.image
+        self.rect = self.image.get_rect(center=position)
+        self.radius = 150  # attack range
+        self.damage = 0.5
+        self.curr_top_upgrade = 0
+        self.curr_bottom_upgrade = 0
+        self.base_magazine = 65
+        self.magazine_size = self.base_magazine
+        self.reloading = False
+        self.reload_time = 2.0  # seconds to reload
+        self.reload_start_time = 0
+        self.last_shot_time = 0  # in seconds
+        self.last_update_time = pygame.time.get_ticks() / 1000.0
+        self.max_spool = 15       # Maximum spool level (shots per second when fully spooled)
+        self.current_spool = 0      # Current spool level (starts at 0)
+        self.spool_rate = 2.0       # How quickly the minigun spools up (per second)
+        self.cooldown_rate = 1.5   # How quickly the minigun spools down (per second)
+        self.sell_amt = 300
+        self.projectiles = []
+        self.particles = []
+        self.target = None
+        self.beam_active = False
+        self.last_beam_time = 0
+        self.prev_pos = (0, 0)
+        self.last_beam_damage_time = 0
+        self.beam_sfx = load_sound("assets/laser_fire.mp3")
+
+    def find_target(self, enemies):
+        target = None
+        closest_distance = float('inf')
+        for enemy in enemies:
+            d = math.hypot(enemy.position[0] - self.position[0],
+                           enemy.position[1] - self.position[1])
+            if d <= self.radius and d < closest_distance:
+                closest_distance = d
+                target = enemy
+        return target
+
+    def update(self, enemies):
+        current_time = pygame.time.get_ticks() / 1000.0  # Convert to seconds
+        dt = current_time - self.last_update_time  # Calculate delta time
+        self.last_update_time = current_time  # Store the current time for next update
+
+        # Reset spool and magazine after round ends
+        if not RoundFlag:
+            self.current_spool = 0
+            self.magazine_size = self.base_magazine
+
+        if self.curr_bottom_upgrade == 2:
+            self.magazine_size = 100
+
+        # Handle reloading
+        if self.reloading:
+            if current_time - self.reload_start_time >= self.reload_time:
+                self.magazine_size = self.base_magazine
+                self.reloading = False
+            else:
+                return  # Cannot fire while reloading
+
+        self.target = self.find_target(enemies)
+
+        if self.current_spool > 0 and (current_time - self.last_shot_time) > (1.0 / max(1, self.current_spool)):
+            self.current_spool = max(0, self.current_spool - (self.cooldown_rate * dt))
+
+        # Target selection and image rotation
+        if self.target:
+            dx = self.target.position[0] - self.position[0]
+            dy = self.target.position[1] - self.position[1]
+            angle = math.degrees(math.atan2(-dy, dx))
+            self.image = pygame.transform.rotate(self.original_image, angle)
+            self.rect = self.image.get_rect(center=self.position)
+        else:
+            self.target = None  # No target: do not fire
+
+        if self.magazine_size > 0:
+            # Spool up when firing
+            self.current_spool = min(self.max_spool, self.current_spool + self.spool_rate * dt)
+            # Calculate fire delay: if fully spooled, shots per second = max_spool, so delay = 1/max_spool.
+            # Otherwise, fire_delay = 1 / current_spool.
+            fire_delay = 1.0 / self.current_spool if self.current_spool > 0 else float('inf')
+            if current_time - self.last_shot_time >= fire_delay and self.target is not None:
+                self.fire_projectile(self.target)
+                self.last_shot_time = current_time
+                self.magazine_size -= 1
+                if self.magazine_size <= 0:
+                    self.start_reload()
+
+        # Update projectiles
+        for projectile in self.projectiles[:]:
+            if self.curr_bottom_upgrade == 1:
+                projectile.image = load_image("assets/projectile_bullet_flame.png")
+                projectile.original_image = load_image("assets/projectile_bullet_flame.png")
+            projectile.move()
+            if projectile.hit:
+                self.spawn_particles(projectile.position)
+                self.projectiles.remove(projectile)
+
+        # Death ray update (unchanged from your original code)
+        if self.curr_bottom_upgrade == 2 and self.target:
+            self.beam_active = True
+            effective_beam_interval = 250 / game_speed_multiplier / 1000.0  # converting ms to seconds if needed
+            if current_time - self.last_beam_damage_time >= effective_beam_interval:
+                self.target.take_damage(1)
+                self.last_beam_damage_time = current_time
+            if current_time - self.last_beam_damage_time >= 3.749:
+                self.beam_sfx.play()
+        else:
+            self.beam_active = False
+
+        # Update particles
+        for particle in self.particles[:]:
+            particle.update()
+            if particle.life <= 0:
+                self.particles.remove(particle)
+
+    def start_reload(self):
+        self.reloading = True
+        self.reload_start_time = pygame.time.get_ticks() / 1000.0
+        self.current_spool = 0  # Reset spool when reloading
+
+    def shoot(self):
+        pass
+
+    def fire_projectile(self, target):
+        print(f"spawning projectile (spool level: {self.current_spool:.1f}, mag size: {self.magazine_size})")
+        flame = (self.curr_bottom_upgrade == 1)
+        projectile = MinigunProjectile((self.position[0], self.position[1]), target,
+                                       speed=10 * game_speed_multiplier,
+                                       damage=self.damage,
+                                       flame=flame)
+        self.projectiles.append(projectile)
+        shoot_sound = load_sound("assets/minigun_shoot.mp3")
+        if self.curr_bottom_upgrade != 2:
+            shoot_sound.play()
+
+    def spawn_particles(self, position):
+        if self.curr_bottom_upgrade == 1:
+            color = "orange"
+        elif self.curr_bottom_upgrade == 2:
+            color = 'beam'
+        else:
+            color = "grey"
+        if self.curr_bottom_upgrade < 2:
+            for _ in range(5):
+                self.particles.append(MinigunParticle(position, color))
+        else:
+            for _ in range(15):
+                self.particles.append(MinigunParticle(position, color))
+
+    def render(self, screen):
+        screen.blit(self.image, self.rect.topleft)
+
+        current_time = pygame.time.get_ticks()
+        for projectile in self.projectiles:
+            if self.curr_bottom_upgrade < 2:
+                projectile.render(screen)
+
+        if self.beam_active:
+            if self.target:
+                self.beam_sfx.play()
+                self.last_beam_time = current_time  # Update last active time
+
+        if self.curr_bottom_upgrade == 2:
+            if self.target is not None:
+                self.prev_pos = self.target.position  # Save last position
+                pygame.draw.line(screen, (255, 140, 0), self.position, self.target.position, 13)
+
+                # ⏳ Keep beam active for 1000ms after last hit
+            elif 0 <= (current_time - self.last_beam_time) <= 100 and hasattr(self, 'prev_pos'):
+                pygame.draw.line(screen, (255, 140, 0), self.position, self.prev_pos, 13)
+
+        for particle in self.particles:
+            particle.render(screen)
+        if self.reloading:
+            self.render_reload(screen)
+
+    def render_reload(self, screen):
+        current_time = pygame.time.get_ticks() / 1000.0
+        progress = (current_time - self.reload_start_time) / self.reload_time
+        progress = min(progress, 1)
+        bar_width = self.rect.width
+        bar_height = 5
+        bar_x = self.rect.left
+        bar_y = self.rect.top - bar_height - 2
+        # Draw the background bar (red)
+        pygame.draw.rect(screen, (255, 0, 0), (bar_x, bar_y, bar_width, bar_height))
+        # Draw the progress (green)
+        pygame.draw.rect(screen, (0, 255, 0), (bar_x, bar_y, int(bar_width * progress), bar_height))
+
+
+class MinigunProjectile:
+    def __init__(self, position, target, speed, damage, flame=False):
+        self.position = list(position)
+        self.target = target
+        self.speed = speed
+        self.damage = damage
+        self.flame = flame
+        self.hit = False
+        self.original_image = load_image("assets/projectile_bullet.png")
+        dx = target.position[0] - position[0]
+        dy = target.position[1] - position[1]
+        distance = math.hypot(dx, dy)
+        if distance == 0:
+            self.direction = (0, 0)
+            self.angle = 0
+        else:
+            self.direction = (dx / distance, dy / distance)
+            self.angle = math.degrees(math.atan2(-dy, dx))
+        self.image = pygame.transform.rotate(self.original_image, self.angle)
+
+    def move(self):
+        self.position[0] += self.direction[0] * self.speed
+        self.position[1] += self.direction[1] * self.speed
+        try:
+            target_x, target_y = self.target.position  # This could fail if self.target has no valid position
+        except IndexError:
+            return
+        if math.hypot(self.position[0] - self.target.position[0], self.position[1] - self.target.position[1]) < 10:
+            self.target.take_damage(self.damage)
+            self.hit = True
+
+        # Destroy projectile if it leaves screen bounds
+        if not (0 <= self.position[0] <= 1280 and 0 <= self.position[1] <= 720):
+            self.hit = True
+
+    def render(self, screen):
+        rect = self.image.get_rect(center=self.position)
+        screen.blit(self.image, rect.topleft)
+
+
+class MinigunParticle:
+    def __init__(self, position, color):
+        self.position = list(position)
+        self.life = 250  # particle lasts 500 ms
+        self.start_time = pygame.time.get_ticks()
+        self.color = color
+        angle = random.uniform(0, 2 * math.pi)
+        self.velocity = [math.cos(angle) * 2, math.sin(angle) * 2]
+
+    def update(self):
+        dt = pygame.time.get_ticks() - self.start_time
+        if self.color == 'beam':
+            max_life = 150
+        elif self.color == "orange":
+            max_life = 500
+        else:
+            max_life = 250
+        self.life = max_life - dt  # Subtract elapsed time
+        self.position[0] += self.velocity[0]
+        self.position[1] += self.velocity[1]
+
+    def render(self, screen):
+        if self.color == 'beam':
+            max_life = 150
+        elif self.color == "orange":
+            max_life = 500
+        elif self.color == "grey":
+            max_life = 250
+        alpha = max(0, int(255 * (self.life / max_life)))  # Scale alpha accordingly
+        surface = pygame.Surface((4, 4), pygame.SRCALPHA)
+
+        if self.color == ("orange" or 'beam'):
+            surface.fill((255, 140, 0, alpha))
+        elif self.color == "grey":
+            surface.fill((200, 200, 200, alpha))
+
+        screen.blit(surface, (self.position[0], self.position[1]))
+
+
 class Ozbourne:
-    riff_sfx = load_sound("assets/riff1.mp3")
 
     def __init__(self, position, radius, weapon, damage, riff_blast_radius, image_path, riff_interval=4000):
         self.position = position
@@ -1698,55 +2132,76 @@ class Ozbourne:
         self.curr_bottom_upgrade = 0
         self.riff_count = 0
         self.damage_default = self.damage
+        self.riff_sfx = load_sound("assets/riff1.mp3")
+        # Flag to track if riff_longer is currently playing
+        self.riff_playing = False
 
     def update(self, enemies):
         scaled_interval = self.riff_interval / game_speed_multiplier
         scaled_duration = self.blast_duration / game_speed_multiplier
-        if pygame.time.get_ticks() - self.last_blast_time >= scaled_interval:
-            for enemy in enemies:
-                distance = math.sqrt((enemy.position[0] - self.position[0]) ** 2 +
-                                     (enemy.position[1] - self.position[1]) ** 2)
-                if distance <= self.radius:
-                    self.blast(enemies)
-                    self.last_blast_time = pygame.time.get_ticks()
-                    break
-                else:
-                    self.riff_count = 0
-                    self.riff_sfx.stop()
-                    mixer.music.unpause()
-                    self.damage = 1
+
+        # Determine if any enemy is within the tower's radius
+        enemy_in_range = False
+        for enemy in enemies:
+            distance = math.hypot(enemy.position[0] - self.position[0],
+                                  enemy.position[1] - self.position[1])
+            if distance <= self.radius:
+                enemy_in_range = True
+                break
+
+        # If upgraded and an enemy is in range, ensure riff_longer is playing
+        if self.curr_bottom_upgrade == 1 and enemy_in_range:
+            if not self.riff_playing:
+                mixer.music.load("assets/riff_longer.mp3")
+                mixer.music.play(-1)
+                self.riff_playing = True
+            # Trigger blast at the specified interval
+            if pygame.time.get_ticks() - self.last_blast_time >= scaled_interval:
+                self.blast(enemies)
+                self.last_blast_time = pygame.time.get_ticks()
+        else:
+            # If no enemy is in range (or not upgraded), switch back to main music if needed
+            if self.riff_playing:
+                mixer.music.load("assets/map_music.mp3")
+                mixer.music.play(-1)
+                self.riff_playing = False
+            self.riff_count = 0
+
+        # Handle blast animation timing
         if self.blast_active:
-            self.blast_animation_timer += pygame.time.get_ticks() - self.last_blast_time
-            self.blast_radius += (self.max_blast_radius / scaled_duration) * (
-                    pygame.time.get_ticks() - self.last_blast_time)
+            dt = pygame.time.get_ticks() - self.last_blast_time
+            self.blast_animation_timer += dt
+            self.blast_radius += (self.max_blast_radius / scaled_duration) * dt
             if self.blast_animation_timer >= scaled_duration:
                 self.blast_active = False
                 self.blast_radius = 0
+
         if not RoundFlag:
             self.damage = 1
-            self.riff_sfx.stop()
-            mixer.music.unpause()
+            # Ensure main music plays if the round stops
+            if self.curr_bottom_upgrade == 1 and self.riff_playing:
+                mixer.music.load("assets/map_music.mp3")
+                mixer.music.play(-1)
+                self.riff_playing = False
             self.riff_count = 0
 
     def blast(self, enemies):
         if self.curr_bottom_upgrade < 1:
             self.riff_sfx.play()
-        elif self.curr_bottom_upgrade >= 1:
+        elif self.curr_bottom_upgrade == 1:
             self.riff_count += 1
-            if self.riff_count == 1:
-                mixer.music.pause()
-                self.riff_sfx.play()
-                self.damage = 1
-            elif self.riff_count >= 88:
+            # Increase damage gradually based on how many times the blast has occurred
+            self.damage = 1 + (self.riff_count * 0.1)
+            if self.riff_count >= 88:
                 self.riff_count = 0
-            self.damage += (self.riff_count * .1)
         self.last_blast_time = pygame.time.get_ticks()
         self.blast_active = True
         self.blast_animation_timer = 0
         self.blast_radius = 0
+
         for enemy in enemies:
-            distance = math.sqrt((enemy.position[0] - self.position[0]) ** 2 +
-                                 (enemy.position[1] - self.position[1]) ** 2)
+            distance = math.hypot(enemy.position[0] - self.position[0],
+                                  enemy.position[1] - self.position[1])
             if distance <= self.riff_blast_radius:
                 enemy.take_damage(self.damage)
 
@@ -1896,6 +2351,7 @@ class BeetleEnemy:
         """
         Move the beetle along its predefined path.
         """
+        global user_health
         if self.current_target < len(self.path):
             target_point = self.path[self.current_target]
             dx = target_point[0] - self.position[0]
@@ -1915,6 +2371,7 @@ class BeetleEnemy:
                 self.current_target += 1
         else:
             # Reached the end of the path; mark as not alive
+            user_health -= self.base_health + self.total_armor_layers * self.current_layer_health
             self.is_alive = False
 
     def update_orientation(self, direction_x, direction_y):
@@ -2241,9 +2698,9 @@ class CentipedeEnemy:
         if non_head_alive >= 4:
             self.speed = 1
         elif non_head_alive > 0:
-            self.speed = 2
+            self.speed = 1.5
         else:
-            self.speed = 3
+            self.speed = 2
 
         # Move the head along the path.
         head = self.segments[0]
@@ -2266,7 +2723,7 @@ class CentipedeEnemy:
         else:
             # If the head reaches the end of the path, subtract remaining health from the user.
             tot_health = sum(1 for seg in self.segments[1:] if seg.alive)
-            user_health -= head.health + tot_health * 2
+            user_health -= int(head.health + tot_health * 2)
             self.segments.clear()
             return
 
