@@ -34,15 +34,15 @@ waves.append(["ANT"] * 20 + ["HORNET"] * 10)  # Wave 9 (Index 8)
 waves.append(["ANT"] * 15 + ["HORNET"] * 5 + ["HORNET"] * 10)  # Wave 10 (Index 9)
 
 
-waves.append(["BEETLE"] * 2)         # Wave 11 (Index 10)
+waves.append(["BEETLE"] * 2 + ["SPIDER"])         # Wave 11 (Index 10)
 waves.append(["BEETLE"] * 2 + ["ANT"] * 10 + ["HORNET"] * 10)  # Wave 12 (Index 11)
 waves.append(["CENTIPEDE"] * 3)       # Wave 13 (Index 12)
 waves.append(["ANT"] * 40)  # Wave 14 (Index 13)
-waves.append(["CENTIPEDE"] * 1 + ["ANT"] * 15 + ["BEETLE"] * 3 + ["HORNET"] * 5)  # Wave 15 (Index 14)
+waves.append(["SPIDER"] * 1 + ["ANT"] * 15 + ["BEETLE"] * 3 + ["HORNET"] * 5)  # Wave 15 (Index 14)
 
 
 waves.append(["CENTIPEDE_BOSS"] * 1)  # Wave 16 (Index 15)
-waves.append(["BEETLE"] * 3 + ["HORNET"] * 7 + ["CENTIPEDE"] * 4)       # Wave 17 (Index 16)
+waves.append(["BEETLE"] * 3 + ["HORNET"] * 7 + ["CENTIPEDE"] * 4 + ["SPIDER"] * 3)       # Wave 17 (Index 16)
 waves.append(["ANT"] * 30 + ["HORNET"] * 10 + ["BEETLE"] * 5 + ["CENTIPEDE"] * 5)  # Wave 18 (Index 17)
 
 
@@ -67,7 +67,7 @@ def start_new_wave(round_number: int):
         10: {"spawn_interval": 1000, "wave_size": 30, "trigger_rush": 20, "rush_num": 15, "rush_speed": 2500},
 
         # Late Game (Waves 11-15)
-        11: {"spawn_interval": 1500, "wave_size": 2, "trigger_rush": -1},
+        11: {"spawn_interval": 1500, "wave_size": 3, "trigger_rush": 2, "rush_num": 1, "rush_speed": 5000},
         12: {"spawn_interval": 2500, "wave_size": 22, "trigger_rush": 2, "rush_num": 10, "rush_speed": 500},
         13: {"spawn_interval": 2500, "wave_size": 3, "trigger_rush": -1},  # Centipede squad
         14: {"spawn_interval": 800, "wave_size": 40, "trigger_rush": -1},
@@ -75,7 +75,7 @@ def start_new_wave(round_number: int):
 
         # Endgame (Waves 16-18)
         16: {"spawn_interval": 4000, "wave_size": 1, "trigger_rush": -1},  # Boss wave
-        17: {"spawn_interval": 2500, "wave_size": 15, "trigger_rush": 11, "rush_num": 4, "rush_speed": 1000},
+        17: {"spawn_interval": 2500, "wave_size": 18, "trigger_rush": 11, "rush_num": 4, "rush_speed": 1000},
         18: {"spawn_interval": 500, "wave_size": 50, "trigger_rush": 30, "rush_num": 20, "rush_speed": 2500}
     }
 
@@ -137,9 +137,11 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
         elif enemy_type == "CENTIPEDE":
             enemies.append(game_tools.CentipedeEnemy(spawn_pos, offset_path))
         elif enemy_type == "CENTIPEDE_BOSS":
-            enemies.append(game_tools.CentipedeEnemy(spawn_pos, offset_path, links=18))
+            enemies.append(game_tools.CentipedeEnemy(spawn_pos, offset_path, links=24))
         elif enemy_type == "BEETLE":
             enemies.append(game_tools.BeetleEnemy(spawn_pos, offset_path))
+        elif enemy_type == "SPIDER":
+            enemies.append(game_tools.SpiderEnemy(spawn_pos, offset_path))
 
         last_spawn_time = current_time
         enemies_spawned += 1
