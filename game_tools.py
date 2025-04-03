@@ -247,6 +247,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     img_ozbourne_text = load_image("assets/ozbourne_text.png")
     img_commando_text = load_image("assets/commando_text.png")
     img_minigun_text = load_image("assets/minigun_text.png")
+    img_wizard_text = load_image("assets/wizard_text.png")
     img_playbutton = load_image("assets/playbutton.png")
     img_playbutton_1x = load_image("assets/playbutton_1x.png")
     img_playbutton_2x = load_image("assets/playbutton_2x.png")
@@ -387,6 +388,14 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
         if detect_single_click() and money >= 600:
             purchase.play()
             return "minigun"
+
+    # WIZARD
+    elif 1118 <= mouse[0] <= 1118 + 73 and 288 <= mouse[1] <= 288 + 88:
+        scrn.blit(img_wizard_text, (1113, 53))
+        scrn.blit(img_tower_select, (1118, 288))
+        if detect_single_click() and money >= 400:
+            purchase.play()
+            return "wizard"
 
     # check if any tower is clicked after placement
     for tower in towers:
@@ -801,6 +810,123 @@ def handle_upgrade(scrn, tower):
                     elif tower.curr_top_upgrade == 1:
                         tower.image = load_image("assets/minigun_deathray+faster_spool.png")
                         tower.original_image = load_image("assets/minigun_deathray+faster_spool.png")
+    if isinstance(tower, WizardTower):
+        img_apprentice_upgrade = load_image("assets/upgrade_apprentice.png")
+        img_master_upgrade = load_image("assets/upgrade_master.png")
+        img_explosive_orbs_upgrade = load_image("assets/upgrade_explosiveorbs.png")
+        img_lightning_upgrade = load_image("assets/upgrade_lightning.png")
+        img_storm_upgrade = load_image("assets/upgrade_storm.png")
+        upgrade_font = get_font("arial", 16)
+        text_apprentice = upgrade_font.render("Rat Apprentice", True, (0, 0, 0))
+        text_master = upgrade_font.render("Master Wizard", True, (0, 0, 0))
+        text_explosiveorbs = upgrade_font.render("Explosive Orbs", True, (0, 0, 0))
+        text_lightning = upgrade_font.render("Lightning Spell", True, (0, 0, 0))
+        text_storm = upgrade_font.render("Lightning Storm", True, (0, 0, 0))
+        if tower.curr_top_upgrade == 0:
+            scrn.blit(img_apprentice_upgrade, (883, 65))
+            scrn.blit(text_apprentice, (962, 42))
+        elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
+            scrn.blit(img_master_upgrade, (883, 65))
+            scrn.blit(text_master, (962, 42))
+        elif tower.curr_top_upgrade == 2 and tower.curr_bottom_upgrade < 2:
+            scrn.blit(img_explosive_orbs_upgrade, (883, 65))
+            scrn.blit(text_explosiveorbs, (962, 42))
+        if tower.curr_bottom_upgrade == 0:
+            scrn.blit(img_lightning_upgrade, (883, 194))
+            scrn.blit(text_lightning, (954, 172))
+        elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 3:
+            scrn.blit(img_storm_upgrade, (883, 194))
+            scrn.blit(text_storm, (962, 172))
+        # TOP UPGRADE PATH
+        if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+            scrn.blit(img_upgrade_highlighted, (883, 65))
+            if detect_single_click():
+                # apprentice
+                if tower.curr_top_upgrade == 0 and money >= 400:
+                    purchase.play()
+                    money -= 400
+                    tower.sell_amt += 200
+                    tower.radius = 125
+                    tower.curr_top_upgrade = 1
+                    UpgradeFlag = True
+                    if tower.curr_bottom_upgrade == 0:
+                        tower.image = load_image("assets/wizard+apprentice.png")
+                        tower.original_image = load_image("assets/wizard+apprentice.png")
+                    elif tower.curr_bottom_upgrade == 1:
+                        tower.image = load_image("assets/wizard+lightning+apprentice.png")
+                        tower.original_image = load_image("assets/wizard+lightning+apprentice.png")
+                    elif tower.curr_bottom_upgrade == 2:
+                        tower.image = load_image("assets/wizard+storm+apprentice.png")
+                        tower.original_image = load_image("assets/wizard+storm+apprentice.png")
+                # master
+                elif tower.curr_top_upgrade == 1 and money >= 1200:
+                    purchase.play()
+                    money -= 1200
+                    tower.sell_amt += 600
+                    tower.curr_top_upgrade = 2
+                    UpgradeFlag = True
+                    if tower.curr_bottom_upgrade == 0:
+                        tower.image = load_image("assets/wizard+master.png")
+                        tower.original_image = load_image("assets/wizard+master.png")
+                    elif tower.curr_bottom_upgrade == 1:
+                        tower.image = load_image("assets/wizard+lightning+master.png")
+                        tower.original_image = load_image("assets/wizard+lightning+master.png")
+                # explosive orbs
+                elif tower.curr_top_upgrade == 2 and money >= 1000:
+                    purchase.play()
+                    money -= 1000
+                    tower.sell_amt += 500
+                    tower.curr_top_upgrade = 3
+                    UpgradeFlag = True
+                    if tower.curr_bottom_upgrade == 0:
+                        tower.image = load_image("assets/wizard+explosiveorbs.png")
+                        tower.original_image = load_image("assets/wizard+explosiveorbs.png")
+                    elif tower.curr_bottom_upgrade == 1:
+                        tower.image = load_image("assets/wizard+explosiveorbs+lightning.png")
+                        tower.original_image = load_image("assets/wizard+explosiveorbs+lightning.png")
+        if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
+            if detect_single_click():
+                money += tower.sell_amt
+                towers.remove(tower)
+                UpgradeFlag = False
+                return
+        # BOTTOM UPGRADE PATH
+        if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+            scrn.blit(img_upgrade_highlighted, (883, 194))
+            if detect_single_click():
+                # lightning
+                if tower.curr_bottom_upgrade == 0 and money >= 1850:
+                    purchase.play()
+                    money -= 1850
+                    tower.sell_amt += 925
+                    tower.curr_bottom_upgrade = 1
+                    UpgradeFlag = True
+                    if tower.curr_top_upgrade == 0:
+                        tower.image = load_image("assets/wizard+lightning.png")
+                        tower.original_image = load_image("assets/wizard+lightning.png")
+                    elif tower.curr_top_upgrade == 1:
+                        tower.image = load_image("assets/wizard+lightning+apprentice.png")
+                        tower.original_image = load_image("assets/wizard+lightning+apprentice.png")
+                    elif tower.curr_top_upgrade == 2:
+                        tower.image = load_image("assets/wizard+lightning+master.png")
+                        tower.original_image = load_image("assets/wizard+lightning+master.png")
+                    elif tower.curr_top_upgrade == 3:
+                        tower.image = load_image("assets/wizard+explosiveorbs+lightning.png")
+                        tower.original_image = load_image("assets/wizard+explosiveorbs+lightning.png")
+                # storm
+                elif tower.curr_bottom_upgrade == 1 and money >= 2600 and tower.curr_top_upgrade < 2:
+                    purchase.play()
+                    money -= 2600
+                    tower.sell_amt += 1300
+                    tower.radius = 175
+                    tower.curr_bottom_upgrade = 2
+                    UpgradeFlag = True
+                    if tower.curr_top_upgrade == 0:
+                        tower.image = load_image("assets/wizard+storm.png")
+                        tower.original_image = load_image("assets/wizard+storm.png")
+                    elif tower.curr_top_upgrade == 1:
+                        tower.image = load_image("assets/wizard+storm+apprentice.png")
+                        tower.original_image = load_image("assets/wizard+storm+apprentice.png")
     if isinstance(tower, CheddarCommando):
         img_shotgun_upgrade = load_image("assets/upgrade_shotgun.png")
         img_rpg_upgrade = load_image("assets/upgrade_rocket.png")
@@ -925,7 +1051,7 @@ def update_stats(scrn: pygame.surface, health: int, money: int, round_number: in
     money_font = get_font("arial", 28)
     round_font = get_font("arial", 28)
 
-    text1 = health_font.render(f"{health}", True, (255, 255, 255))
+    text1 = health_font.render(f"{int(health)}", True, (255, 255, 255))
     text2 = money_font.render(f"{money}", True, (255, 255, 255))
     text3 = round_font.render(f"Round {round_number}", True, (255, 255, 255))
 
@@ -1005,6 +1131,28 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
             money -= 250
+            return True
+    elif tower == "wizard":
+        img_base_wizard = load_image("assets/wizard_base.png")
+        circle_surface = pygame.Surface((200, 200), pygame.SRCALPHA)
+        for event in pygame.event.get():
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_ESCAPE:
+                    return True
+        if check_hitbox(house_hitbox, relative_pos, towers):
+            pygame.draw.circle(circle_surface, (0, 0, 0, 128), (100, 100), 100)
+            scrn.blit(img_base_wizard, (mouse[0] - 15, mouse[1] - 19))
+            scrn.blit(circle_surface, (mouse[0] - 100, mouse[1] - 100))
+        elif not check_hitbox(house_hitbox, relative_pos, towers):
+            pygame.draw.circle(circle_surface, (255, 0, 0, 128), (100, 100), 100)
+            scrn.blit(img_base_wizard, (mouse[0] - 15, mouse[1] - 19))
+            scrn.blit(circle_surface, (mouse[0] - 100, mouse[1] - 100))
+        if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower) and tower == "wizard":
+            tower_wizard = WizardTower((mouse[0], mouse[1]))
+            towers.append(tower_wizard)
+            tower_click.play()
+            play_splash_animation(scrn, (mouse[0], mouse[1]))
+            money -= 400
             return True
     elif tower == "rattent":
         img_base_tent = load_image("assets/base_camp.png")
@@ -1836,6 +1984,411 @@ class CheddarCommando:
                 self.reload_sound.play()
 
 
+class WizardTower:
+    sfx_zap = load_sound("assets/zap_sfx.mp3")
+    sfx_explosion = load_sound("assets/explosion_sfx.mp3")
+
+    def __init__(self, position):
+        self.position = position
+        self.base_image = load_image("assets/wizard_base.png")
+        self.original_image = pygame.transform.rotate(self.base_image, +90)
+        self.image = self.original_image.copy()
+        self.rect = self.image.get_rect(center=position)
+        self.radius = 100
+        self.orb_count = 4
+        self.orb_speed = 0.25
+        self.fire_interval = 2500
+        self.recharge_time = 3000
+        self.last_fire_time = 0
+        self.orbs = []
+        self.lightning_interval = 2000
+        self.last_lightning_time = 0
+        self.curr_top_upgrade = 0
+        self.curr_bottom_upgrade = 0
+        self.sell_amt = 200
+        self.explosive_orbs = False
+        self.lightning_chain = 5
+        self.lightning_damage = [2, 2, 1, 1, 1]
+        self.lightning_targets = []
+        self.orb_angles = [i * (360 / self.orb_count) for i in range(self.orb_count)]
+        self.target_angle = 0
+        self.current_angle = 0
+        self.rotation_speed = 5
+        self._init_orbs()
+        self.orb_respawn_timers = {}
+        self.last_frame_time = pygame.time.get_ticks()
+
+    class OrbProjectile:
+        def __init__(self, parent, angle, orbit_radius=40):
+            self.parent = parent
+            self.angle = angle
+            self.orbit_radius = orbit_radius
+            self.speed = 0.25
+            self.damage = 2
+            self.image = load_image("assets/orb_projectile.png")
+            self.rect = self.image.get_rect()
+            self.attacking = False
+            self.target = None
+            self.attack_speed = 2.0
+            self.explosive = False
+            self.armor_break = self.explosive
+            self.initial_velocity = [0, 0]
+            self.spark_particles = []
+            self.orbit_offset = (0, 0)
+            self.world_pos = parent.position
+            self.position = self.world_pos
+            self.alive = True
+            self.last_update = pygame.time.get_ticks()
+            self.particles = []
+
+        class OrbParticle:
+            def __init__(self, position):
+                self.position = list(position)
+                self.life = 250  # particle lasts 500 ms
+                self.max_life = self.life
+                self.start_time = pygame.time.get_ticks()
+                angle = random.uniform(0, 2 * math.pi)
+                self.velocity = [math.cos(angle) * 2, math.sin(angle) * 2]
+
+            def update(self):
+                dt = pygame.time.get_ticks() - self.start_time
+                self.life = self.max_life - dt  # Subtract elapsed time
+                self.position[0] += self.velocity[0]
+                self.position[1] += self.velocity[1]
+
+            def render(self, screen):
+                alpha = max(0, int(255 * (self.life / self.max_life)))  # Scale alpha accordingly
+                surface = pygame.Surface((4, 4), pygame.SRCALPHA)
+                surface.fill((255, 255, 255, alpha))
+                screen.blit(surface, (self.position[0], self.position[1]))
+
+        def update_orbit(self):
+            if self.alive and not self.attacking:
+                current_time = pygame.time.get_ticks()
+                delta = (current_time - self.last_update) * game_speed_multiplier
+                self.last_update = current_time
+
+                self.angle = (self.angle + self.speed * delta / 16) % 360
+                rad = math.radians(self.angle)
+                self.orbit_offset = (
+                    math.cos(rad) * self.orbit_radius,
+                    math.sin(rad) * self.orbit_radius
+                )
+                self.world_pos = (
+                    self.parent.position[0] + self.orbit_offset[0],
+                    self.parent.position[1] + self.orbit_offset[1]
+                )
+                self.rect.center = self.world_pos
+                self.initial_velocity = [
+                    math.cos(rad) * self.speed * 1,
+                    math.sin(rad) * self.speed * 1  # 2.5 originally
+                ]
+
+        def launch(self, target):
+            self.attacking = True
+            self.target = target
+            self.world_pos = self.rect.center
+            self.last_update = pygame.time.get_ticks()
+
+        def update_attack(self, enemies):
+            if self.attacking and self.alive:
+                current_time = pygame.time.get_ticks()
+                delta = (current_time - self.last_update) * game_speed_multiplier
+                self.last_update = current_time
+
+                if self.target and self.target.is_alive:
+                    dx = self.target.position[0] - self.world_pos[0]
+                    dy = self.target.position[1] - self.world_pos[1]
+                    distance = math.hypot(dx, dy)
+
+                    if distance > 0:
+                        self.initial_velocity[0] += (dx / distance) * 0.15 * delta / 16
+                        self.initial_velocity[1] += (dy / distance) * 0.15 * delta / 16
+
+                        self.world_pos = (
+                            self.world_pos[0] + self.initial_velocity[0] * self.attack_speed * delta / 16,
+                            self.world_pos[1] + self.initial_velocity[1] * self.attack_speed * delta / 16
+                        )
+                        self.rect.center = self.world_pos
+
+                        if random.random() < 0.5:
+                            self.spark_particles.append({
+                                'pos': list(self.world_pos),
+                                'vel': [
+                                    -self.initial_velocity[0] * 0.3 + random.uniform(-0.5, 0.5),
+                                    -self.initial_velocity[1] * 0.3 + random.uniform(-0.5, 0.5)
+                                ],
+                                'life': random.randint(100, 200),
+                                'start': pygame.time.get_ticks()
+                            })
+
+                    if self.rect.colliderect(self.target.rect):
+                        self.on_impact(enemies)
+                else:
+                    self.alive = False
+
+        def on_impact(self, enemies):
+            self.target.take_damage(self.damage, projectile=self)
+            if self.explosive:
+                self.create_explosion(enemies)
+            self.spawn_particles(self.world_pos)
+            self.alive = False
+            self.parent.orb_respawn_timers[self.angle] = pygame.time.get_ticks()
+
+        def spawn_particles(self, position):
+            for _ in range(10):
+                self.particles.append(self.OrbParticle(position))
+
+        def create_explosion(self, enemies):
+            self.parent.sfx_explosion.play()
+            explosion_pos = self.rect.center
+            explosion_radius = 50
+            explosion_damage = 2
+            for enemy in enemies:
+                distance = math.hypot(enemy.position[0] - explosion_pos[0],
+                                      enemy.position[1] - explosion_pos[1])
+                if distance <= explosion_radius + enemy.rect.width / 2:
+                    enemy.take_damage(explosion_damage, projectile=self)
+
+            for _ in range(15):
+                self.spark_particles.append({
+                    'pos': list(explosion_pos),
+                    'vel': [random.uniform(-3, 3), random.uniform(-3, 3)],
+                    'life': random.randint(100, 400),
+                    'start': pygame.time.get_ticks()
+                })
+
+        def render_sparks(self, screen):
+            current_time = pygame.time.get_ticks()
+            for spark in self.spark_particles[:]:
+                if current_time - spark['start'] > spark['life']:
+                    self.spark_particles.remove(spark)
+                else:
+                    alpha = 255 - int((current_time - spark['start']) / spark['life'] * 255)
+                    pygame.draw.circle(screen, (255, 255, 100, alpha),
+                                       (int(spark['pos'][0]), int(spark['pos'][1])), 2)
+
+        def render(self, screen):
+            if self.alive:
+                screen.blit(self.image, self.rect.topleft)
+                self.render_sparks(screen)
+
+    class LightningBolt:
+        def __init__(self, start_pos, targets, damages):
+            self.segments = []
+            self.fork_particles = []
+            self.duration = 250
+            self.start_time = pygame.time.get_ticks()
+
+            prev_pos = start_pos
+            for i, target in enumerate(targets[:len(damages)]):
+                new_pos = target.rect.center
+                self.segments.append({
+                    'start': prev_pos,
+                    'end': new_pos,
+                    'damage': damages[i],
+                    'width': max(3 - i, 1)
+                })
+
+                num_forks = random.randint(2, 4)
+                for _ in range(num_forks):
+                    angle = random.uniform(0, math.pi * 2)
+                    length = random.randint(10, 20)
+                    self.fork_particles.append({
+                        'start': new_pos,
+                        'end': (
+                            new_pos[0] + math.cos(angle) * length,
+                            new_pos[1] + math.sin(angle) * length
+                        ),
+                        'life': random.randint(50, 150),
+                        'start_time': pygame.time.get_ticks()
+                    })
+
+                prev_pos = new_pos
+
+        def should_remove(self):
+            return pygame.time.get_ticks() - self.start_time > self.duration * (2 / game_speed_multiplier)
+
+        def render(self, screen):
+            alpha = max(0, 255 - int((pygame.time.get_ticks() - self.start_time) / self.duration * 255))
+
+            core_color = (173, 216, 230, alpha)
+            glow_color = (224, 255, 255, alpha // 2)
+            fork_color = (200, 230, 255, alpha)
+
+            for seg in self.segments:
+                pygame.draw.line(screen, core_color, seg['start'], seg['end'], seg['width'])
+                pygame.draw.line(screen, glow_color, seg['start'], seg['end'], seg['width'] + 1)
+
+            current_time = pygame.time.get_ticks()
+            for fork in self.fork_particles[:]:
+                if current_time - fork['start_time'] > fork['life']:
+                    self.fork_particles.remove(fork)
+                else:
+                    fork_alpha = 255 - int((current_time - fork['start_time']) / fork['life'] * 255)
+                    pygame.draw.line(screen, (*fork_color[:3], fork_alpha),
+                                     fork['start'], fork['end'], 1)
+
+            if not RoundFlag:
+                for seg in self.segments:
+                    self.segments.remove(seg)
+
+    def _init_orbs(self):
+        self.orbs = []
+        orbit_radius = 40 + (self.curr_top_upgrade * 10)
+        for angle in self.orb_angles:
+            orb = self.OrbProjectile(self, angle, orbit_radius)
+            orb.explosive = self.explosive_orbs
+            self.orbs.append(orb)
+
+    def update_rotation(self, enemies):
+        current_time = pygame.time.get_ticks()
+        delta = (current_time - self.last_frame_time) * game_speed_multiplier
+        self.last_frame_time = current_time
+
+        closest_enemy = None
+        min_distance = float('inf')
+        for enemy in enemies:
+            dx = enemy.position[0] - self.position[0]
+            dy = enemy.position[1] - self.position[1]
+            distance = math.hypot(dx, dy)
+            if distance <= self.radius and distance < min_distance:
+                min_distance = distance
+                closest_enemy = enemy
+
+        if closest_enemy:
+            dx = closest_enemy.position[0] - self.position[0]
+            dy = closest_enemy.position[1] - self.position[1]
+            self.target_angle = math.degrees(math.atan2(-dy, dx)) + 90
+            angle_diff = (self.target_angle - self.current_angle + 180) % 360 - 180
+            self.current_angle += angle_diff * 0.1 * delta / 16
+
+            self.image = pygame.transform.rotate(self.original_image, -self.current_angle)
+            self.rect = self.image.get_rect(center=self.position)
+
+    def update_lightning(self, enemies):
+        if self.curr_bottom_upgrade >= 1:
+            now = pygame.time.get_ticks()
+            interval = (self.lightning_interval // self.curr_bottom_upgrade)
+            scaled_interval = interval / game_speed_multiplier
+
+            if (now - self.last_lightning_time) > scaled_interval:
+                targets = self.find_lightning_targets(enemies)
+                if targets:
+                    self.sfx_zap.play()
+                    self.lightning_targets.append(self.LightningBolt(self.position, targets, self.lightning_damage))
+                    self.last_lightning_time = now
+
+                    for i, target in enumerate(targets[:len(self.lightning_damage)]):
+                        target.take_damage(self.lightning_damage[i])
+
+        self.lightning_targets = [bolt for bolt in self.lightning_targets if not bolt.should_remove()]
+
+    def update(self, enemies):
+        current_time = pygame.time.get_ticks()
+        delta = (current_time - self.last_frame_time) * game_speed_multiplier
+        self.last_frame_time = current_time
+
+        if RoundFlag:
+            self.update_orbs(enemies)
+            self.update_lightning(enemies)
+            self.update_rotation(enemies)
+        else:
+            # Reset orbs when round ends
+            self._init_orbs()
+            self.orb_respawn_timers.clear()
+
+    def render(self, screen):
+        screen.blit(self.image, self.rect.topleft)
+
+        for orb in self.orbs:
+            orb.render(screen)
+
+        for bolt in self.lightning_targets:
+            bolt.render(screen)
+
+        if UpgradeFlag and curr_upgrade_tower == self:
+            circle_surf = pygame.Surface((2 * self.radius, 2 * self.radius), pygame.SRCALPHA)
+            pygame.draw.circle(circle_surf, (0, 0, 0, 128), (self.radius, self.radius), self.radius)
+            screen.blit(circle_surf, (self.position[0] - self.radius, self.position[1] - self.radius))
+
+    def find_lightning_targets(self, enemies):
+        targets = []
+        current_target = None
+        max_chain = self.lightning_chain * self.curr_bottom_upgrade
+
+        valid_enemies = [e for e in enemies
+                         if math.hypot(e.position[0] - self.position[0],
+                                       e.position[1] - self.position[1]) <= self.radius * 2]
+
+        if valid_enemies:
+            current_target = random.choice(valid_enemies)
+            targets.append(current_target)
+
+            for _ in range(max_chain - 1):
+                next_targets = [e for e in enemies
+                                if e not in targets and
+                                math.hypot(e.position[0] - current_target.position[0],
+                                           e.position[1] - current_target.position[1]) <= 100]
+                if next_targets:
+                    current_target = random.choice(next_targets)
+                    targets.append(current_target)
+                else:
+                    break
+
+        return targets
+
+    def update_orbs(self, enemies):
+        now = pygame.time.get_ticks()
+        delta = (now - self.last_frame_time) * game_speed_multiplier
+
+        # Game speed scaled recharge
+        for angle in list(self.orb_respawn_timers.keys()):
+            elapsed = (now - self.orb_respawn_timers[angle]) * game_speed_multiplier
+            if elapsed > self.recharge_time:
+                orb = next((o for o in self.orbs if o.angle == angle), None)
+                if orb:
+                    orb.alive = True
+                    orb.attacking = False
+                    del self.orb_respawn_timers[angle]
+
+        # Game speed scaled fire interval
+        if (now - self.last_fire_time) * game_speed_multiplier > self.fire_interval:
+            targets = [e for e in enemies
+                       if math.hypot(e.position[0] - self.position[0],
+                                     e.position[1] - self.position[1]) <= self.radius]
+            if targets:
+                available_orbs = [o for o in self.orbs if o.alive and not o.attacking]
+                if available_orbs:
+                    orb_to_fire = random.choice(available_orbs)
+                    orb_to_fire.launch(random.choice(targets))
+                    self.last_fire_time = now
+
+        for orb in self.orbs:
+            if orb.attacking:
+                orb.update_attack(enemies)
+            else:
+                orb.update_orbit()
+
+        if self.curr_top_upgrade >= 1:
+            new_count = 6 if self.curr_top_upgrade == 1 else 8
+            if self.orb_count != new_count:
+                self.orb_count = new_count
+                self.orb_angles = [i * (360 / self.orb_count) for i in range(self.orb_count)]
+                self._init_orbs()
+
+            self.orb_speed = 0.35 if self.curr_top_upgrade == 1 else 0.5
+            self.fire_interval = 1500 if self.curr_top_upgrade == 1 else 500
+            self.explosive_orbs = (self.curr_top_upgrade == 2)
+
+            for orb in self.orbs:
+                orb.speed = self.orb_speed
+                orb.explosive = self.explosive_orbs
+
+    def shoot(self):
+        pass
+
+
 class MinigunTower:
     def __init__(self, position):
         self.position = position
@@ -2576,6 +3129,110 @@ class HornetEnemy:
             self.is_alive = False
             self.sfx_splat.play()
             money += 10
+
+    def render(self, screen):
+        if self.is_alive:
+            screen.blit(self.image, self.rect.topleft)
+        else:
+            screen.blit(self.img_death, self.rect.topleft)
+        self.update_shards(screen)  # NEW: Render particles
+
+
+class SpiderEnemy:
+    sfx_splat = load_sound("assets/splat_sfx.mp3")
+    img_death = load_image("assets/splatter.png")
+
+    def __init__(self, position, path):
+        self.position = position
+        self.health = 5
+        self.speed = 1
+        self.path = house_path
+        self.frames = ["assets/spider_frames/spider0.png", "assets/spider_frames/spider1.png",
+                       "assets/spider_frames/spider2.png", "assets/spider_frames/spider3.png",
+                       "assets/spider_frames/spider4.png"]
+        self.current_frame = 0
+        self.frame_duration = 75  # milliseconds per frame
+        self.last_frame_update = pygame.time.get_ticks()
+        self.original_image = load_image("assets/spider_frames/spider0.png")
+        self.image = self.original_image
+        self.rect = self.image.get_rect(center=position)
+        self.size = self.rect.size
+        self.current_target = 0
+        self.is_alive = True
+        self.shards = []  # NEW: Particle storage
+
+    def move(self):
+        global user_health
+        self.update_animation()
+        if self.current_target < len(self.path):
+            target_x, target_y = self.path[self.current_target]
+            dx = target_x - self.position[0]
+            dy = target_y - self.position[1]
+            distance = (dx ** 2 + dy ** 2) ** 0.5
+            if distance == 0:
+                return
+            direction_x = dx / distance
+            direction_y = dy / distance
+            self.position = (
+                self.position[0] + direction_x * self.speed,
+                self.position[1] + direction_y * self.speed
+            )
+            self.rect.center = self.position
+            self.update_orientation(direction_x, direction_y)
+            if distance <= self.speed:
+                self.current_target += 1
+        if self.current_target >= len(self.path):
+            self.is_alive = False
+            user_health -= self.health
+
+    # NEW: Shard particle methods (same as AntEnemy)
+    def spawn_shards(self, count=10):
+        for _ in range(count):
+            shard = {
+                'pos': [self.position[0], self.position[1]],
+                'vel': [random.uniform(-5, 5), random.uniform(-5, 5)],
+                'lifetime': random.randint(100, 600),
+                'start_time': pygame.time.get_ticks(),
+                'radius': random.randint(1, 3)
+            }
+            self.shards.append(shard)
+
+    def update_shards(self, screen):
+        current_time = pygame.time.get_ticks()
+        for shard in self.shards[:]:
+            elapsed = current_time - shard['start_time']
+            if elapsed > shard['lifetime']:
+                self.shards.remove(shard)
+            else:
+                shard['pos'][0] += shard['vel'][0]
+                shard['pos'][1] += shard['vel'][1]
+                alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
+                color = (255, 255, 255, alpha)
+                shard_surface = pygame.Surface((shard['radius']*2, shard['radius']*2), pygame.SRCALPHA)
+                pygame.draw.circle(shard_surface, color, (shard['radius'], shard['radius']), shard['radius'])
+                screen.blit(shard_surface, (shard['pos'][0], shard['pos'][1]))
+
+    def update_orientation(self, direction_x, direction_y):
+        angle = math.degrees(math.atan2(-direction_y, direction_x))
+        self.image = pygame.transform.rotate(self.original_image, angle - 90)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def take_damage(self, damage, projectile=None):
+        global money
+        self.health -= damage
+        self.spawn_shards()  # NEW: Create particles on hit
+        if self.health <= 0:
+            self.is_alive = False
+            self.sfx_splat.play()
+            money += 25
+
+    def update_animation(self):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_frame_update >= self.frame_duration / game_speed_multiplier:
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+            self.image = load_image(self.frames[self.current_frame])
+            self.original_image = load_image(self.frames[self.current_frame])
+            self.last_frame_update = current_time
 
     def render(self, screen):
         if self.is_alive:
