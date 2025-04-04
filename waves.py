@@ -153,7 +153,7 @@ for r in range(19, 101):
                          "rush": {"trigger": int((r // 2 + r) * 0.4), "num": 3, "speed": 200}})
     elif r == 22:
         # Centipede rush: mix of centipedes and ants\n
-        segments.append({"enemies": ["CENTIPEDE"] * (r // 3) + ["HORNET"] * (r),
+        segments.append({"enemies": ["DRAGONFLY"] + ["CENTIPEDE"] * (r // 3) + ["HORNET"] * (r),
                          "spawn_interval": 900,
                          "delay": 500,
                          "rush": {"trigger": int((r // 3 + r) * 0.6), "num": 5, "speed": 350}})
@@ -166,6 +166,15 @@ for r in range(19, 101):
                          "spawn_interval": 200,
                          "delay": 0,
                          "rush": {"trigger": int(r * 0.5), "num": 3, "speed": 400}})
+    elif r == 24:
+        # Mixed forces with a delayed second phase\n
+        segments.append({"enemies": ["ROACH_QUEEN"],
+                         "spawn_interval": 50,
+                         "delay": 1500})
+        """segments.append({"enemies": ["HORNET"] * (r * 2),
+                         "spawn_interval": 200,
+                         "delay": 0,
+                         "rush": {"trigger": int(r * 0.5), "num": 3, "speed": 400}})"""
     else:
 
         # BOSS ROUND EVERY 10
@@ -282,7 +291,7 @@ def start_new_wave(round_number: int):
     rush_info = None
     rush_spawned = 0
     original_spawn_interval = None
-    enemies.clear()
+    enemies[:] = [enemy for enemy in enemies if enemy.is_alive]
 
 
 def get_rand_round():
@@ -321,27 +330,20 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
     global current_round_config, current_segment_index, segment_enemy_spawned, segment_start_time, segment_completion_time
     global rush_active, rush_info, rush_spawned, original_spawn_interval, enemies
 
-    # Always remove dead enemies first.
+    # Remove dead enemies.
     enemies[:] = [enemy for enemy in enemies if enemy.is_alive]
-
     current_time = pygame.time.get_ticks()
 
-    # If all segments have been processed, we're in the final phase.
+    # Final phase: if all segments are done, wait until all enemies are cleared.
     if current_segment_index >= len(current_round_config):
-        # If we have a recorded completion time, and a grace period has elapsed, force-clear lingering enemies.
-        if segment_completion_time is not None and current_time - segment_completion_time >= FINAL_CLEANUP_DELAY:
-            if enemies:
-                print("[!] Final cleanup: Forcing enemy list clear.")
-            enemies.clear()
         if not enemies:
-            print(f"[✓] Wave {round_number} completed.")
+            print(f"Wave {round_number} completed.")
             base_reward = 150
             bonus = math.floor(math.log(round_number + 1, 2))
             game_tools.money += base_reward + (25 * bonus)
             return True
         return False
 
-    # Process the current segment.
     segment = current_round_config[current_segment_index]
     effective_interval = segment["spawn_interval"]
 
@@ -364,10 +366,10 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
     # Spawn an enemy if there are still enemies to spawn in this segment.
     if segment_enemy_spawned < len(segment["enemies"]):
         if current_time - segment_start_time >= effective_interval:
-            enemy_type = segment["enemies"][segment_enemy_spawned % len(segment["enemies"])]
+            enemy_type = segment["enemies"][segment_enemy_spawned]
             spawn_pos = (238 + random.randint(-16, 16), 500)
+            # Create a slightly varied path.
             offset_path = [(x + random.randint(-8, 8), y) for (x, y) in game_tools.house_path]
-
             if enemy_type == "ANT":
                 enemies.append(game_tools.AntEnemy(spawn_pos, 1, 1, offset_path, "assets/ant_base.png"))
             elif enemy_type == "HORNET":
@@ -380,37 +382,41 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
                 enemies.append(game_tools.CentipedeEnemy(spawn_pos, offset_path))
             elif enemy_type == "CENTIPEDE_BOSS":
                 enemies.append(game_tools.CentipedeEnemy(spawn_pos, offset_path, links=24))
-
+            elif enemy_type == "DRAGONFLY":
+                enemies.append(game_tools.DragonflyEnemy(spawn_pos, offset_path))
+            elif enemy_type == "ROACH_QUEEN":
+                enemies.append(game_tools.RoachQueenEnemy(spawn_pos, offset_path))
             segment_enemy_spawned += 1
             if rush_active:
                 rush_spawned += 1
-
             segment_start_time = current_time
-            # Record completion time once the final enemy of the segment spawns.
             if segment_enemy_spawned == len(segment["enemies"]):
                 segment_completion_time = current_time
-                print(f"[→] Finished spawning segment {current_segment_index}.")
+                print(f"Finished spawning segment {current_segment_index}.")
 
-    # Update, render, and move enemies.
-    for enemy in enemies[:]:
+    # Update and render enemies.
+    for enemy in enemies:
         enemy.render(scrn)
         enemy.move()
 
-    # Determine if the current segment is done.
+    # Determine if the segment is done.
     seg_delay = segment.get("delay", 0)
     segment_done = False
-    if segment_enemy_spawned >= len(segment["enemies"]):
-        if seg_delay == 0:
-            # For predetermined rounds with no delay, wait until enemies are cleared.
-            if not enemies:
+    # For non-final segments, mark as done after spawn count reached and delay elapsed.
+    if current_segment_index < len(current_round_config) - 1:
+        if segment_enemy_spawned >= len(segment["enemies"]):
+            if seg_delay != 0:
+                if segment_completion_time and current_time - segment_completion_time >= seg_delay:
+                    segment_done = True
+            else:
                 segment_done = True
-        else:
-            # For segments with a delay, wait until the delay has elapsed.
-            if segment_completion_time and current_time - segment_completion_time >= seg_delay:
-                segment_done = True
+    else:
+        # Final segment: only mark complete if spawn count is reached AND no enemies remain.
+        if segment_enemy_spawned >= len(segment["enemies"]) and not enemies:
+            segment_done = True
 
     if segment_done:
-        print(f"[✓] Segment {current_segment_index} complete.")
+        print(f"Segment {current_segment_index} complete.")
         current_segment_index += 1
         segment_enemy_spawned = 0
         segment_start_time = current_time
@@ -420,7 +426,6 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
         rush_spawned = 0
 
     return False
-
 
 
 # -----------------------------

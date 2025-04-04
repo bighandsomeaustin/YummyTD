@@ -51,6 +51,7 @@ class StreamToLogger:
         sys.stdout = StreamToLogger(stdout_logger, logging.INFO)
         sys.stderr = StreamToLogger(stderr_logger, logging.ERROR)
 
+
 def load_image(path):
     if path not in _asset_cache:
         _asset_cache[path] = pygame.image.load(path).convert_alpha()
@@ -1020,7 +1021,7 @@ def handle_upgrade(scrn, tower):
                         tower.reload_time = 5374
                         tower.shoot_interval = 1895
                         tower.reload_sound = load_sound("assets/shotgun_reload.mp3")
-                        tower.radius = 75
+                        tower.radius -= 25
                     tower.shoot_sound = load_sound("assets/shotgun_shoot.mp3")
                     tower.curr_top_upgrade = 2
                     UpgradeFlag = True
@@ -1043,21 +1044,22 @@ def handle_upgrade(scrn, tower):
                     tower.sell_amt += 350
                     tower.curr_bottom_upgrade = 1
                     tower.radius = 150
-                    tower.reload_time = 2500
+                    tower.reload_time = 3500
                     if tower.curr_top_upgrade < 1:
                         tower.shoot_sound = load_sound("assets/launcher_shoot.mp3")
                         tower.image = load_image("assets/soldier_rocket.png")
                         tower.original_image = load_image("assets/soldier_rocket.png")
                     tower.reload_sound = load_sound("assets/commando_reload.mp3")
                     UpgradeFlag = True
+                # grenade launcher
                 elif money >= 900 and tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade != 2:
                     purchase.play()
                     money -= 900
                     tower.sell_amt += 450
                     tower.curr_bottom_upgrade = 2
                     tower.radius = 125
-                    tower.shoot_interval = 750
-                    tower.reload_time = 5500
+                    tower.shoot_interval = 1000
+                    tower.reload_time = 7500
                     tower.reload_sound = load_sound("assets/shotgun_reload.mp3")
                     UpgradeFlag = True
                     tower.image = load_image("assets/soldier_thumper.png")
@@ -1977,11 +1979,11 @@ class CheddarCommando:
         self.has_fired = False  # Tracks whether the unit has fired at least once
         # Explosion properties (for debugging, explosion radius set to 100)
         self.explosion_active = False
-        self.explosion_damage = 1
+        self.explosion_damage = 0.5
         self.explosion_pos = (0, 0)
         self.explosion_animation_timer = 0
         self.explosion_duration = 100  # Explosion lasts 50ms
-        self.max_explosion_radius = 50  # Explosion damage radius (debug value; adjust as needed)
+        self.max_explosion_radius = 35  # Explosion damage radius (debug value; adjust as needed)
         self.explosion_radius = 0  # Animated explosion radius
         self.last_explosion_update = 0  # For delta time tracking
         self.reloadFlag = False
@@ -3465,8 +3467,6 @@ class CheeseBeacon:
 
 
 class AntEnemy:
-    sfx_splat = load_sound("assets/splat_sfx.mp3")
-    img_death = load_image("assets/splatter.png")
 
     def __init__(self, position, health, speed, path, image_path):
         self.position = position
@@ -3474,6 +3474,8 @@ class AntEnemy:
         self.speed = speed
         self.path = path
         self.original_image = load_image(image_path)
+        self.sfx_splat = load_sound("assets/splat_sfx.mp3")
+        self.img_death = load_image("assets/splatter.png")
         self.image = self.original_image
         self.rect = self.image.get_rect(center=position)
         self.size = self.rect.size
@@ -3739,8 +3741,6 @@ class BeetleEnemy:
 
 
 class HornetEnemy:
-    sfx_splat = load_sound("assets/splat_sfx.mp3")
-    img_death = load_image("assets/splatter.png")
 
     def __init__(self, position, health, speed, path, image_path):
         self.position = position
@@ -3749,6 +3749,8 @@ class HornetEnemy:
         self.path = path
         self.original_image = load_image(image_path)
         self.image = self.original_image
+        self.sfx_splat = load_sound("assets/splat_sfx.mp3")
+        self.img_death = load_image("assets/splatter.png")
         self.rect = self.image.get_rect(center=position)
         self.size = self.rect.size
         self.current_target = 0
@@ -3929,6 +3931,308 @@ class SpiderEnemy:
         else:
             screen.blit(self.img_death, self.rect.topleft)
         self.update_shards(screen)  # NEW: Render particles
+
+class DragonflyEnemy:
+    sfx_splat = load_sound("assets/splat_sfx.mp3")
+    img_death = load_image("assets/splatter.png")
+
+    def __init__(self, position, path):
+        self.position = position
+        self.health = 8
+        self.speed = 3
+        self.path = house_path
+        self.frames = ["assets/dragonfly_frames/dragonfly0.png", "assets/dragonfly_frames/dragonfly1.png",
+                       "assets/dragonfly_frames/dragonfly2.png", "assets/dragonfly_frames/dragonfly3.png"]
+        self.current_frame = 0
+        self.frame_duration = 25  # milliseconds per frame
+        self.last_frame_update = pygame.time.get_ticks()
+        self.original_image = load_image("assets/dragonfly_frames/dragonfly0.png")
+        self.image = self.original_image
+        self.rect = self.image.get_rect(center=position)
+        self.size = self.rect.size
+        self.current_target = 0
+        self.is_alive = True
+        self.shards = []  # NEW: Particle storage
+
+    def move(self):
+        global user_health
+        self.update_animation()
+        if self.current_target < len(self.path):
+            target_x, target_y = self.path[self.current_target]
+            dx = target_x - self.position[0]
+            dy = target_y - self.position[1]
+            distance = (dx ** 2 + dy ** 2) ** 0.5
+            if distance == 0:
+                return
+            direction_x = dx / distance
+            direction_y = dy / distance
+            self.position = (
+                self.position[0] + direction_x * self.speed,
+                self.position[1] + direction_y * self.speed
+            )
+            self.rect.center = self.position
+            self.update_orientation(direction_x, direction_y)
+            if distance <= self.speed:
+                self.current_target += 1
+        if self.current_target >= len(self.path):
+            self.is_alive = False
+            user_health -= self.health
+
+    # NEW: Shard particle methods (same as AntEnemy)
+    def spawn_shards(self, count=10):
+        for _ in range(count):
+            shard = {
+                'pos': [self.position[0], self.position[1]],
+                'vel': [random.uniform(-5, 5), random.uniform(-5, 5)],
+                'lifetime': random.randint(100, 600),
+                'start_time': pygame.time.get_ticks(),
+                'radius': random.randint(1, 3)
+            }
+            self.shards.append(shard)
+
+    def update_shards(self, screen):
+        current_time = pygame.time.get_ticks()
+        for shard in self.shards[:]:
+            elapsed = current_time - shard['start_time']
+            if elapsed > shard['lifetime']:
+                self.shards.remove(shard)
+            else:
+                shard['pos'][0] += shard['vel'][0]
+                shard['pos'][1] += shard['vel'][1]
+                alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
+                color = (255, 255, 255, alpha)
+                shard_surface = pygame.Surface((shard['radius']*2, shard['radius']*2), pygame.SRCALPHA)
+                pygame.draw.circle(shard_surface, color, (shard['radius'], shard['radius']), shard['radius'])
+                screen.blit(shard_surface, (shard['pos'][0], shard['pos'][1]))
+
+    def update_orientation(self, direction_x, direction_y):
+        angle = math.degrees(math.atan2(-direction_y, direction_x))
+        self.image = pygame.transform.rotate(self.original_image, angle - 90)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def take_damage(self, damage, projectile=None):
+        global money
+        self.health -= damage
+        self.spawn_shards()  # NEW: Create particles on hit
+        if self.health <= 0:
+            self.is_alive = False
+            self.sfx_splat.play()
+            money += 25
+
+    def update_animation(self):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_frame_update >= self.frame_duration / game_speed_multiplier:
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+            self.image = load_image(self.frames[self.current_frame])
+            self.original_image = load_image(self.frames[self.current_frame])
+            self.last_frame_update = current_time
+
+    def render(self, screen):
+        if self.is_alive:
+            screen.blit(self.image, self.rect.topleft)
+        else:
+            screen.blit(self.img_death, self.rect.topleft)
+        self.update_shards(screen)  # NEW: Render particles
+
+
+class RoachQueenEnemy:
+    def __init__(self, position, path):
+        self.position = position
+        self.health = 25
+        self.speed = 1
+        self.path = path
+        self.original_image = load_image("assets/roach_queen.png")
+        self.image = self.original_image
+        self.rect = self.image.get_rect(center=position)
+        self.size = self.rect.size
+        self.current_target = 0
+        self.is_alive = True
+        # Multiplication timing
+        self.spawn_time = pygame.time.get_ticks()
+        self.last_multiply_time = self.spawn_time + 500  # First multiply after 500ms
+        self.multiply_interval = 4000  # Starts at 4000ms, decreases by 500ms down to 500ms
+        self.has_multiplied_initially = False
+        # For spawn animation particles
+        self.spawn_particles = []
+
+    def move(self):
+        global user_health
+        # Move along the path (like AntEnemy)
+        if self.current_target < len(self.path):
+            target_x, target_y = self.path[self.current_target]
+            dx = target_x - self.position[0]
+            dy = target_y - self.position[1]
+            distance = math.hypot(dx, dy)
+            if distance != 0:
+                direction_x = dx / distance
+                direction_y = dy / distance
+            else:
+                direction_x, direction_y = 0, 0
+            self.position = (self.position[0] + direction_x * self.speed,
+                             self.position[1] + direction_y * self.speed)
+            self.rect.center = self.position
+            self.update_orientation(direction_x, direction_y)
+            if distance <= self.speed:
+                self.current_target += 1
+        if self.current_target >= len(self.path):
+            self.is_alive = False
+            user_health -= self.health
+
+        # Multiplication logic
+        current_time = pygame.time.get_ticks()
+        if not self.has_multiplied_initially and current_time - self.spawn_time >= 500:
+            self.multiply()
+            self.has_multiplied_initially = True
+            self.last_multiply_time = current_time
+        elif current_time - self.last_multiply_time >= self.multiply_interval:
+            self.multiply()
+            self.last_multiply_time = current_time
+            self.multiply_interval = max(500, self.multiply_interval - 500)
+
+        self.update_spawn_particles()
+
+    def multiply(self):
+        # Play multiplication sound and create animation particles.
+        load_sound("assets/roach_multiply.mp3").play()
+        self.create_spawn_particles()
+        # Determine the forward direction based on the next waypoint.
+        if self.current_target < len(self.path):
+            target = self.path[self.current_target]
+            dx = target - self.position[0] if isinstance(target, (int, float)) else target[0] - self.position[0]
+            dy = target - self.position[1] if isinstance(target, (int, float)) else target[1] - self.position[1]
+            distance = math.hypot(dx, dy)
+            if distance != 0:
+                direction_x = dx / distance
+                direction_y = dy / distance
+            else:
+                direction_x, direction_y = 1, 0
+        else:
+            direction_x, direction_y = 1, 0
+
+        # Base spawn position: in front of the queen by a random offset (10-40)
+        forward_offset = random.randint(20, 40)
+        base_spawn_x = self.position[0] + forward_offset * direction_x
+        base_spawn_y = self.position[1] + forward_offset * direction_y
+
+        # Spawn two roach minions; pass the queen's current_target so they continue forward.
+        for _ in range(2):
+            x_offset = random.randint(-16, 16)
+            y_offset = random.randint(-16, 16)
+            spawn_x = base_spawn_x + x_offset
+            spawn_y = base_spawn_y + y_offset # For simplicity; adjust if desired.
+            new_speed = random.uniform(1.5, 3.0)
+            # Pass the current_target so the minion starts moving toward the same next waypoint.
+            roach = RoachMinionEnemy((spawn_x, spawn_y), self.path, new_speed, current_target=self.current_target)
+            enemies.append(roach)
+
+    def create_spawn_particles(self):
+        # Create a burst of particles for the multiplication animation.
+        for _ in range(8):
+            particle = {
+                'pos': [self.position[0], self.position[1]],
+                'vel': [random.uniform(-3, 3), random.uniform(-3, 3)],
+                'lifetime': random.randint(200, 400),
+                'start_time': pygame.time.get_ticks(),
+                'radius': random.randint(2, 4)
+            }
+            self.spawn_particles.append(particle)
+
+    def update_spawn_particles(self):
+        current_time = pygame.time.get_ticks()
+        for particle in self.spawn_particles[:]:
+            elapsed = current_time - particle['start_time']
+            if elapsed > particle['lifetime']:
+                self.spawn_particles.remove(particle)
+            else:
+                particle['pos'][0] += particle['vel'][0]
+                particle['pos'][1] += particle['vel'][1]
+
+    def render_spawn_particles(self, screen):
+        current_time = pygame.time.get_ticks()
+        for particle in self.spawn_particles:
+            elapsed = current_time - particle['start_time']
+            if elapsed < particle['lifetime']:
+                alpha = max(0, 255 - int((elapsed / particle['lifetime']) * 255))
+                color = (255, 255, 0, alpha)
+                part_surface = pygame.Surface((particle['radius']*2, particle['radius']*2), pygame.SRCALPHA)
+                pygame.draw.circle(part_surface, color, (particle['radius'], particle['radius']), particle['radius'])
+                screen.blit(part_surface, (particle['pos'][0], particle['pos'][1]))
+
+    def update_orientation(self, direction_x, direction_y):
+        angle = math.degrees(math.atan2(-direction_y, direction_x))
+        self.image = pygame.transform.rotate(self.original_image, angle - 90)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def take_damage(self, damage, projectile=None):
+        self.health -= damage
+        if self.health <= 0:
+            self.is_alive = False
+            load_sound("assets/splat_sfx.mp3").play()
+            global money
+            money += 5
+
+    def render(self, screen):
+        if self.is_alive:
+            screen.blit(self.image, self.rect.topleft)
+        else:
+            screen.blit(load_image("assets/splatter.png"), self.rect.topleft)
+        self.render_spawn_particles(screen)
+
+# ------------------------------------------------------------
+# RoachMinionEnemy class (adjusted to use queen's current_target)
+# ------------------------------------------------------------
+class RoachMinionEnemy:
+    def __init__(self, position, path, speed, current_target=0):
+        self.position = position
+        self.health = 3
+        self.speed = speed
+        self.path = path
+        self.original_image = load_image("assets/roach.png")
+        self.image = self.original_image
+        self.rect = self.image.get_rect(center=position)
+        self.size = self.rect.size
+        self.current_target = current_target  # Start from the queen's target
+        self.is_alive = True
+        self.shards = []  # For particle effects if needed
+
+    def move(self):
+        global user_health
+        if self.current_target < len(self.path):
+            target_x, target_y = self.path[self.current_target]
+            dx = target_x - self.position[0]
+            dy = target_y - self.position[1]
+            distance = math.hypot(dx, dy)
+            if distance != 0:
+                direction_x = dx / distance
+                direction_y = dy / distance
+            else:
+                direction_x, direction_y = 0, 0
+            self.position = (self.position[0] + direction_x * self.speed,
+                             self.position[1] + direction_y * self.speed)
+            self.rect.center = self.position
+            self.update_orientation(direction_x, direction_y)
+            if distance <= self.speed:
+                self.current_target += 1
+        if self.current_target >= len(self.path):
+            self.is_alive = False
+            user_health -= self.health
+
+    def update_orientation(self, direction_x, direction_y):
+        angle = math.degrees(math.atan2(-direction_y, direction_x))
+        self.image = pygame.transform.rotate(self.original_image, angle - 90)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def take_damage(self, damage, projectile=None):
+        self.health -= damage
+        if self.health <= 0:
+            self.is_alive = False
+            load_sound("assets/splat_sfx.mp3").play()
+
+    def render(self, screen):
+        if self.is_alive:
+            screen.blit(self.image, self.rect.topleft)
+        else:
+            screen.blit(load_image("assets/splatter.png"), self.rect.topleft)
 
 
 class CentipedeEnemy:
@@ -4202,6 +4506,8 @@ class CentipedeEnemy:
         Returns the union of the hitboxes for all alive non-head segments,
         or the head's rect if no non-head segments are alive.
         """
+        if not self.segments:
+            return pygame.Rect(0, 0, 0, 0)
         alive_rects = [seg.rect for seg in self.segments[1:] if seg.alive]
         if alive_rects:
             union_rect = alive_rects[0].copy()
