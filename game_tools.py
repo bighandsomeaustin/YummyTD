@@ -12,6 +12,44 @@ _asset_cache = {}
 _sound_cache = {}
 _font_cache = {}
 
+import sys
+import logging
+
+
+class StreamToLogger:
+    """
+    Redirects writes (e.g., from print statements) to the logging module.
+    """
+
+    def __init__(self, logger, level):
+        self.logger = logger
+        self.level = level
+        self.linebuf = ''
+
+    def write(self, buf):
+        for line in buf.rstrip().splitlines():
+            self.logger.log(self.level, line.rstrip())
+
+    def flush(self):
+        pass  # Required for file-like object interface
+
+    def enable_logs(self):
+        # Configure logging once at the top
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s - %(levelname)s - %(message)s",
+            handlers=[
+                logging.FileHandler("full_console_log.txt"),
+                logging.StreamHandler(sys.stdout)
+            ]
+        )
+
+        # Redirect stdout and stderr
+        stdout_logger = logging.getLogger('STDOUT')
+        stderr_logger = logging.getLogger('STDERR')
+
+        sys.stdout = StreamToLogger(stdout_logger, logging.INFO)
+        sys.stderr = StreamToLogger(stderr_logger, logging.ERROR)
 
 def load_image(path):
     if path not in _asset_cache:
@@ -248,6 +286,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     img_commando_text = load_image("assets/commando_text.png")
     img_minigun_text = load_image("assets/minigun_text.png")
     img_wizard_text = load_image("assets/wizard_text.png")
+    img_beacon_text = load_image("assets/beacon_text.png")
     img_playbutton = load_image("assets/playbutton.png")
     img_playbutton_1x = load_image("assets/playbutton_1x.png")
     img_playbutton_2x = load_image("assets/playbutton_2x.png")
@@ -397,6 +436,14 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
             purchase.play()
             return "wizard"
 
+    # CHEESE BEACON
+    elif 1195 <= mouse[0] <= 1195 + 73 and 475 <= mouse[1] <= 475 + 88:
+        scrn.blit(img_wizard_text, (1113, 53))
+        scrn.blit(img_tower_select, (1195, 475))
+        if detect_single_click() and money >= 900:
+            purchase.play()
+            return "beacon"
+
     # check if any tower is clicked after placement
     for tower in towers:
         if (tower.position[0] - 25) <= mouse[0] <= (tower.position[0] + 25) and (tower.position[1] - 25) <= mouse[
@@ -459,8 +506,8 @@ def handle_upgrade(scrn, tower):
                     purchase.play()
                     money -= 400
                     tower.sell_amt += 200
-                    tower.radius = 150
-                    tower.shoot_interval = 750
+                    tower.radius += 50
+                    tower.shoot_interval -= 250
                     tower.curr_top_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
@@ -476,8 +523,8 @@ def handle_upgrade(scrn, tower):
                     purchase.play()
                     money -= 1200
                     tower.sell_amt += 600
-                    tower.radius = 200
-                    tower.shoot_interval = 250
+                    tower.radius += 50
+                    tower.shoot_interval -= 500
                     tower.curr_top_upgrade = 2
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
@@ -491,7 +538,7 @@ def handle_upgrade(scrn, tower):
             if detect_single_click():
                 if money >= 450 and tower.curr_bottom_upgrade == 0:
                     purchase.play()
-                    tower.damage = 3
+                    tower.damage += 2
                     money -= 450
                     tower.sell_amt += 225
                     tower.curr_bottom_upgrade = 1
@@ -507,7 +554,7 @@ def handle_upgrade(scrn, tower):
                         tower.original_image = load_image("assets/mrcheese_diploma+protein.png")
                 elif money >= 900 and tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade != 2:
                     purchase.play()
-                    tower.damage = 5
+                    tower.damage += 2
                     tower.penetration = True
                     money -= 900
                     tower.sell_amt += 450
@@ -540,8 +587,8 @@ def handle_upgrade(scrn, tower):
                     purchase.play()
                     money -= 1250
                     tower.sell_amt += 625
-                    tower.recruit_speed = 2
-                    tower.spawn_interval = 750
+                    tower.recruit_speed += 1
+                    tower.spawn_interval -= 750
                     tower.curr_top_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
@@ -566,7 +613,7 @@ def handle_upgrade(scrn, tower):
             if detect_single_click():
                 if money >= 1000 and tower.curr_bottom_upgrade == 0:
                     purchase.play()
-                    tower.recruit_health = 3
+                    tower.recruit_health += 1
                     money -= 1000
                     tower.sell_amt += 500
                     tower.curr_bottom_upgrade = 1
@@ -846,7 +893,7 @@ def handle_upgrade(scrn, tower):
                     purchase.play()
                     money -= 400
                     tower.sell_amt += 200
-                    tower.radius = 125
+                    tower.radius += 25
                     tower.curr_top_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
@@ -863,6 +910,7 @@ def handle_upgrade(scrn, tower):
                     purchase.play()
                     money -= 1200
                     tower.sell_amt += 600
+                    tower.radius += 25
                     tower.curr_top_upgrade = 2
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
@@ -918,7 +966,7 @@ def handle_upgrade(scrn, tower):
                     purchase.play()
                     money -= 2600
                     tower.sell_amt += 1300
-                    tower.radius = 175
+                    tower.radius += 50
                     tower.curr_bottom_upgrade = 2
                     UpgradeFlag = True
                     if tower.curr_top_upgrade == 0:
@@ -1014,7 +1062,117 @@ def handle_upgrade(scrn, tower):
                     UpgradeFlag = True
                     tower.image = load_image("assets/soldier_thumper.png")
                     tower.original_image = load_image("assets/soldier_thumper.png")
+    if isinstance(tower, CheeseBeacon):
+        img_damage3_upgrade = load_image("assets/upgrade_damage3.png")
+        img_damage4_upgrade = load_image("assets/upgrade_damage4.png")
+        img_damage5_upgrade = load_image("assets/upgrade_damage5.png")
+        img_radius_upgrade = load_image("assets/upgrade_radius.png")
+        img_speed_upgrade = load_image("assets/upgrade_speed.png")
+        upgrade_font = get_font("arial", 16)
+        text_damage3 = upgrade_font.render("Organic Cheese", True, (0, 0, 0))
+        text_damage4 = upgrade_font.render("Pasteurized Cheese", True, (0, 0, 0))
+        text_damage5 = upgrade_font.render("Antibiotic-Free", True, (0, 0, 0))
+        text_radius = upgrade_font.render("Vitamin Enhanced Cheese", True, (0, 0, 0))
+        text_speed = upgrade_font.render("Caffienated Cheese", True, (0, 0, 0))
+        if tower.curr_top_upgrade == 0:
+            scrn.blit(img_damage3_upgrade, (883, 65))
+            scrn.blit(text_damage3, (952, 42))
+        elif tower.curr_top_upgrade == 1:
+            scrn.blit(img_damage4_upgrade, (883, 65))
+            scrn.blit(text_damage4, (965, 42))
+        elif tower.curr_top_upgrade == 2:
+            scrn.blit(img_damage5_upgrade, (883, 65))
+            scrn.blit(text_damage5, (956, 42))
 
+        if tower.curr_bottom_upgrade == 0:
+            scrn.blit(img_radius_upgrade, (883, 194))
+            scrn.blit(text_radius, (922, 172))
+        elif tower.curr_bottom_upgrade == 1:
+            scrn.blit(img_speed_upgrade, (883, 194))
+            scrn.blit(text_speed, (941, 172))
+        # damage 3x
+        if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+            scrn.blit(img_upgrade_highlighted, (883, 65))
+            if detect_single_click():
+                if tower.curr_top_upgrade == 0 and money >= 2500:
+                    purchase.play()
+                    money -= 2500
+                    tower.sell_amt += 1250
+                    tower.curr_top_upgrade = 1
+                    UpgradeFlag = True
+                    if tower.curr_bottom_upgrade == 0:
+                        tower.image = load_image("assets/beacon+damageboost.png")
+                    elif tower.curr_bottom_upgrade == 1:
+                        tower.image = load_image("assets/beacon+radius+damage.png")
+                    elif tower.curr_bottom_upgrade == 2:
+                        tower.image = load_image("assets/beacon+speed+damage.png")
+                # damage 4x
+                elif tower.curr_top_upgrade == 1 and money >= 4000:
+                    purchase.play()
+                    money -= 4000
+                    tower.sell_amt += 200
+                    tower.curr_top_upgrade = 2
+                    UpgradeFlag = True
+                    if tower.curr_bottom_upgrade == 0:
+                        tower.image = load_image("assets/beacon_damage2.png")
+                    elif tower.curr_bottom_upgrade == 1:
+                        tower.image = load_image("assets/beacon+radius+damage2.png")
+                    elif tower.curr_bottom_upgrade == 2:
+                        tower.image = load_image("assets/beacon+speed+damage2.png")
+                # damage 5x
+                elif tower.curr_top_upgrade == 2 and money >= 5200:
+                    purchase.play()
+                    money -= 5200
+                    tower.sell_amt += 2600
+                    tower.curr_top_upgrade = 3
+                    UpgradeFlag = True
+                    if tower.curr_bottom_upgrade == 0:
+                        tower.image = load_image("assets/beacon_damage3.png")
+                    elif tower.curr_bottom_upgrade == 1:
+                        tower.image = load_image("assets/beacon+radius+damage3.png")
+                    elif tower.curr_bottom_upgrade == 2:
+                        tower.image = load_image("assets/beacon+speed+damage3.png")
+        if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
+            if detect_single_click():
+                money += tower.sell_amt
+                tower.sell()    # call to remove boosts
+                towers.remove(tower)
+                UpgradeFlag = False
+                return
+        if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+            scrn.blit(img_upgrade_highlighted, (883, 194))
+            if detect_single_click():
+                # radius
+                if money >= 600 and tower.curr_bottom_upgrade == 0:
+                    purchase.play()
+                    money -= 600
+                    tower.sell_amt += 300
+                    tower.curr_bottom_upgrade = 1
+                    if tower.curr_top_upgrade == 0:
+                        tower.image = load_image("assets/beacon+radius.png")
+                    elif tower.curr_top_upgrade == 1:
+                        tower.image = load_image("assets/beacon+radius+damage.png")
+                    elif tower.curr_top_upgrade == 2:
+                        tower.image = load_image("assets/beacon+radius+damage2.png")
+                    elif tower.curr_top_upgrade == 3:
+                        tower.image = load_image("assets/beacon+radius+damage3.png")
+                    UpgradeFlag = True
+                # speed
+                elif money >= 2200 and tower.curr_bottom_upgrade == 1:
+                    purchase.play()
+                    money -= 2200
+                    tower.sell_amt += 1100
+                    tower.curr_bottom_upgrade = 2
+                    if tower.curr_top_upgrade == 0:
+                        tower.image = load_image("assets/beacon+speed.png")
+                    elif tower.curr_top_upgrade == 1:
+                        tower.image = load_image("assets/beacon+speed+damage.png")
+                    elif tower.curr_top_upgrade == 2:
+                        tower.image = load_image("assets/beacon+speed+damage2.png")
+                    elif tower.curr_top_upgrade == 3:
+                        tower.image = load_image("assets/beacon+speed+damage3.png")
+
+    # CLICK OUT OF UPGRADE WINDOW
     if detect_single_click() and not (
             (tower.position[0] - 25) <= mouse[0] <= (tower.position[0] + 25) and (tower.position[1] - 25) <= mouse[
         1] <= (tower.position[1] + 25)):
@@ -1034,16 +1192,26 @@ def handle_upgrade(scrn, tower):
 
 
 def update_towers(scrn: pygame.surface):
-    global towers, enemies
+    global towers, enemies, last_frame_time
+
+    # Calculate delta time
+    current_time = pygame.time.get_ticks()
+    delta = (current_time - last_frame_time) * game_speed_multiplier
+    last_frame_time = current_time
+
     for tower in towers:
-        if not isinstance(tower, RatBank):
+        if not isinstance(tower, RatBank) and not isinstance(tower, CheeseBeacon):
             tower.update(enemies)
         tower.render(scrn)
         if not isinstance(tower, RatTent) and not isinstance(tower, Ozbourne) and not isinstance(tower, RatBank):
             tower.shoot()
+        if isinstance(tower, CheeseBeacon):
+            tower.update(towers, delta)
     for tower in towers:
         if isinstance(tower, RatBank):
             tower.render(scrn)
+        if isinstance(tower, CheeseBeacon):
+            tower.render_effects(scrn)
 
 
 def update_stats(scrn: pygame.surface, health: int, money: int, round_number: int, clock: pygame.time.Clock()):
@@ -1153,6 +1321,28 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
             money -= 400
+            return True
+    elif tower == "beacon":
+        img_base_beacon = load_image("assets/beacon_base.png")
+        circle_surface = pygame.Surface((200, 200), pygame.SRCALPHA)
+        for event in pygame.event.get():
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_ESCAPE:
+                    return True
+        if check_hitbox(house_hitbox, relative_pos, towers):
+            pygame.draw.circle(circle_surface, (0, 0, 0, 128), (100, 100), 100)
+            scrn.blit(img_base_beacon, (mouse[0] - 25, mouse[1] - 25))
+            scrn.blit(circle_surface, (mouse[0] - 100, mouse[1] - 100))
+        elif not check_hitbox(house_hitbox, relative_pos, towers):
+            pygame.draw.circle(circle_surface, (255, 0, 0, 128), (100, 100), 100)
+            scrn.blit(img_base_beacon, (mouse[0] - 25, mouse[1] - 25))
+            scrn.blit(circle_surface, (mouse[0] - 100, mouse[1] - 100))
+        if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower) and tower == "beacon":
+            tower_beacon = CheeseBeacon((mouse[0], mouse[1]))
+            towers.append(tower_beacon)
+            tower_click.play()
+            play_splash_animation(scrn, (mouse[0], mouse[1]))
+            money -= 900
             return True
     elif tower == "rattent":
         img_base_tent = load_image("assets/base_camp.png")
@@ -1348,6 +1538,7 @@ class RatTent:
         self.recruit_health = recruit_health
         self.recruit_speed = recruit_speed
         self.recruit_damage = recruit_damage
+        self.damage = self.recruit_damage
         self.image = load_image(image_path)
         self.rect = self.image.get_rect(center=position)
         self.spawn_interval = spawn_interval
@@ -1429,7 +1620,8 @@ class MrCheese:
         for _, enemy in potential_targets:
             if not any(tower.target == enemy for tower in towers if
                        tower != self and not isinstance(tower, RatTent) and not isinstance(tower, Ozbourne)
-                       and not isinstance(tower, RatBank)):
+                       and not isinstance(tower, RatBank) and not isinstance(tower, WizardTower)
+                       and not isinstance(tower, CheeseBeacon)):
                 self.target = enemy
                 break
         if self.target is None and potential_targets:
@@ -1991,10 +2183,13 @@ class WizardTower:
     def __init__(self, position):
         self.position = position
         self.base_image = load_image("assets/wizard_base.png")
-        self.original_image = pygame.transform.rotate(self.base_image, +90)
+        self.original_image = self.base_image
         self.image = self.original_image.copy()
         self.rect = self.image.get_rect(center=position)
         self.radius = 100
+        self.damage = 2
+        self.attack_speed = 2.0
+        self.target = None
         self.orb_count = 4
         self.orb_speed = 0.25
         self.fire_interval = 2500
@@ -2007,31 +2202,33 @@ class WizardTower:
         self.curr_bottom_upgrade = 0
         self.sell_amt = 200
         self.explosive_orbs = False
+        self.currRound = False
         self.lightning_chain = 5
-        self.lightning_damage = [2, 2, 1, 1, 1]
+        self.lightning_damage = [self.damage, self.damage, self.damage / 2, self.damage / 2, self.damage / 2]
         self.lightning_targets = []
         self.orb_angles = [i * (360 / self.orb_count) for i in range(self.orb_count)]
         self.target_angle = 0
         self.current_angle = 0
         self.rotation_speed = 5
-        self._init_orbs()
         self.orb_respawn_timers = {}
+        self._init_orbs()
         self.last_frame_time = pygame.time.get_ticks()
+        self.explosion_particles = []
 
     class OrbProjectile:
         def __init__(self, parent, angle, orbit_radius=40):
             self.parent = parent
             self.angle = angle
-            self.orbit_radius = orbit_radius
+            self.orbit_radius = self.parent.radius / 2
             self.speed = 0.25
-            self.damage = 2
+            self.damage = parent.damage
             self.image = load_image("assets/orb_projectile.png")
             self.rect = self.image.get_rect()
             self.attacking = False
             self.target = None
-            self.attack_speed = 2.0
+            self.attack_speed = parent.attack_speed
             self.explosive = False
-            self.armor_break = self.explosive
+            self.armor_break = False
             self.initial_velocity = [0, 0]
             self.spark_particles = []
             self.orbit_offset = (0, 0)
@@ -2044,7 +2241,7 @@ class WizardTower:
         class OrbParticle:
             def __init__(self, position):
                 self.position = list(position)
-                self.life = 250  # particle lasts 500 ms
+                self.life = 250
                 self.max_life = self.life
                 self.start_time = pygame.time.get_ticks()
                 angle = random.uniform(0, 2 * math.pi)
@@ -2052,14 +2249,17 @@ class WizardTower:
 
             def update(self):
                 dt = pygame.time.get_ticks() - self.start_time
-                self.life = self.max_life - dt  # Subtract elapsed time
+                self.life = self.max_life - dt
                 self.position[0] += self.velocity[0]
                 self.position[1] += self.velocity[1]
 
-            def render(self, screen):
-                alpha = max(0, int(255 * (self.life / self.max_life)))  # Scale alpha accordingly
+            def render(self, screen, color=None):
+                alpha = max(0, int(255 * (self.life / self.max_life)))
                 surface = pygame.Surface((4, 4), pygame.SRCALPHA)
-                surface.fill((255, 255, 255, alpha))
+                if color is not None:
+                    surface.fill((255, 69, 0, alpha))
+                else:
+                    surface.fill((255, 255, 255, alpha))
                 screen.blit(surface, (self.position[0], self.position[1]))
 
         def update_orbit(self):
@@ -2081,7 +2281,7 @@ class WizardTower:
                 self.rect.center = self.world_pos
                 self.initial_velocity = [
                     math.cos(rad) * self.speed * 1,
-                    math.sin(rad) * self.speed * 1  # 2.5 originally
+                    math.sin(rad) * self.speed * 1
                 ]
 
         def launch(self, target):
@@ -2122,7 +2322,13 @@ class WizardTower:
                                 'start': pygame.time.get_ticks()
                             })
 
-                    if self.rect.colliderect(self.target.rect):
+                    for enemy in enemies:
+                        if enemy.is_alive and self.rect.colliderect(enemy.rect):
+                            self.on_impact(enemies)
+                            self.alive = False
+                            break  # Found first collision
+
+                    if self.rect.colliderect(self.target.rect) and self.alive:
                         self.on_impact(enemies)
                 else:
                     self.alive = False
@@ -2131,32 +2337,37 @@ class WizardTower:
             self.target.take_damage(self.damage, projectile=self)
             if self.explosive:
                 self.create_explosion(enemies)
+                self.parent.sfx_explosion.play()
+
+            # Add respawn timer even if explosive
+            self.parent.orb_respawn_timers[self.angle] = pygame.time.get_ticks()
+
             self.spawn_particles(self.world_pos)
             self.alive = False
-            self.parent.orb_respawn_timers[self.angle] = pygame.time.get_ticks()
 
         def spawn_particles(self, position):
             for _ in range(10):
                 self.particles.append(self.OrbParticle(position))
 
         def create_explosion(self, enemies):
-            self.parent.sfx_explosion.play()
             explosion_pos = self.rect.center
-            explosion_radius = 50
-            explosion_damage = 2
+            explosion_radius = 35
+
+            # Spawn explosion particles
+            for _ in range(30):
+                self.spark_particles.append({
+                    'pos': list(explosion_pos),
+                    'vel': [random.uniform(-8, 8), random.uniform(-8, 8)],
+                    'life': random.randint(100, 1000),
+                    'start': pygame.time.get_ticks()
+                })
+
+            # Damage enemies with armor break
             for enemy in enemies:
                 distance = math.hypot(enemy.position[0] - explosion_pos[0],
                                       enemy.position[1] - explosion_pos[1])
                 if distance <= explosion_radius + enemy.rect.width / 2:
-                    enemy.take_damage(explosion_damage, projectile=self)
-
-            for _ in range(15):
-                self.spark_particles.append({
-                    'pos': list(explosion_pos),
-                    'vel': [random.uniform(-3, 3), random.uniform(-3, 3)],
-                    'life': random.randint(100, 400),
-                    'start': pygame.time.get_ticks()
-                })
+                    enemy.take_damage(2, projectile=self)
 
         def render_sparks(self, screen):
             current_time = pygame.time.get_ticks()
@@ -2217,8 +2428,11 @@ class WizardTower:
             fork_color = (200, 230, 255, alpha)
 
             for seg in self.segments:
-                pygame.draw.line(screen, core_color, seg['start'], seg['end'], seg['width'])
-                pygame.draw.line(screen, glow_color, seg['start'], seg['end'], seg['width'] + 1)
+                if not RoundFlag:
+                    self.segments.remove(seg)
+                else:
+                    pygame.draw.line(screen, core_color, seg['start'], seg['end'], seg['width'])
+                    pygame.draw.line(screen, glow_color, seg['start'], seg['end'], seg['width'] + 1)
 
             current_time = pygame.time.get_ticks()
             for fork in self.fork_particles[:]:
@@ -2229,41 +2443,31 @@ class WizardTower:
                     pygame.draw.line(screen, (*fork_color[:3], fork_alpha),
                                      fork['start'], fork['end'], 1)
 
-            if not RoundFlag:
-                for seg in self.segments:
-                    self.segments.remove(seg)
-
-    def _init_orbs(self):
-        self.orbs = []
-        orbit_radius = 40 + (self.curr_top_upgrade * 10)
-        for angle in self.orb_angles:
-            orb = self.OrbProjectile(self, angle, orbit_radius)
-            orb.explosive = self.explosive_orbs
-            self.orbs.append(orb)
-
     def update_rotation(self, enemies):
-        current_time = pygame.time.get_ticks()
-        delta = (current_time - self.last_frame_time) * game_speed_multiplier
-        self.last_frame_time = current_time
 
-        closest_enemy = None
-        min_distance = float('inf')
+        self.target = None
+        closest_distance = self.radius
+
+        # Find closest enemy in range
         for enemy in enemies:
             dx = enemy.position[0] - self.position[0]
             dy = enemy.position[1] - self.position[1]
             distance = math.hypot(dx, dy)
-            if distance <= self.radius and distance < min_distance:
-                min_distance = distance
-                closest_enemy = enemy
 
-        if closest_enemy:
-            dx = closest_enemy.position[0] - self.position[0]
-            dy = closest_enemy.position[1] - self.position[1]
-            self.target_angle = math.degrees(math.atan2(-dy, dx)) + 90
-            angle_diff = (self.target_angle - self.current_angle + 180) % 360 - 180
-            self.current_angle += angle_diff * 0.1 * delta / 16
+            if distance <= self.radius and distance < closest_distance:
+                closest_distance = distance
+                self.target = enemy
 
-            self.image = pygame.transform.rotate(self.original_image, -self.current_angle)
+        # Rotate to face target
+        if self.target:
+            dx = self.target.position[0] - self.position[0]
+            dy = self.target.position[1] - self.position[1]
+
+            # Calculate angle using same formula as MrCheese
+            angle = math.degrees(math.atan2(-dy, dx) - 90)
+
+            # Rotate image directly without smoothing
+            self.image = pygame.transform.rotate(self.original_image, angle)
             self.rect = self.image.get_rect(center=self.position)
 
     def update_lightning(self, enemies):
@@ -2289,16 +2493,43 @@ class WizardTower:
         delta = (current_time - self.last_frame_time) * game_speed_multiplier
         self.last_frame_time = current_time
 
-        if RoundFlag:
-            self.update_orbs(enemies)
-            self.update_lightning(enemies)
-            self.update_rotation(enemies)
-        else:
-            # Reset orbs when round ends
-            self._init_orbs()
-            self.orb_respawn_timers.clear()
+        if self.curr_top_upgrade >= 1:
+            new_count = 6 if self.curr_top_upgrade == 1 else 8
+            if self.orb_count != new_count:
+                self.orb_count = new_count
+                self.orb_angles = [i * (360 / self.orb_count) for i in range(self.orb_count)]
+                self._init_orbs()
 
-    def render(self, screen):
+        # Update explosive orbs based on top upgrade
+        if self.curr_top_upgrade >= 3:  # Changed from 2 to 3
+            self.explosive_orbs = True
+            for orb in self.orbs:
+                orb.explosive = True
+                orb.armor_break = True
+        else:
+            self.explosive_orbs = False
+            for orb in self.orbs:
+                orb.explosive = False
+                orb.armor_break = False
+
+        if RoundFlag:
+            self.currRound = False
+
+        if not RoundFlag and not self.currRound:
+            self.currRound = True
+            self._init_orbs()
+
+        self.update_orbs(enemies)
+        self.update_lightning(enemies)
+        self.update_rotation(enemies)
+
+        # Update explosion particles
+        for particle in self.explosion_particles[:]:
+            particle.update()
+            if particle.life <= 0:
+                self.explosion_particles.remove(particle)
+
+    def render(self, screen: pygame.Surface):
         screen.blit(self.image, self.rect.topleft)
 
         for orb in self.orbs:
@@ -2306,6 +2537,10 @@ class WizardTower:
 
         for bolt in self.lightning_targets:
             bolt.render(screen)
+
+        # Render explosion particles
+        for particle in self.explosion_particles:
+            particle.render(screen, color="orange")
 
         if UpgradeFlag and curr_upgrade_tower == self:
             circle_surf = pygame.Surface((2 * self.radius, 2 * self.radius), pygame.SRCALPHA)
@@ -2342,27 +2577,37 @@ class WizardTower:
         now = pygame.time.get_ticks()
         delta = (now - self.last_frame_time) * game_speed_multiplier
 
-        # Game speed scaled recharge
-        for angle in list(self.orb_respawn_timers.keys()):
+        angles_to_remove = []
+        for angle in self.orb_respawn_timers.copy():
             elapsed = (now - self.orb_respawn_timers[angle]) * game_speed_multiplier
             if elapsed > self.recharge_time:
-                orb = next((o for o in self.orbs if o.angle == angle), None)
-                if orb:
-                    orb.alive = True
-                    orb.attacking = False
+                # Find ALL matching orbs (in case of angle duplicates)
+                matching_orbs = [o for o in self.orbs if o.angle == angle]
+
+                if matching_orbs:
+                    for orb in matching_orbs:
+                        orb.alive = True
+                        orb.attacking = False
+                    angles_to_remove.append(angle)
+                else:
+                    # Clean up stale angles
                     del self.orb_respawn_timers[angle]
 
-        # Game speed scaled fire interval
-        if (now - self.last_fire_time) * game_speed_multiplier > self.fire_interval:
+                # Remove processed angles
+                for angle in angles_to_remove:
+                    if angle in self.orb_respawn_timers:  # Check if key exists before deleting
+                        del self.orb_respawn_timers[angle]
+
+        if RoundFlag and (now - self.last_fire_time) * game_speed_multiplier > self.fire_interval:
             targets = [e for e in enemies
                        if math.hypot(e.position[0] - self.position[0],
                                      e.position[1] - self.position[1]) <= self.radius]
             if targets:
+                # Get all available orbs (not just first found)
                 available_orbs = [o for o in self.orbs if o.alive and not o.attacking]
-                if available_orbs:
-                    orb_to_fire = random.choice(available_orbs)
-                    orb_to_fire.launch(random.choice(targets))
-                    self.last_fire_time = now
+                for orb in random.sample(available_orbs, min(len(available_orbs), len(targets))):
+                    orb.launch(random.choice(targets))
+                self.last_fire_time = now
 
         for orb in self.orbs:
             if orb.attacking:
@@ -2370,20 +2615,18 @@ class WizardTower:
             else:
                 orb.update_orbit()
 
-        if self.curr_top_upgrade >= 1:
-            new_count = 6 if self.curr_top_upgrade == 1 else 8
-            if self.orb_count != new_count:
-                self.orb_count = new_count
-                self.orb_angles = [i * (360 / self.orb_count) for i in range(self.orb_count)]
-                self._init_orbs()
-
             self.orb_speed = 0.35 if self.curr_top_upgrade == 1 else 0.5
             self.fire_interval = 1500 if self.curr_top_upgrade == 1 else 500
-            self.explosive_orbs = (self.curr_top_upgrade == 2)
 
-            for orb in self.orbs:
-                orb.speed = self.orb_speed
-                orb.explosive = self.explosive_orbs
+    def _init_orbs(self):
+        self.orbs.clear()  # Clear existing orbs
+        self.orb_respawn_timers.clear()  # Reset respawn timers
+        self.orbs = []
+        orbit_radius = self.radius / 2
+        for angle in self.orb_angles:
+            orb = self.OrbProjectile(self, angle, int(orbit_radius))
+            orb.explosive = self.explosive_orbs
+            self.orbs.append(orb)
 
     def shoot(self):
         pass
@@ -2718,6 +2961,9 @@ class Ozbourne:
                 mixer.music.load("assets/map_music.mp3")
                 mixer.music.play(-1)
                 self.riff_playing = False
+            elif (pygame.time.get_ticks() - self.last_blast_time >= scaled_interval) and enemy_in_range:
+                self.blast(enemies)
+                self.last_blast_time = pygame.time.get_ticks()
             self.riff_count = 0
 
         # Handle blast animation timing
@@ -2773,6 +3019,449 @@ class Ozbourne:
                 int(self.blast_radius),
                 2
             )
+
+
+class CheeseBeacon:
+    DEBUG = True
+    _all_boosts = {}  # Class-level tracking {tower: {beacon: boosts}}
+
+    def __init__(self, position):
+        self.position = position
+        self.image = load_image("assets/beacon_base.png")
+        self.radius = 100
+        self.last_signal = 0
+        self.signal_interval = 5000
+        self.curr_top_upgrade = 0
+        self.curr_bottom_upgrade = 0
+        self.sell_amt = 450
+        self.active = True
+        self.boost_timer = 0
+        self._effects = []
+
+        # Boost assets
+        self.indicators = {
+            'damage': load_image("assets/damage_boost.png"),
+            'radius': load_image("assets/radius_boost.png"),
+            'speed': load_image("assets/speed_boost.png")
+        }
+
+    def update(self, towers, delta):
+        if not self.active: return
+
+        # Update timers with game speed
+        self.last_signal += delta
+        self.boost_timer += delta
+
+        # Send visual signal
+        if self.last_signal >= 5000:
+            self.last_signal = 0
+            self._create_signal_effect()
+
+        # Refresh boosts every 500ms
+        if self.boost_timer >= 500:
+            self.boost_timer = 0
+            self._refresh_boosts(towers)
+
+    def _refresh_boosts(self, towers):
+        current_boosts = {}
+        effective_radius = self.radius
+
+        for tower in list(CheeseBeacon._all_boosts.keys()):
+            if tower not in towers:  # Tower was sold/removed
+                # Restore original values before removal
+                if hasattr(tower, '_base_damage'):
+                    tower.damage = tower._base_damage
+                    del tower._base_damage
+                if hasattr(tower, '_base_radius'):
+                    tower.radius = tower._base_radius
+                    del tower._base_radius
+                if hasattr(tower, '_base_shoot_interval'):
+                    tower.shoot_interval = tower._base_shoot_interval
+                    del tower._base_shoot_interval
+                del CheeseBeacon._all_boosts[tower]
+
+        # Find towers in range
+        for tower in towers:
+            if tower is self: continue
+            dx = tower.position[0] - self.position[0]
+            dy = tower.position[1] - self.position[1]
+            if math.hypot(dx, dy) <= effective_radius:
+                current_boosts[tower] = self._calculate_boosts(tower)
+
+        # Update class-level boost tracking
+        for tower, boosts in current_boosts.items():
+            if tower not in CheeseBeacon._all_boosts:
+                CheeseBeacon._all_boosts[tower] = {}
+            CheeseBeacon._all_boosts[tower][self] = boosts
+
+        # Remove old boosts
+        for tower in list(CheeseBeacon._all_boosts.keys()):
+            for beacon in list(CheeseBeacon._all_boosts[tower].keys()):
+                if not beacon.active:
+                    del CheeseBeacon._all_boosts[tower][beacon]
+            if not CheeseBeacon._all_boosts[tower]:
+                del CheeseBeacon._all_boosts[tower]
+
+        # Apply actual stat modifications
+        for tower, beacons in CheeseBeacon._all_boosts.items():
+            self._apply_tower_boosts(tower, beacons)
+
+        if CheeseBeacon.DEBUG:
+            print(f"\n=== Beacon at {self.position} Update ===")
+            print(f"Effective Radius: {effective_radius}px")
+            print(f"Towers in range: {len(current_boosts)}")
+
+    def _calculate_boosts(self, tower):
+        boosts = {}
+        # Damage boost
+        dmg_mult = 2 + self.curr_top_upgrade
+        boosts['damage'] = dmg_mult
+
+        # Radius boost
+        if self.curr_bottom_upgrade >= 1:
+            boosts['radius'] = 1.5
+
+        # Speed boost
+        if self.curr_bottom_upgrade >= 2:
+            boosts['speed'] = 1.5
+
+        return boosts
+
+    def _apply_tower_boosts(self, tower, beacons):
+        if tower not in towers:  # towers should be passed from update()
+            return
+
+        if CheeseBeacon.DEBUG and not hasattr(tower, '_base_damage'):
+            print(f"\nTracking new tower: {type(tower).__name__} at {tower.position}")
+            print(f"Original Damage: {getattr(tower, 'damage', 'N/A')}")
+            print(f"Original Radius: {getattr(tower, 'radius', 'N/A')}px")
+            print(f"Original Speed: {getattr(tower, 'shoot_interval', 'N/A')}ms")
+
+        # Damage
+        base_dmg = getattr(tower, '_base_damage', None)
+        if base_dmg is None:
+            tower._base_damage = getattr(tower, 'damage', 1)
+        total_dmg = tower._base_damage
+        for boost in beacons.values():
+            total_dmg *= boost.get('damage', 1)
+        if hasattr(tower, 'damage'):
+            tower.damage = total_dmg
+
+        # Radius
+        base_radius = getattr(tower, '_base_radius', None)
+        if base_radius is None:
+            tower._base_radius = getattr(tower, 'radius', 100)
+        total_radius = tower._base_radius
+        for boost in beacons.values():
+            total_radius *= boost.get('radius', 1)
+        if hasattr(tower, 'radius'):
+            tower.radius = total_radius
+
+        # Speed
+        if hasattr(tower, 'shoot_interval'):
+            base_speed = getattr(tower, '_base_shoot_interval', None)
+            if base_speed is None:
+                tower._base_shoot_interval = tower.shoot_interval
+            total_speed = tower._base_shoot_interval
+            for boost in beacons.values():
+                total_speed /= boost.get('speed', 1)
+            tower.shoot_interval = total_speed
+
+        # Specialized attribute handling
+        if isinstance(tower, Ozbourne):
+            # Radius boost affects blast parameters
+            if hasattr(tower, 'max_blast_radius'):
+                for boost in beacons.values():
+                    total_radius *= boost.get('radius', 1)
+                tower.max_blast_radius = total_radius
+
+            # Speed boost affects riff interval
+            if hasattr(tower, 'riff_interval'):
+                base_speed = getattr(tower, '_base_riff_interval', None)
+                if base_speed is None:
+                    tower._base_riff_interval = tower.riff_interval
+                total_speed = tower._base_riff_interval
+                for boost in beacons.values():
+                    total_speed /= boost.get('speed', 1)
+                if not hasattr(tower, '_base_riff_interval'):
+                    tower._base_riff_interval = tower.riff_interval
+                tower.riff_interval = total_speed
+
+        elif isinstance(tower, CheddarCommando):
+            # Speed boost affects reload time
+            if hasattr(tower, 'reload_time'):
+                base_speed = getattr(tower, '_base_reload_time', None)
+                if base_speed is None:
+                    tower._base_reload_time = tower.reload_time
+                total_speed = tower._base_reload_time
+                for boost in beacons.values():
+                    total_speed /= boost.get('speed', 1)
+                total_speed /= 1000
+                if not hasattr(tower, '_base_reload_time'):
+                    tower._base_reload_time = tower.reload_time
+                tower.reload_time = tower._base_reload_time / total_speed
+                print(f"total speed={total_speed}")
+
+        elif isinstance(tower, MinigunTower):
+            # Speed boost affects minigun spooling
+            if hasattr(tower, 'max_spool'):
+                base_speed = getattr(tower, '_base_max_spool', None)
+                if base_speed is None:
+                    tower._base_max_spool = tower.max_spool
+                total_speed = tower._base_max_spool
+                for boost in beacons.values():
+                    total_speed /= boost.get('speed', 1)
+                total_speed /= 3.75
+                if not hasattr(tower, '_base_max_spool'):
+                    tower._base_max_spool = tower.max_spool
+                tower.max_spool *= total_speed
+                print(f"total speed (max spool)={total_speed}")
+
+            if hasattr(tower, 'reload_time'):
+                base_speed = getattr(tower, '_base_reload_time', None)
+                if base_speed is None:
+                    tower._base_reload_time = tower.reload_time
+                total_speed = tower._base_reload_time
+                for boost in beacons.values():
+                    total_speed /= boost.get('speed', 1)
+                total_speed /= 1000
+                if not hasattr(tower, '_base_reload_time'):
+                    tower._base_reload_time = tower.reload_time
+                tower.reload_time = int(tower._base_reload_time / total_speed)  # maybe broken?
+
+            if hasattr(tower, 'spool_rate'):
+                base_speed = getattr(tower, '_base_spool_rate', None)
+                if base_speed is None:
+                    tower._base_spool_rate = tower.spool_rate
+                total_speed = tower._base_spool_rate
+                for boost in beacons.values():
+                    total_speed *= boost.get('speed', 1)
+                # total_speed *= 2
+                if not hasattr(tower, '_base_spool_rate'):
+                    tower._base_spool_rate = tower.spool_rate
+                tower.spool_rate = tower._base_spool_rate * 2
+                print(f"total speed (spool rate)={total_speed}")
+
+        elif isinstance(tower, WizardTower):
+            # Speed boost affects orb attack speed
+            if hasattr(tower, 'attack_speed'):
+                base_speed = getattr(tower, '_base_attack_speed', None)
+                if base_speed is None:
+                    tower._base_attack_speed = tower.attack_speed
+                total_speed = tower._base_attack_speed
+                for boost in beacons.values():
+                    total_speed /= boost.get('speed', 1)
+                if not hasattr(tower, '_base_attack_speed'):
+                    tower._base_attack_speed = tower.attack_speed
+                tower.attack_speed = tower._base_attack_speed * total_speed
+            if hasattr(tower, 'lightning_interval'):
+                base_speed = getattr(tower, '_base_lightning_interval', None)
+                if base_speed is None:
+                    tower._base_lightning_interval = tower.lightning_interval
+                total_speed = tower._base_lightning_interval
+                for boost in beacons.values():
+                    total_speed /= boost.get('speed', 1)
+                total_speed /= 1000
+                if not hasattr(tower, '_base_attack_speed'):
+                    tower._base_lightning_interval = tower.lightning_interval
+                tower.lightning_interval = tower._base_lightning_interval / total_speed
+                print(f"total speed (lightning)={total_speed}")
+
+        elif isinstance(tower, RatTent):
+            base_spawn = getattr(tower, '_base_spawn_interval', None)
+            if base_spawn is None:
+                tower._base_spawn_interval = tower.spawn_interval
+            total_spawn = tower._base_spawn_interval
+            for boost in beacons.values():
+                total_spawn /= boost.get('speed', 1)
+            tower.spawn_interval = total_spawn
+
+        if CheeseBeacon.DEBUG:
+            print(f"\nTower: {type(tower).__name__} at {tower.position}")
+            print(f"Active Beacons: {len(beacons)}")
+            if hasattr(tower, 'damage'):
+                print(f"Damage: {tower._base_damage} -> {tower.damage}")
+            if hasattr(tower, 'radius'):
+                print(f"Radius: {tower._base_radius}px -> {tower.radius}px")
+            if hasattr(tower, 'shoot_interval'):
+                print(f"Fire Rate: {tower._base_shoot_interval}ms -> {tower.shoot_interval}ms")
+            if isinstance(tower, RatTent):
+                print(f"Spawn Rate: {tower._base_spawn_interval}ms -> {tower.spawn_interval}ms")
+            # Ozbourne
+            elif isinstance(tower, Ozbourne):
+                print(f"Blast Radius: {tower.max_blast_radius}")
+                print(f"Riff Interval: {tower.riff_interval}ms")
+
+            # Commando
+            elif isinstance(tower, CheddarCommando):
+                print(f"Reload Time: {tower.reload_time}ms")
+
+            # Minigun
+            elif isinstance(tower, MinigunTower):
+                print(f"Max Spool: {tower.max_spool}")
+                print(f"Spool Rate: {tower.spool_rate}")
+                print(f"Cooldown Rate: {tower.cooldown_rate}")
+
+            # Wizard
+            elif isinstance(tower, WizardTower):
+                print(f"Attack Speed: {tower.attack_speed}")
+                print(f"Lightning Interval: {tower.lightning_interval}")
+
+    def _remove_tower_boosts(self, tower):
+        """
+        Recalculates and removes this beacon's boost effects from the given tower.
+        It does so by removing this beacon’s boost from the aggregated boost dictionary
+        and then reapplying all remaining boosts based on the tower’s stored base attributes.
+        """
+        # Get a copy of the current boost dictionary for the tower.
+        remaining_boosts = {}
+        if tower in CheeseBeacon._all_boosts:
+            # Copy all boost entries except for this beacon.
+            for beacon, boosts in CheeseBeacon._all_boosts[tower].items():
+                if beacon is not self:
+                    remaining_boosts[beacon] = boosts
+
+        # Recalculate damage from base_damage
+        if hasattr(tower, '_base_damage'):
+            total_damage = tower._base_damage
+            for boosts in remaining_boosts.values():
+                total_damage *= boosts.get('damage', 1)
+            tower.damage = total_damage
+
+        # Recalculate radius from base_radius
+        if hasattr(tower, '_base_radius'):
+            total_radius = tower._base_radius
+            for boosts in remaining_boosts.values():
+                total_radius *= boosts.get('radius', 1)
+            tower.radius = total_radius
+
+        # Recalculate shooting speed from base shoot_interval (note: boosts here are applied by division)
+        if hasattr(tower, '_base_shoot_interval'):
+            total_shoot_interval = tower._base_shoot_interval
+            for boosts in remaining_boosts.values():
+                total_shoot_interval /= boosts.get('speed', 1)
+            tower.shoot_interval = total_shoot_interval
+
+        # Specialized attribute handling:
+        # For Ozbourne towers: adjust max_blast_radius and riff_interval
+        if isinstance(tower, Ozbourne):
+            if hasattr(tower, '_base_radius'):
+                total_blast_radius = tower._base_radius
+                for boosts in remaining_boosts.values():
+                    total_blast_radius *= boosts.get('radius', 1)
+                tower.max_blast_radius = total_blast_radius
+            if hasattr(tower, '_base_riff_interval'):
+                total_riff_interval = tower._base_riff_interval
+                for boosts in remaining_boosts.values():
+                    total_riff_interval /= boosts.get('speed', 1)
+                tower.riff_interval = total_riff_interval
+
+        # For CheddarCommando towers: adjust reload time
+        if isinstance(tower, CheddarCommando):
+            if hasattr(tower, '_base_reload_time'):
+                total_reload = tower._base_reload_time
+                for boosts in remaining_boosts.values():
+                    total_reload /= boosts.get('speed', 1)
+                tower.reload_time = total_reload
+
+        # For MinigunTower: adjust max_spool and spool_rate
+        if isinstance(tower, MinigunTower):
+            if hasattr(tower, '_base_max_spool'):
+                total_max_spool = tower._base_max_spool
+                for boosts in remaining_boosts.values():
+                    total_max_spool /= boosts.get('speed', 1)
+                tower.max_spool = total_max_spool
+            if hasattr(tower, '_base_spool_rate'):
+                total_spool_rate = tower._base_spool_rate
+                for boosts in remaining_boosts.values():
+                    total_spool_rate *= boosts.get('speed', 1)
+                tower.spool_rate = total_spool_rate
+
+        # For WizardTower: adjust attack speed
+        if isinstance(tower, WizardTower):
+            if hasattr(tower, '_base_attack_speed'):
+                total_attack_speed = tower._base_attack_speed
+                for boosts in remaining_boosts.values():
+                    total_attack_speed /= boosts.get('speed', 1)
+                tower.attack_speed = total_attack_speed
+            if hasattr(tower, '_base_lightning_interval'):
+                total_lightning_interval = tower._base_lightning_interval
+                for boosts in remaining_boosts.values():
+                    total_lightning_interval /= boosts.get('speed', 1)
+                tower.lightning_interval = total_lightning_interval
+
+        # For RatTent towers: adjust spawn_interval
+        if isinstance(tower, RatTent):
+            if hasattr(tower, '_base_spawn_interval'):
+                total_spawn_interval = tower._base_spawn_interval
+                for boosts in remaining_boosts.values():
+                    total_spawn_interval /= boosts.get('speed', 1)
+                tower.spawn_interval = total_spawn_interval
+
+    def _create_signal_effect(self):
+        # Create red radial effect at position
+        effect = {
+            'pos': (self.position[0], self.position[1] - 12),
+            'radius': 0,
+            'max_radius': 35,
+            'color': (255, 0, 0, 128),
+            'start_time': pygame.time.get_ticks(),
+            'duration': 1000
+        }
+        self._effects.append(effect)
+
+    def render_effects(self, screen):
+        # Draw signal effects
+        now = pygame.time.get_ticks()
+        for effect in self._effects[:]:
+            progress = (now - effect['start_time']) / effect['duration']
+            if progress > 1:
+                self._effects.remove(effect)
+                continue
+
+            alpha = int(128 * (1 - progress))
+            radius = effect['radius'] + (effect['max_radius'] * progress)
+            surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+            pygame.draw.circle(surface, (*effect['color'][:3], alpha),
+                               (radius, radius), radius)
+            screen.blit(surface, (effect['pos'][0] - radius, effect['pos'][1] - radius))
+
+        # Draw boost indicators on towers
+        for tower, beacons in CheeseBeacon._all_boosts.items():
+            if isinstance(tower, CheeseBeacon):
+                continue
+            icons = []
+            for beacon in beacons.values():
+                if 'damage' in beacon:
+                    icons.extend(['damage'] * (beacon['damage'] - 1))
+                if 'radius' in beacon:
+                    icons.append('radius')
+                if 'speed' in beacon:
+                    icons.append('speed')
+
+            if icons:
+                x = tower.position[0] - (len(icons) * 6)
+                y = tower.position[1] - 45
+                for i, icon in enumerate(icons):
+                    img = self.indicators[icon]
+                    screen.blit(img, (x + i * 12, y))
+
+    def sell(self):
+        self.active = False
+        for tower in list(CheeseBeacon._all_boosts.keys()):
+            if self in CheeseBeacon._all_boosts[tower]:
+                self._remove_tower_boosts(tower)
+                del CheeseBeacon._all_boosts[tower][self]
+
+    def shoot(self):
+        pass
+
+    def render(self, screen):
+        """Draw the beacon tower itself"""
+        if self.active:
+            # Draw base tower image
+            img_rect = self.image.get_rect(center=self.position)
+            screen.blit(self.image, img_rect)
 
 
 class AntEnemy:
@@ -3529,6 +4218,8 @@ class CentipedeEnemy:
         This allows towers to target any part of the centipede body.
         """
         alive_rects = [seg.rect for seg in self.segments[1:] if seg.alive]
+        if not self.segments:
+            return 0, 0  # or self.last_known_position, or something safe
         if alive_rects:
             union_rect = alive_rects[0].copy()
             for r in alive_rects[1:]:
