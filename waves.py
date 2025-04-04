@@ -3,159 +3,426 @@ import pygame
 import game_tools
 import random
 import save_progress
+import waves
 
-# initializes used variables
-enemy_data = [game_tools.AntEnemy, game_tools.HornetEnemy, game_tools.BeetleEnemy]
-wave_size = 0
-spawn_interval = 0
-last_spawn_time = 0
-current_wave = 1
-enemies_spawned = 0
+# -----------------------------
+# Global Variables and Initialization
+# -----------------------------
 enemies = game_tools.enemies
-trigger_rush = -1
-rush_num = -1
-rush_speed = -1
+money = game_tools.money  # This is updated in game_tools
+last_spawn_time = 0
+segment_completion_time = None
+FINAL_CLEANUP_DELAY = 1000  # in milliseconds
+
+# Round configuration: each round is a list of segments.
+# Each segment is a dict with keys:
+#   "enemies": list of enemy type strings ("ANT", "HORNET", "BEETLE", "SPIDER", "CENTIPEDE", "CENTIPEDE_BOSS")
+#   "spawn_interval": milliseconds between spawns in this segment.
+#   "delay": milliseconds to wait after the segment is finished before starting the next segment.
+#   "rush": (optional) dict with keys "trigger" (enemy count to start rush), "num" (number of enemies at rush speed),
+#           and "speed" (spawn interval during rush).
+round_configs = {}
+
+# --- Manually defined rounds (1-18) ---
+round_configs[1] = [  # Introductory ant wave
+    {"enemies": ["ANT"] * 10, "spawn_interval": 1500, "delay": 0}
+]
+round_configs[2] = [  # Faster ant wave
+    {"enemies": ["ANT"] * 10, "spawn_interval": 1000, "delay": 0}
+]
+round_configs[3] = [  # Mild rush: ants with a rush after 10 spawns
+    {"enemies": ["ANT"] * 15,
+     "spawn_interval": 1000,
+     "delay": 0,
+     "rush": {"trigger": 10, "num": 5, "speed": 750}}
+]
+round_configs[4] = [  # Mix in a few hornets
+    {"enemies": ["ANT"] * 15 + ["HORNET"] * 2,
+     "spawn_interval": 1200,
+     "delay": 0}
+]
+round_configs[5] = [  # More hornets and faster spawns
+    {"enemies": ["ANT"] * 10 + ["HORNET"] * 5,
+     "spawn_interval": 600,
+     "delay": 0,
+     "rush": {"trigger": 8, "num": 3, "speed": 500}}
+]
+round_configs[6] = [  # Hornet-focused wave with a brief delay\n
+    {"enemies": ["HORNET"] * 5 + ["ANT"] * 12,
+     "spawn_interval": 1000,
+     "delay": 500}
+]
+round_configs[7] = [  # Larger ant-hornet mix with a mid-round rush
+    {"enemies": ["ANT"] * 15 + ["HORNET"] * 5,
+     "spawn_interval": 1200,
+     "delay": 0,
+     "rush": {"trigger": 12, "num": 4, "speed": 600}}
+]
+round_configs[8] = [  # A single centipede (big enemy)\n
+    {"enemies": ["CENTIPEDE"], "spawn_interval": 4000, "delay": 0}
+]
+round_configs[9] = [  # Larger ant swarm with hornets\n
+    {"enemies": ["ANT"] * 20 + ["HORNET"] * 10,
+     "spawn_interval": 500,
+     "delay": 0}
+]
+round_configs[10] = [  # Extended hornet barrage in two segments\n
+    {"enemies": ["HORNET"] * 10, "spawn_interval": 700, "delay": 2000},
+    {"enemies": ["HORNET"] * 10 + ["ANT"] * 5,
+     "spawn_interval": 600,
+     "delay": 0,
+     "rush": {"trigger": 10, "num": 5, "speed": 400}}
+]
+round_configs[11] = [  # Beetle and spider combo\n
+    {"enemies": ["BEETLE"] * 2 + ["SPIDER"],
+     "spawn_interval": 1800,
+     "delay": 0}
+]
+round_configs[12] = [  # Mixed forces with beetles, ants, and hornets\n
+    {"enemies": ["BEETLE"] * 2 + ["ANT"] * 10 + ["HORNET"] * 10,
+     "spawn_interval": 1500,
+     "delay": 500}
+]
+round_configs[13] = [  # Small centipede squad\n
+    {"enemies": ["CENTIPEDE"] * 3,
+     "spawn_interval": 2200,
+     "delay": 0}
+]
+round_configs[14] = [  # Massive ant swarm in two phases\n
+    {"enemies": ["ANT"] * 100, "spawn_interval": 20, "delay": 2000},
+    {"enemies": ["ANT"] * 100, "spawn_interval": 20, "delay": 0}
+]
+round_configs[15] = [  # Spider-themed round with a rush\n
+    {"enemies": ["SPIDER"] * 20,
+     "spawn_interval": 800,
+     "delay": 0,
+     "rush": {"trigger": 10, "num": 5, "speed": 400}},
+    {"enemies": ["SPIDER"] * 10,
+     "spawn_interval": 600,
+     "delay": 0}
+]
+round_configs[16] = [  # Boss round – Centipede Boss\n
+    {"enemies": ["CENTIPEDE_BOSS"], "spawn_interval": 4000, "delay": 0}
+]
+round_configs[17] = [  # Mixed beetles and hornets with double rush\n
+    {"enemies": ["BEETLE"] * 3 + ["HORNET"] * 7,
+     "spawn_interval": 1200,
+     "delay": 1000,
+     "rush": {"trigger": 5, "num": 3, "speed": 500}},
+    {"enemies": ["HORNET"] * 5,
+     "spawn_interval": 800,
+     "delay": 0,
+     "rush": {"trigger": 3, "num": 2, "speed": 400}}
+]
+round_configs[18] = [  # Heavy mix – ants, hornets, beetles, and centipedes\n
+    {"enemies": ["ANT"] * 30 + ["HORNET"] * 10,
+     "spawn_interval": 800,
+     "delay": 500},
+    {"enemies": ["BEETLE"] * 5 + ["CENTIPEDE"] * 5,
+     "spawn_interval": 1000,
+     "delay": 0,
+     "rush": {"trigger": 5, "num": 3, "speed": 500}}
+]
+
+
+for r in range(19, 101):
+    segments = []
+
+    if r == 19:
+
+        segments.append({"enemies": ["ANT"] * (r * 2) + ["HORNET"] * (r // 2),
+                         "spawn_interval": max(300, 500 - r * 10),
+                         "delay": 1000})
+        segments.append({"enemies": ["ANT"] * (r * 3),
+                         "spawn_interval": 50,
+                         "delay": 1000})
+        segments.append({"enemies": ["CENTIPEDE"] * 5,
+                         "spawn_interval": 50,
+                         "delay": 0})
+    elif r == 20:
+        # Spider round: all spiders with a mid-round rush\n
+        segments.append({"enemies": ["SPIDER"] * (r * 2),
+                         "spawn_interval": 500,
+                         "delay": 500,
+                         "rush": {"trigger": int(r * 2 * 0.5), "num": 4, "speed": 400}})
+    elif r == 21:
+        # Beetle round: tougher enemies in moderate numbers\n
+        segments.append({"enemies": ["BEETLE"] * (r // 2) + ["ANT"] * (3 * r),
+                         "spawn_interval": 1000,
+                         "delay": 500,
+                         "rush": {"trigger": int((r // 2 + r) * 0.4), "num": 3, "speed": 200}})
+    elif r == 22:
+        # Centipede rush: mix of centipedes and ants\n
+        segments.append({"enemies": ["CENTIPEDE"] * (r // 3) + ["HORNET"] * (r),
+                         "spawn_interval": 900,
+                         "delay": 500,
+                         "rush": {"trigger": int((r // 3 + r) * 0.6), "num": 5, "speed": 350}})
+    elif r == 23:
+        # Mixed forces with a delayed second phase\n
+        segments.append({"enemies": ["ANT"] * (r * 4),
+                         "spawn_interval": 50,
+                         "delay": 1500})
+        segments.append({"enemies": ["HORNET"] * (r * 2),
+                         "spawn_interval": 200,
+                         "delay": 0,
+                         "rush": {"trigger": int(r * 0.5), "num": 3, "speed": 400}})
+    else:
+
+        # BOSS ROUND EVERY 10
+        if r % 10 == 0:
+            segments.append({
+                "enemies": ["SPIDER", "HORNET"] * (r // 5),
+                "spawn_interval": 150,
+                "delay": 500
+            })
+            segments.append({"enemies": ["CENTIPEDE_BOSS"] * 2 * (r % 10),
+                             "spawn_interval": 1500,
+                             "delay": 1000})
+            ant_swarm = 100 + r * 2
+            segments.append({"enemies": ["ANT"] * ant_swarm,
+                             "spawn_interval": max(20, 100 - r),
+                             "delay": 1000})
+
+        else:
+
+            scaler = max(1, int(r / 10))
+
+            for i in range(scaler * 5):
+                det = random.randint(1, 5)
+
+                if det == 1:
+                    rand_enemy = "ANT"
+                    rand_amt = 20
+                    rand_spawn = 50
+                elif det == 2:
+                    rand_enemy = "HORNET"
+                    rand_amt = 10
+                    rand_spawn = 250
+                elif det == 3:
+                    rand_enemy = "BEETLE"
+                    rand_amt = 4
+                    rand_spawn = 300
+                elif det == 4:
+                    rand_enemy = "SPIDER"
+                    rand_amt = 4
+                    rand_spawn = 400
+                elif det == 5:
+                    rand_enemy = "CENTIPEDE"
+                    rand_amt = 2
+                    rand_spawn = 500
+                else:
+                    rand_enemy = "ANT"
+                    rand_amt = 20
+                    rand_spawn = 50
+
+                segments.append({"enemies": [rand_enemy] * rand_amt * scaler * random.randint(1, 3),
+                                 "spawn_interval": rand_spawn,
+                                 "delay": random.randint(0, 1000)})
+
+
+        """if r % 3 == 0:
+            enemy_list = ["ANT"] * (r * 4) + ["HORNET"] * (r // 6) + ["BEETLE"] * (r // 8)
+        elif r % 3 == 1:
+            enemy_list = ["ANT"] * (r * 4) + ["SPIDER"] * (r // 4) + ["HORNET"] * (r // 8)
+        else:  # r % 3 == 2
+            enemy_list = ["HORNET"] * (r * 4) + ["CENTIPEDE"] * (max(1, r // 10)) + ["ANT"] * (r // 6)
+
+        segments.append({
+            "enemies": enemy_list,
+            "spawn_interval": max(10, 500 - r * 20),  # Faster normal spawn interval
+            "delay": int(500 / r),  # Shorter delay between segments
+            "rush": {
+                "trigger": int(len(enemy_list) * 0.45),
+                "num": 10 + (int(r/10)),  # More enemies during rush phase
+                "speed": int(100 / r)  # Very rapid spawn during rush
+            }
+        })"""
+    if r > 18:
+        round_configs[r] = segments
+
+# -----------------------------
+# Wave State Variables
+# -----------------------------
+current_round_config = []  # List of segments for the current round
+current_segment_index = 0  # Which segment in the current round we are processing
+segment_enemy_spawned = 0  # Count of enemies spawned in current segment
+segment_start_time = 0  # Time when current segment started
+
+# For handling rush phases per segment
 rush_active = False
+rush_info = None
 rush_spawned = 0
-original_spawn_interval = 0
-
-waves = []
-
-waves.append(["ANT"] * 10)
-waves.append(["ANT"] * 10)
-waves.append(["ANT"] * 15)
-waves.append(["ANT"] * 15 + ["HORNET"] * 2)
-waves.append(["ANT"] * 10 + ["HORNET"] * 5)
-
-waves.append(["HORNET"] * 5 + ["ANT"] * 12)  # Wave 6 (Index 5)
-waves.append(["ANT"] * 15 + ["HORNET"] * 5)  # Wave 7 (Index 6)
-waves.append(["CENTIPEDE"])       # Wave 8 (Index 7)
-waves.append(["ANT"] * 20 + ["HORNET"] * 10)  # Wave 9 (Index 8)
-waves.append(["ANT"] * 15 + ["HORNET"] * 5 + ["HORNET"] * 10)  # Wave 10 (Index 9)
+original_spawn_interval = None
 
 
-waves.append(["BEETLE"] * 2 + ["SPIDER"])         # Wave 11 (Index 10)
-waves.append(["BEETLE"] * 2 + ["ANT"] * 10 + ["HORNET"] * 10)  # Wave 12 (Index 11)
-waves.append(["CENTIPEDE"] * 3)       # Wave 13 (Index 12)
-waves.append(["ANT"] * 40)  # Wave 14 (Index 13)
-waves.append(["SPIDER"] * 1 + ["ANT"] * 15 + ["BEETLE"] * 3 + ["HORNET"] * 5)  # Wave 15 (Index 14)
-
-
-waves.append(["CENTIPEDE_BOSS"] * 1)  # Wave 16 (Index 15)
-waves.append(["BEETLE"] * 3 + ["HORNET"] * 7 + ["CENTIPEDE"] * 4 + ["SPIDER"] * 3)       # Wave 17 (Index 16)
-waves.append(["ANT"] * 30 + ["HORNET"] * 10 + ["BEETLE"] * 5 + ["CENTIPEDE"] * 5)  # Wave 18 (Index 17)
-
-
+# -----------------------------
+# Wave Functions
+# -----------------------------
 def start_new_wave(round_number: int):
     """Initialize wave settings when a new wave starts."""
-    global enemies, enemies_spawned, wave_size, spawn_interval, last_spawn_time, \
-        trigger_rush, rush_num, rush_speed, rush_active, rush_spawned
+    global current_round_config, current_segment_index, segment_enemy_spawned, segment_start_time
+    global rush_active, rush_info, rush_spawned, original_spawn_interval, enemies
 
-    wave_data = {
-        # Early Game (Waves 1-5)
-        1: {"spawn_interval": 2500, "wave_size": 10, "trigger_rush": -1},
-        2: {"spawn_interval": 1500, "wave_size": 10, "trigger_rush": -1},
-        3: {"spawn_interval": 2000, "wave_size": 15, "trigger_rush": 10, "rush_num": 5, "rush_speed": 1000},
-        4: {"spawn_interval": 1800, "wave_size": 17, "trigger_rush": -1},
-        5: {"spawn_interval": 600, "wave_size": 15, "trigger_rush": 10, "rush_num": 5, "rush_speed": 4500},
+    if round_number <= 100:
+        current_round_config = round_configs[round_number]
+    else:
+        # Endless mode: scale difficulty dynamically
+        endless_segment = {
+            "enemies": ["ANT"] * int(round_number * 2.5) + ["HORNET"] * int(round_number * 0.8) + ["BEETLE"] * int(
+                round_number * 0.5),
+            "spawn_interval": max(20, 2000 - int((round_number - 100) ** 1.2 * 30)),
+            "delay": 0,
+            "rush": {"trigger": int(round_number * 0.6), "num": 7, "speed": max(150, 1000 - (round_number - 100) * 20)}
+        }
+        current_round_config = [endless_segment]
+    current_segment_index = 0
+    segment_enemy_spawned = 0
+    segment_start_time = pygame.time.get_ticks()
+    rush_active = False
+    rush_info = None
+    rush_spawned = 0
+    original_spawn_interval = None
+    enemies.clear()
 
-        # Mid Game (Waves 6-10)
-        6: {"spawn_interval": 2500, "wave_size": 17, "trigger_rush": -1},
-        7: {"spawn_interval": 1000, "wave_size": 20, "trigger_rush": 15, "rush_num": 5, "rush_speed": 2500},
-        8: {"spawn_interval": 4000, "wave_size": 1, "trigger_rush": -1},  # Centipede wave
-        9: {"spawn_interval": 500, "wave_size": 30, "trigger_rush": 20, "rush_num": 10, "rush_speed": 2500},
-        10: {"spawn_interval": 1000, "wave_size": 30, "trigger_rush": 20, "rush_num": 15, "rush_speed": 2500},
 
-        # Late Game (Waves 11-15)
-        11: {"spawn_interval": 1500, "wave_size": 3, "trigger_rush": 2, "rush_num": 1, "rush_speed": 5000},
-        12: {"spawn_interval": 2500, "wave_size": 22, "trigger_rush": 2, "rush_num": 10, "rush_speed": 500},
-        13: {"spawn_interval": 2500, "wave_size": 3, "trigger_rush": -1},  # Centipede squad
-        14: {"spawn_interval": 800, "wave_size": 40, "trigger_rush": -1},
-        15: {"spawn_interval": 1500, "wave_size": 23, "trigger_rush": 18, "rush_num": 5, "rush_speed": 2500},
+def get_rand_round():
+    det = random.randint(1, 5)
+    if det == 1:
+        rand_enemy = "ANT"
+        rand_amt = 20
+        rand_spawn = 250
+    elif det == 2:
+        rand_enemy = "HORNET"
+        rand_amt = 10
+        rand_spawn = 500
+    elif det == 3:
+        rand_enemy = "BEETLE"
+        rand_amt = 2
+        rand_spawn = 750
+    elif det == 4:
+        rand_enemy = "SPIDER"
+        rand_amt = 4
+        rand_spawn = 1000
+    elif det == 5:
+        rand_enemy = "CENTIPEDE"
+        rand_amt = 2
+        rand_spawn = 750
+    else:
+        rand_enemy = "ANT"
+        rand_amt = 20
+        rand_spawn = 250
 
-        # Endgame (Waves 16-18)
-        16: {"spawn_interval": 4000, "wave_size": 1, "trigger_rush": -1},  # Boss wave
-        17: {"spawn_interval": 2500, "wave_size": 18, "trigger_rush": 11, "rush_num": 4, "rush_speed": 1000},
-        18: {"spawn_interval": 500, "wave_size": 50, "trigger_rush": 30, "rush_num": 20, "rush_speed": 2500}
-    }
+    return rand_enemy, rand_spawn, rand_amt
 
-    if round_number in wave_data:
-        config = wave_data[round_number]
-        enemies.clear()
-        enemies_spawned = 0
-        wave_size = config["wave_size"]
-        spawn_interval = config["spawn_interval"]
-        trigger_rush = config["trigger_rush"]
-        rush_active = False
-        rush_spawned = 0
-        if trigger_rush != -1:
-            rush_num = config["rush_num"]
-            rush_speed = config["rush_speed"]
-        last_spawn_time = pygame.time.get_ticks()
 
+FINAL_CLEANUP_DELAY = 1000  # in milliseconds
 
 def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
-    global enemies, last_spawn_time, enemies_spawned, wave_size, trigger_rush, \
-        rush_speed, rush_num, spawn_interval, waves, rush_active, rush_spawned
+    global current_round_config, current_segment_index, segment_enemy_spawned, segment_start_time, segment_completion_time
+    global rush_active, rush_info, rush_spawned, original_spawn_interval, enemies
 
-    global original_spawn_interval  # Add this to track normal speed
+    # Always remove dead enemies first.
+    enemies[:] = [enemy for enemy in enemies if enemy.is_alive]
 
-    # Get adjusted time based on game speed
     current_time = pygame.time.get_ticks()
-    adjusted_spawn_interval = spawn_interval / game_tools.game_speed_multiplier
-    adjusted_rush_speed = rush_speed / game_tools.game_speed_multiplier if rush_speed != -1 else -1
 
-    # Enemy Spawning Logic
-    if trigger_rush != -1:
-        if not rush_active and enemies_spawned >= trigger_rush:
-            # Start rush period
+    # If all segments have been processed, we're in the final phase.
+    if current_segment_index >= len(current_round_config):
+        # If we have a recorded completion time, and a grace period has elapsed, force-clear lingering enemies.
+        if segment_completion_time is not None and current_time - segment_completion_time >= FINAL_CLEANUP_DELAY:
+            if enemies:
+                print("[!] Final cleanup: Forcing enemy list clear.")
+            enemies.clear()
+        if not enemies:
+            print(f"[✓] Wave {round_number} completed.")
+            base_reward = 150
+            bonus = math.floor(math.log(round_number + 1, 2))
+            game_tools.money += base_reward + (25 * bonus)
+            return True
+        return False
+
+    # Process the current segment.
+    segment = current_round_config[current_segment_index]
+    effective_interval = segment["spawn_interval"]
+
+    # Handle rush logic.
+    if "rush" in segment:
+        if not rush_active and segment_enemy_spawned >= segment["rush"]["trigger"]:
             rush_active = True
-            original_spawn_interval = adjusted_spawn_interval  # Store normal speed
-            adjusted_spawn_interval = adjusted_rush_speed
+            rush_info = segment["rush"]
+            original_spawn_interval = effective_interval
+            effective_interval = rush_info["speed"]
             rush_spawned = 0
-
-        if rush_active:
-            rush_spawned += 1
-            if rush_spawned >= rush_num:
-                # End rush period
+            print("[→] Rush triggered.")
+        elif rush_active:
+            effective_interval = rush_info["speed"]
+            if rush_spawned >= rush_info["num"]:
                 rush_active = False
-                adjusted_spawn_interval = original_spawn_interval  # Restore normal speed
+                effective_interval = original_spawn_interval
+                print("[✓] Rush complete.")
 
-    if enemies_spawned < wave_size and current_time - last_spawn_time >= adjusted_spawn_interval:
-        offset = random.randint(-16, 16)
-        spawn_pos = (238 + offset, 500)
-        offset_path = [(x + offset, y) for (x, y) in game_tools.house_path]
+    # Spawn an enemy if there are still enemies to spawn in this segment.
+    if segment_enemy_spawned < len(segment["enemies"]):
+        if current_time - segment_start_time >= effective_interval:
+            enemy_type = segment["enemies"][segment_enemy_spawned % len(segment["enemies"])]
+            spawn_pos = (238 + random.randint(-16, 16), 500)
+            offset_path = [(x + random.randint(-8, 8), y) for (x, y) in game_tools.house_path]
 
-        wave_used = waves[round_number - 1]
+            if enemy_type == "ANT":
+                enemies.append(game_tools.AntEnemy(spawn_pos, 1, 1, offset_path, "assets/ant_base.png"))
+            elif enemy_type == "HORNET":
+                enemies.append(game_tools.HornetEnemy(spawn_pos, 2, 2, offset_path, "assets/hornet_base.png"))
+            elif enemy_type == "BEETLE":
+                enemies.append(game_tools.BeetleEnemy(spawn_pos, offset_path))
+            elif enemy_type == "SPIDER":
+                enemies.append(game_tools.SpiderEnemy(spawn_pos, offset_path))
+            elif enemy_type == "CENTIPEDE":
+                enemies.append(game_tools.CentipedeEnemy(spawn_pos, offset_path))
+            elif enemy_type == "CENTIPEDE_BOSS":
+                enemies.append(game_tools.CentipedeEnemy(spawn_pos, offset_path, links=24))
 
-        enemy_type = wave_used[enemies_spawned % len(wave_used)]
+            segment_enemy_spawned += 1
+            if rush_active:
+                rush_spawned += 1
 
-        if enemy_type == "ANT":
-            enemies.append(game_tools.AntEnemy(spawn_pos, 1, 1, offset_path, "assets/ant_base.png"))
-        elif enemy_type == "HORNET":
-            enemies.append(game_tools.HornetEnemy(spawn_pos, 2, 2, offset_path, "assets/hornet_base.png"))
-        elif enemy_type == "CENTIPEDE":
-            enemies.append(game_tools.CentipedeEnemy(spawn_pos, offset_path))
-        elif enemy_type == "CENTIPEDE_BOSS":
-            enemies.append(game_tools.CentipedeEnemy(spawn_pos, offset_path, links=24))
-        elif enemy_type == "BEETLE":
-            enemies.append(game_tools.BeetleEnemy(spawn_pos, offset_path))
-        elif enemy_type == "SPIDER":
-            enemies.append(game_tools.SpiderEnemy(spawn_pos, offset_path))
+            segment_start_time = current_time
+            # Record completion time once the final enemy of the segment spawns.
+            if segment_enemy_spawned == len(segment["enemies"]):
+                segment_completion_time = current_time
+                print(f"[→] Finished spawning segment {current_segment_index}.")
 
-        last_spawn_time = current_time
-        enemies_spawned += 1
-
-    # Update enemies
+    # Update, render, and move enemies.
     for enemy in enemies[:]:
         enemy.render(scrn)
         enemy.move()
-        if not enemy.is_alive:
-            enemies.remove(enemy)
 
-    if enemies_spawned >= wave_size and not enemies:
-        base_reward = 150
-        wave_bonus = math.floor(math.log(round_number + 1, 2))  # Proper logarithmic scaling
-        game_tools.money += base_reward + (25 * wave_bonus)
-        return True
+    # Determine if the current segment is done.
+    seg_delay = segment.get("delay", 0)
+    segment_done = False
+    if segment_enemy_spawned >= len(segment["enemies"]):
+        if seg_delay == 0:
+            # For predetermined rounds with no delay, wait until enemies are cleared.
+            if not enemies:
+                segment_done = True
+        else:
+            # For segments with a delay, wait until the delay has elapsed.
+            if segment_completion_time and current_time - segment_completion_time >= seg_delay:
+                segment_done = True
+
+    if segment_done:
+        print(f"[✓] Segment {current_segment_index} complete.")
+        current_segment_index += 1
+        segment_enemy_spawned = 0
+        segment_start_time = current_time
+        segment_completion_time = None
+        rush_active = False
+        rush_info = None
+        rush_spawned = 0
+
     return False
+
+
+
+# -----------------------------
+# End of waves.py
+# -----------------------------
