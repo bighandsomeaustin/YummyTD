@@ -22,7 +22,7 @@ running = True
 state = "Menu"
 resumeFlag = False
 curr_wave = False
-round_number = 24   # change for debugging
+round_number = 1   # change for debugging
 PlayFlag = True
 
 while running:
@@ -75,13 +75,15 @@ while running:
     if state == "New Game":
         game_tools.fade_into_image(screen, "assets/house_map_baselayer.png", 500)
         image_map = pygame.image.load("assets/house_map_baselayer.png").convert_alpha()
-        start_new_wave(round_number)
         mixer.music.fadeout(1000)
         mixer.music.load("assets/map_music.mp3")
         mixer.music.play(-1)
         game_tools.user_health = 100
-        game_tools.money = 25000
-        round_number = 24
+        game_tools.money = 250
+        round_number = 1
+        game_tools.towers.clear()
+        game_tools.enemies.clear()
+        start_new_wave(round_number)
         state = "Game"
         # save current new game data
         # this will overwrite any previous saves

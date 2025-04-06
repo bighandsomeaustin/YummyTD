@@ -12,45 +12,6 @@ _asset_cache = {}
 _sound_cache = {}
 _font_cache = {}
 
-import sys
-import logging
-
-
-class StreamToLogger:
-    """
-    Redirects writes (e.g., from print statements) to the logging module.
-    """
-
-    def __init__(self, logger, level):
-        self.logger = logger
-        self.level = level
-        self.linebuf = ''
-
-    def write(self, buf):
-        for line in buf.rstrip().splitlines():
-            self.logger.log(self.level, line.rstrip())
-
-    def flush(self):
-        pass  # Required for file-like object interface
-
-    def enable_logs(self):
-        # Configure logging once at the top
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format="%(asctime)s - %(levelname)s - %(message)s",
-            handlers=[
-                logging.FileHandler("full_console_log.txt"),
-                logging.StreamHandler(sys.stdout)
-            ]
-        )
-
-        # Redirect stdout and stderr
-        stdout_logger = logging.getLogger('STDOUT')
-        stderr_logger = logging.getLogger('STDERR')
-
-        sys.stdout = StreamToLogger(stdout_logger, logging.INFO)
-        sys.stderr = StreamToLogger(stderr_logger, logging.ERROR)
-
 
 def load_image(path):
     if path not in _asset_cache:
@@ -86,13 +47,15 @@ curr_upgrade_tower = None
 MogFlag = False
 gameoverFlag = False
 last_time_sfx = pygame.time.get_ticks()
-money = 25000  # change for debugging
+money = 250  # change for debugging
 user_health = 100
 music_volume = 1.0
 user_volume = 1.0
 slider_dragging = False
 game_speed_multiplier = 1  # Add at top with other globals
 last_frame_time = 0  # Track frame timing
+global_damage_indicators = []
+global_impact_particles = []
 
 # Load frames once globally
 frames = [load_image(f"assets/splash/splash{i}.png") for i in range(1, 8)]
@@ -147,7 +110,7 @@ def get_scaled_time():
 
 def get_scaled_delta():
     """Returns time delta adjusted for game speed"""
-    return (1000/60) * (1/game_speed_multiplier)  # Approximate frame delta
+    return (1000 / 60) * (1 / game_speed_multiplier)  # Approximate frame delta
 
 
 def play_splash_animation(scrn: pygame.Surface, pos: tuple, frame_delay: int = 5):
@@ -181,7 +144,7 @@ def play_mog_animation(scrn: pygame.Surface):
         while pygame.time.get_ticks() - start_time < duration:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    pygame.quit();
+                    pygame.quit()
                     exit()
         # Set MogFlag correctly at the last frame
         MogFlag = (current_frame == 31)
@@ -279,6 +242,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     global RoundFlag, money, UpgradeFlag, curr_upgrade_tower, SettingsFlag, music_volume, slider_dragging, user_volume \
         , gameoverFlag, enemies, current_wave, user_health, game_speed_multiplier
     purchase = load_sound("assets/purchase_sound.mp3")
+    invalid = load_sound("assets/invalid.mp3")
     img_tower_select = load_image("assets/tower_select.png")
     img_mrcheese_text = load_image("assets/mrcheese_text.png")
     img_ratcamp_text = load_image("assets/ratcamp_text.png")
@@ -288,6 +252,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     img_minigun_text = load_image("assets/minigun_text.png")
     img_wizard_text = load_image("assets/wizard_text.png")
     img_beacon_text = load_image("assets/beacon_text.png")
+    img_sniper_text = load_image("assets/sniper_text.png")
     img_playbutton = load_image("assets/playbutton.png")
     img_playbutton_1x = load_image("assets/playbutton_1x.png")
     img_playbutton_2x = load_image("assets/playbutton_2x.png")
@@ -388,62 +353,100 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     if 1115 <= mouse[0] <= 1115 + 73 and 101 <= mouse[1] <= 101 + 88:
         scrn.blit(img_tower_select, (1115, 101))
         scrn.blit(img_mrcheese_text, (1113, 53))
-        if detect_single_click() and money >= 150:
-            purchase.play()
-            return "mrcheese"
+        if detect_single_click():
+            if money >= 150:
+                purchase.play()
+                return "mrcheese"
+            else:
+                invalid.play()
+
     # RAT CAMP
     elif 1195 <= mouse[0] <= 1195 + 73 and 288 <= mouse[1] <= 288 + 88:
         scrn.blit(img_ratcamp_text, (1113, 53))
         scrn.blit(img_tower_select, (1192, 288))
-        if detect_single_click() and money >= 650:
-            purchase.play()
-            return "rattent"
+        if detect_single_click():
+            if money >= 650:
+                purchase.play()
+                return "rattent"
+            else:
+                invalid.play()
+
     # CHEESY OZBOURNE
     elif 1118 <= mouse[0] <= 1118 + 73 and 382 <= mouse[1] <= 382 + 88:
         scrn.blit(img_ozbourne_text, (1113, 53))
         scrn.blit(img_tower_select, (1118, 382))
-        if detect_single_click() and money >= 500:
-            purchase.play()
-            return "ozbourne"
+        if detect_single_click():
+            if money >= 500:
+                purchase.play()
+                return "ozbourne"
+            else:
+                invalid.play()
+
     # RAT BANK
     elif 1195 <= mouse[0] <= 1195 + 73 and 382 <= mouse[1] <= 382 + 88:
         scrn.blit(img_ratbank_text, (1113, 53))
         scrn.blit(img_tower_select, (1195, 382))
-        if detect_single_click() and money >= 700:
-            purchase.play()
-            return "ratbank"
+        if detect_single_click():
+            if money >= 700:
+                purchase.play()
+                return "ratbank"
+            else:
+                invalid.play()
 
     # CHEDDAR COMMANDO
     elif 1195 <= mouse[0] <= 1195 + 73 and 195 <= mouse[1] <= 195 + 88:
         scrn.blit(img_commando_text, (1113, 53))
         scrn.blit(img_tower_select, (1195, 195))
-        if detect_single_click() and money >= 250:
-            purchase.play()
-            return "soldier"
+        if detect_single_click():
+            if money >= 250:
+                purchase.play()
+                return "soldier"
+            else:
+                invalid.play()
 
     # MINIGUN
     elif 1118 <= mouse[0] <= 1118 + 73 and 475 <= mouse[1] <= 475 + 88:
         scrn.blit(img_minigun_text, (1113, 53))
         scrn.blit(img_tower_select, (1118, 475))
-        if detect_single_click() and money >= 600:
-            purchase.play()
-            return "minigun"
+        if detect_single_click():
+            if money >= 600:
+                purchase.play()
+                return "minigun"
+            else:
+                invalid.play()
 
     # WIZARD
     elif 1118 <= mouse[0] <= 1118 + 73 and 288 <= mouse[1] <= 288 + 88:
         scrn.blit(img_wizard_text, (1113, 53))
         scrn.blit(img_tower_select, (1118, 288))
-        if detect_single_click() and money >= 400:
-            purchase.play()
-            return "wizard"
+        if detect_single_click():
+            if money >= 400:
+                purchase.play()
+                return "wizard"
+            else:
+                invalid.play()
 
     # CHEESE BEACON
     elif 1195 <= mouse[0] <= 1195 + 73 and 475 <= mouse[1] <= 475 + 88:
-        scrn.blit(img_wizard_text, (1113, 53))
+        scrn.blit(img_beacon_text, (1113, 53))
         scrn.blit(img_tower_select, (1195, 475))
-        if detect_single_click() and money >= 900:
-            purchase.play()
-            return "beacon"
+        if detect_single_click():
+            if money >= 900:
+                purchase.play()
+                return "beacon"
+            else:
+                invalid.play()
+
+    # RAT SNIPER
+    elif 1118 <= mouse[0] <= 1118 + 73 and 195 <= mouse[1] <= 195 + 88:
+        scrn.blit(img_sniper_text, (1113, 53))
+        scrn.blit(img_tower_select, (1118, 195))
+        if detect_single_click():
+            if money >= 350:
+                purchase.play()
+                return "sniper"
+            else:
+                invalid.play()
 
     # check if any tower is clicked after placement
     for tower in towers:
@@ -539,7 +542,7 @@ def handle_upgrade(scrn, tower):
             if detect_single_click():
                 if money >= 450 and tower.curr_bottom_upgrade == 0:
                     purchase.play()
-                    tower.damage += 2
+                    tower.damage += 1
                     money -= 450
                     tower.sell_amt += 225
                     tower.curr_bottom_upgrade = 1
@@ -555,11 +558,10 @@ def handle_upgrade(scrn, tower):
                         tower.original_image = load_image("assets/mrcheese_diploma+protein.png")
                 elif money >= 900 and tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade != 2:
                     purchase.play()
-                    tower.damage += 2
+                    tower.damage += 1
                     tower.penetration = True
                     money -= 900
                     tower.sell_amt += 450
-                    tower.shoot_interval -= 150
                     tower.curr_bottom_upgrade = 2
                     UpgradeFlag = True
                     MogFlag = True
@@ -858,6 +860,158 @@ def handle_upgrade(scrn, tower):
                     elif tower.curr_top_upgrade == 1:
                         tower.image = load_image("assets/minigun_deathray+faster_spool.png")
                         tower.original_image = load_image("assets/minigun_deathray+faster_spool.png")
+    if isinstance(tower, RatSniper):
+        img_collateral_upgrade = load_image("assets/upgrade_collateral.png")
+        img_50cal_upgrade = load_image("assets/upgrade_powerful.png")
+        img_chain_upgrade = load_image("assets/upgrade_collateral_chain.png")
+        img_rechamber_upgrade = load_image("assets/upgrade_rechambering.png")
+        img_semiauto_upgrade = load_image("assets/upgrade_semiauto.png")
+        img_fmj_upgrade = load_image("assets/upgrade_fmj.png")
+        upgrade_font = get_font("arial", 16)
+        text_collateral = upgrade_font.render("Collateral Hits", True, (0, 0, 0))
+        text_50cal = upgrade_font.render("50cal Rounds", True, (0, 0, 0))
+        text_chain = upgrade_font.render("Collateral Chain", True, (0, 0, 0))
+        text_rechamber = upgrade_font.render("Fast Rechambering", True, (0, 0, 0))
+        text_fmj = upgrade_font.render("FMJ Rounds", True, (0, 0, 0))
+        text_semiauto = upgrade_font.render("Semi-Automatic", True, (0, 0, 0))
+        if tower.curr_top_upgrade == 0:
+            scrn.blit(img_collateral_upgrade, (883, 65))
+            scrn.blit(text_collateral, (962, 42))
+        elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
+            scrn.blit(img_50cal_upgrade, (883, 65))
+            scrn.blit(text_50cal, (962, 42))
+        elif tower.curr_top_upgrade == 2 and tower.curr_bottom_upgrade < 2:
+            scrn.blit(img_chain_upgrade, (883, 65))
+            scrn.blit(text_chain, (962, 42))
+        if tower.curr_bottom_upgrade == 0:
+            scrn.blit(img_rechamber_upgrade, (883, 194))
+            scrn.blit(text_rechamber, (954, 172))
+        elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
+            scrn.blit(img_semiauto_upgrade, (883, 194))
+            scrn.blit(text_semiauto, (962, 172))
+        elif tower.curr_bottom_upgrade == 2 and tower.curr_top_upgrade < 2:
+            scrn.blit(img_fmj_upgrade, (883, 194))
+            scrn.blit(text_fmj, (962, 172))
+        # TOP UPGRADE PATH
+        if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+            scrn.blit(img_upgrade_highlighted, (883, 65))
+            if detect_single_click():
+                # collateral
+                if tower.curr_top_upgrade == 0 and money >= 600:
+                    purchase.play()
+                    money -= 600
+                    tower.sell_amt += 300
+                    tower.curr_top_upgrade = 1
+                    UpgradeFlag = True
+                    if tower.curr_bottom_upgrade == 0:
+                        tower.image = load_image("assets/sniper+collateral.png")
+                        tower.base_image = load_image("assets/sniper+collateral.png")
+                        tower.shoot_image = load_image("assets/sniper+collateral_shoot.png")
+                    elif tower.curr_bottom_upgrade == 1:
+                        tower.image = load_image("assets/sniper+collateral+rechamber.png")
+                        tower.base_image = load_image("assets/sniper+collateral+rechamber.png")
+                        tower.shoot_image = load_image("assets/sniper+collateral+rechamber_shoot.png")
+                    elif tower.curr_bottom_upgrade == 2:
+                        tower.image = load_image("assets/sniper+collateral+semiauto.png")
+                        tower.base_image = load_image("assets/sniper+collateral+semiauto.png")
+                        tower.shoot_image = load_image("assets/sniper+collateral+semiauto_shoot.png")
+                    elif tower.curr_bottom_upgrade == 3:
+                        tower.image = load_image("assets/sniper+collateral+fmj.png")
+                        tower.base_image = load_image("assets/sniper+collateral+fmj.png")
+                        tower.shoot_image = load_image("assets/sniper+collateral+fmj_shoot.png")
+                # 50cal
+                elif tower.curr_top_upgrade == 1 and money >= 1200:
+                    purchase.play()
+                    money -= 1200
+                    tower.sell_amt += 600
+                    tower.curr_top_upgrade = 2
+                    UpgradeFlag = True
+                    if tower.curr_bottom_upgrade == 0:
+                        tower.image = load_image("assets/sniper+50cal.png")
+                        tower.base_image = load_image("assets/sniper+50cal.png")
+                        tower.shoot_image = load_image("assets/sniper+50cal_shoot.png")
+                    elif tower.curr_bottom_upgrade == 1:
+                        tower.image = load_image("assets/sniper+50cal+rechamber.png")
+                        tower.base_image = load_image("assets/sniper+50cal+rechamber.png")
+                        tower.shoot_image = load_image("assets/sniper+50cal+rechamber_shoot.png")
+                # chain collateral
+                elif tower.curr_top_upgrade == 2 and money >= 1500:
+                    purchase.play()
+                    money -= 1500
+                    tower.sell_amt += 750
+                    tower.curr_top_upgrade = 3
+                    UpgradeFlag = True
+                    if tower.curr_bottom_upgrade == 0:
+                        tower.image = load_image("assets/sniper+hollowpoint.png")
+                        tower.base_image = load_image("assets/sniper+hollowpoint.png")
+                        tower.shoot_image = load_image("assets/sniper+hollowpoint_shoot.png")
+                    elif tower.curr_bottom_upgrade == 1:
+                        tower.image = load_image("assets/sniper+hollowpoint+rechamber.png")
+                        tower.base_image = load_image("assets/sniper+hollowpoint+rechamber.png")
+                        tower.shoot_image = load_image("assets/sniper+hollowpoint+rechamber_shoot.png")
+        if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
+            if detect_single_click():
+                money += tower.sell_amt
+                towers.remove(tower)
+                UpgradeFlag = False
+                return
+        # BOTTOM UPGRADE PATH
+        if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+            scrn.blit(img_upgrade_highlighted, (883, 194))
+            if detect_single_click():
+                # rechamber
+                if tower.curr_bottom_upgrade == 0 and money >= 1500:
+                    purchase.play()
+                    money -= 1500
+                    tower.sell_amt += 750
+                    tower.curr_bottom_upgrade = 1
+                    UpgradeFlag = True
+                    if tower.curr_top_upgrade == 0:
+                        tower.image = load_image("assets/sniper+rechamber.png")
+                        tower.base_image = load_image("assets/sniper+rechamber.png")
+                        tower.shoot_image = load_image("assets/sniper+rechamber_shoot.png")
+                    elif tower.curr_top_upgrade == 1:
+                        tower.image = load_image("assets/sniper+collateral+rechamber.png")
+                        tower.base_image = load_image("assets/sniper+collateral+rechamber.png")
+                        tower.shoot_image = load_image("assets/sniper+collateral+rechamber_shoot.png")
+                    elif tower.curr_top_upgrade == 2:
+                        tower.image = load_image("assets/sniper+50cal+rechamber.png")
+                        tower.base_image = load_image("assets/sniper+50cal+rechamber.png")
+                        tower.shoot_image = load_image("assets/sniper+50cal+rechamber_shoot.png")
+                    elif tower.curr_top_upgrade == 3:
+                        tower.image = load_image("assets/sniper+hollowpoint+rechamber.png")
+                        tower.base_image = load_image("assets/sniper+hollowpoint+rechamber.png")
+                        tower.shoot_image = load_image("assets/sniper+hollowpoint+rechamber_shoot.png")
+                # semiauto
+                elif tower.curr_bottom_upgrade == 1 and money >= 2000:
+                    purchase.play()
+                    money -= 2000
+                    tower.sell_amt += 1000
+                    tower.curr_bottom_upgrade = 2
+                    UpgradeFlag = True
+                    if tower.curr_top_upgrade == 0:
+                        tower.image = load_image("assets/sniper+semiauto.png")
+                        tower.base_image = load_image("assets/sniper+semiauto.png")
+                        tower.shoot_image = load_image("assets/sniper+semiauto_shoot.png")
+                    elif tower.curr_top_upgrade == 1:
+                        tower.image = load_image("assets/sniper+collateral+semiauto.png")
+                        tower.base_image = load_image("assets/sniper+collateral+semiauto.png")
+                        tower.shoot_image = load_image("assets/sniper+collateral+semiauto_shoot.png")
+                # semiauto
+                elif tower.curr_bottom_upgrade == 2 and money >= 1500:
+                    purchase.play()
+                    money -= 1500
+                    tower.sell_amt += 750
+                    tower.curr_bottom_upgrade = 3
+                    UpgradeFlag = True
+                    if tower.curr_top_upgrade == 0:
+                        tower.image = load_image("assets/sniper+fmj.png")
+                        tower.base_image = load_image("assets/sniper+fmj.png")
+                        tower.shoot_image = load_image("assets/sniper+fmj_shoot.png")
+                    elif tower.curr_top_upgrade == 1:
+                        tower.image = load_image("assets/sniper+collateral+fmj.png")
+                        tower.base_image = load_image("assets/sniper+collateral+fmj.png")
+                        tower.shoot_image = load_image("assets/sniper+collateral+fmj_shoot.png")
     if isinstance(tower, WizardTower):
         img_apprentice_upgrade = load_image("assets/upgrade_apprentice.png")
         img_master_upgrade = load_image("assets/upgrade_master.png")
@@ -1021,7 +1175,6 @@ def handle_upgrade(scrn, tower):
                         tower.reload_time = 5374
                         tower.shoot_interval = 1895
                         tower.reload_sound = load_sound("assets/shotgun_reload.mp3")
-                        tower.radius -= 25
                     tower.shoot_sound = load_sound("assets/shotgun_shoot.mp3")
                     tower.curr_top_upgrade = 2
                     UpgradeFlag = True
@@ -1058,7 +1211,7 @@ def handle_upgrade(scrn, tower):
                     tower.sell_amt += 450
                     tower.curr_bottom_upgrade = 2
                     tower.radius = 125
-                    tower.shoot_interval = 1000
+                    tower.shoot_interval = 1500
                     tower.reload_time = 7500
                     tower.reload_sound = load_sound("assets/shotgun_reload.mp3")
                     UpgradeFlag = True
@@ -1137,7 +1290,7 @@ def handle_upgrade(scrn, tower):
         if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
             if detect_single_click():
                 money += tower.sell_amt
-                tower.sell()    # call to remove boosts
+                tower.sell()  # call to remove boosts
                 towers.remove(tower)
                 UpgradeFlag = False
                 return
@@ -1205,7 +1358,8 @@ def update_towers(scrn: pygame.surface):
         if not isinstance(tower, RatBank) and not isinstance(tower, CheeseBeacon):
             tower.update(enemies)
         tower.render(scrn)
-        if not isinstance(tower, RatTent) and not isinstance(tower, Ozbourne) and not isinstance(tower, RatBank):
+        if not isinstance(tower, RatTent) and not isinstance(tower, Ozbourne) and not isinstance(tower, RatBank) \
+                and not isinstance(tower, RatSniper):
             tower.shoot()
         if isinstance(tower, CheeseBeacon):
             tower.update(towers, delta)
@@ -1214,6 +1368,29 @@ def update_towers(scrn: pygame.surface):
             tower.render(scrn)
         if isinstance(tower, CheeseBeacon):
             tower.render_effects(scrn)
+
+
+def update_and_render_damage_indicators(screen):
+    current_time = pygame.time.get_ticks()
+    for indicator in global_damage_indicators[:]:
+        elapsed = current_time - indicator['start_time']
+        if elapsed > indicator['lifetime']:
+            global_damage_indicators.remove(indicator)
+        else:
+            # Update position
+            indicator['pos'][0] += indicator['vel'][0]
+            indicator['pos'][1] += indicator['vel'][1]
+
+            # Fade out: calculate alpha from remaining time
+            fade_ratio = 1 - (elapsed / indicator['lifetime'])
+            alpha = max(0, min(255, int(255 * fade_ratio)))
+
+            # Apply alpha to a copy of the surface
+            faded_surface = indicator['surface'].copy()
+            faded_surface.set_alpha(alpha)
+
+            # Draw to screen
+            screen.blit(faded_surface, indicator['pos'])
 
 
 def update_stats(scrn: pygame.surface, health: int, money: int, round_number: int, clock: pygame.time.Clock()):
@@ -1236,6 +1413,9 @@ def update_stats(scrn: pygame.surface, health: int, money: int, round_number: in
     text_fps = fps_font.render(f"FPS: {fps}", True, (255, 0, 0))  # Render FPS in red
     text_x = x_font.render(f"x-axis: {mouse[0]}", True, (0, 255, 0))
     text_y = y_font.render(f"y-axis: {mouse[1]}", True, (0, 255, 0))
+
+    # update all damage indicators!
+    update_and_render_damage_indicators(scrn)
 
     # Display the FPS counter just above the x/y position text
     scrn.blit(text_fps, (1000, 650))
@@ -1301,6 +1481,28 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
             money -= 250
+            return True
+    elif tower == "sniper":
+        img_base_sniper = load_image("assets/sniper_base.png")
+        circle_surface = pygame.Surface((50, 50), pygame.SRCALPHA)
+        for event in pygame.event.get():
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_ESCAPE:
+                    return True
+        if check_hitbox(house_hitbox, relative_pos, towers):
+            pygame.draw.circle(circle_surface, (0, 0, 0, 128), (25, 25), 25)
+            scrn.blit(img_base_sniper, (mouse[0] - 25, mouse[1] - 25))
+            scrn.blit(circle_surface, (mouse[0] - 25, mouse[1] - 25))
+        elif not check_hitbox(house_hitbox, relative_pos, towers):
+            pygame.draw.circle(circle_surface, (255, 0, 0, 128), (25, 25), 25)
+            scrn.blit(img_base_sniper, (mouse[0] - 25, mouse[1] - 25))
+            scrn.blit(circle_surface, (mouse[0] - 25, mouse[1] - 25))
+        if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower) and tower == "sniper":
+            tower_sniper = RatSniper((mouse[0], mouse[1]))
+            towers.append(tower_sniper)
+            tower_click.play()
+            play_splash_animation(scrn, (mouse[0], mouse[1]))
+            money -= 350
             return True
     elif tower == "wizard":
         img_base_wizard = load_image("assets/wizard_base.png")
@@ -1534,7 +1736,7 @@ class RecruitEntity:
 
 class RatTent:
     def __init__(self, position, radius, recruit_health, recruit_speed, recruit_damage, image_path, recruit_image,
-                 spawn_interval=2000):
+                 spawn_interval=3000):
         self.position = position
         self.radius = radius
         self.recruit_health = recruit_health
@@ -1585,7 +1787,7 @@ class RatTent:
 class MrCheese:
     sfx_squeak = load_sound("assets/mouse-squeak.mp3")
 
-    def __init__(self, position, radius, weapon, damage, image_path, projectile_image, shoot_interval=1000):
+    def __init__(self, position, radius, weapon, damage, image_path, projectile_image, shoot_interval=1500):
         self.position = position
         self.radius = radius
         self.weapon = weapon
@@ -1603,6 +1805,7 @@ class MrCheese:
         self.curr_bottom_upgrade = 0
         self.penetration = False
         self.sell_amt = 75
+        self.impact_shards = []  # Changed from particles to shards
 
     def update(self, enemies):
         global last_time_sfx
@@ -1638,6 +1841,7 @@ class MrCheese:
             projectile.move()
             if projectile.hit:
                 if self.target is not None and self.target.is_alive:
+                    self._create_impact_shards(projectile.position)
                     self.target.take_damage(self.damage)
                 if not self.penetration:
                     self.projectiles.remove(projectile)
@@ -1645,11 +1849,57 @@ class MrCheese:
                     projectile.penetration -= 1
                     if projectile.penetration == 0:
                         self.projectiles.remove(projectile)
+        self._update_impact_shards()
+
+    def _create_impact_shards(self, position):
+        """Create cheese-themed impact shards"""
+        for _ in range(8):
+            self.impact_shards.append({
+                'pos': list(position),
+                'vel': [random.uniform(-5, 5), random.uniform(-5, 5)],
+                'lifetime': random.randint(50, 300),  # Shorter lifetime than firefly
+                'start_time': pygame.time.get_ticks(),
+                'radius': random.randint(1, 3),  # Smaller than firefly shards
+                'color': (255, 245, 200)  # Pale cheese color
+            })
+
+    def _update_impact_shards(self):
+        """Update shard positions and lifetimes"""
+        current_time = pygame.time.get_ticks()
+        for shard in self.impact_shards[:]:
+            elapsed = current_time - shard['start_time']
+            if elapsed > shard['lifetime']:
+                self.impact_shards.remove(shard)
+            else:
+                # Add gravity effect
+                shard['vel'][1] += 0.3
+                shard['pos'][0] += shard['vel'][0]
+                shard['pos'][1] += shard['vel'][1]
 
     def render(self, screen):
         screen.blit(self.image, self.rect.topleft)
         for projectile in self.projectiles:
             projectile.render(screen)
+
+        # Draw impact shards
+        current_time = pygame.time.get_ticks()
+        for shard in self.impact_shards:
+            elapsed = current_time - shard['start_time']
+            alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
+
+            # Create shard surface with rotation
+            angle = elapsed * 0.3  # Rotate over time
+            shard_surface = pygame.Surface((shard['radius'] * 2, shard['radius'] * 2), pygame.SRCALPHA)
+
+            # Draw angled rectangle as shard
+            rotated_surface = pygame.transform.rotate(shard_surface, angle)
+            pygame.draw.rect(
+                rotated_surface,
+                (*shard['color'], alpha),
+                (0, 0, shard['radius'], shard['radius'] * 2)
+            )
+
+            screen.blit(rotated_surface, shard['pos'])
 
     def shoot(self):
         scaled_interval = self.shoot_interval / game_speed_multiplier
@@ -1979,11 +2229,11 @@ class CheddarCommando:
         self.has_fired = False  # Tracks whether the unit has fired at least once
         # Explosion properties (for debugging, explosion radius set to 100)
         self.explosion_active = False
-        self.explosion_damage = 0.5
+        self.explosion_damage = 0.25
         self.explosion_pos = (0, 0)
         self.explosion_animation_timer = 0
-        self.explosion_duration = 100  # Explosion lasts 50ms
-        self.max_explosion_radius = 35  # Explosion damage radius (debug value; adjust as needed)
+        self.explosion_duration = 50  # Explosion lasts 50ms
+        self.max_explosion_radius = 25  # Explosion damage radius (debug value; adjust as needed)
         self.explosion_radius = 0  # Animated explosion radius
         self.last_explosion_update = 0  # For delta time tracking
         self.reloadFlag = False
@@ -2091,6 +2341,7 @@ class CheddarCommando:
                               enemy_center[1] - self.explosion_pos[1])
 
             if dist <= self.max_explosion_radius + enemy.rect.width / 2:
+                self.explosion_damage = 0.25
                 if isinstance(enemy, BeetleEnemy):
                     # Pass dummy projectile to force armor break
                     enemy.take_damage(self.explosion_damage, ExplosiveProjectile())
@@ -2137,6 +2388,8 @@ class CheddarCommando:
                     if self.curr_bottom_upgrade >= 1:
                         proj.explosive = True
                         proj.armor_break = True
+                        proj.penetration = 2
+                        proj.damage = self.damage / 2
                     if self.curr_top_upgrade >= 1:
                         proj.piercing = True
                     self.projectiles.append(proj)
@@ -2176,6 +2429,200 @@ class CheddarCommando:
                 self.is_reloading = True
                 self.reload_start_time = pygame.time.get_ticks()
                 self.reload_sound.play()
+
+
+class RatSniper:
+    def __init__(self, position, shoot_interval=4000, damage=6):
+        self.position = position
+        self.damage = damage
+        self.shoot_interval = shoot_interval  # default milliseconds between shots
+        self.last_shot_time = 0
+        self.projectiles = []
+        self.target = None
+        self.radius = 0
+
+        # Load both the base turret image and the firing image.
+        self.base_image = load_image("assets/sniper_base.png")
+        self.shoot_image = load_image("assets/sniper_base_shoot.png")
+        # Start with the base image.
+        self.image = self.base_image
+        self.original_image = self.base_image
+        self.rect = self.image.get_rect(center=position)
+        self.angle = 0  # current rotation angle
+
+        # Firing state variables.
+        self.firing = False
+        self.firing_timer = 0  # time when the turret started firing
+
+        # Upgrade attributes; set these externally as needed.
+        self.curr_bottom_upgrade = 0  # valid values: 0, 1, 2, or 3.
+        self.curr_top_upgrade = 0  # valid values: 0, 1, 2, or 3.
+
+        # RatSniper has infinite range.
+        self.shoot_sound = load_sound("assets/sniper_shoot.mp3")
+        self.sell_amt = 175
+
+    def select_target(self, enemies):
+        """
+        Select a target from the list of enemies.
+        Prioritize CentipedeEnemy regardless of health.
+        If none are found, select an enemy that has a health attribute and is still alive (health > 0).
+        """
+        centipedes = [enemy for enemy in enemies if isinstance(enemy, CentipedeEnemy)]
+        if centipedes:
+            return centipedes[0]
+
+        alive_enemies = [enemy for enemy in enemies if hasattr(enemy, 'health') and enemy.health > 0]
+        if not alive_enemies:
+            return None
+        return max(alive_enemies, key=lambda e: e.health)
+
+    def update(self, enemies):
+        current_time = pygame.time.get_ticks()
+        # Determine effective shooting interval based on curr_bottom_upgrade.
+        if self.curr_bottom_upgrade == 1:
+            effective_interval = 2000
+        elif self.curr_bottom_upgrade > 1:
+            effective_interval = 1000
+        else:
+            effective_interval = self.shoot_interval
+
+        # Scale the effective interval by game_speed_multiplier.
+        scaled_interval = effective_interval / game_speed_multiplier
+
+        self.target = self.select_target(enemies)
+
+        if self.target:
+            # Rotate toward the target.
+            dx = self.target.position[0] - self.position[0]
+            dy = self.target.position[1] - self.position[1]
+            self.angle = math.degrees(math.atan2(-dy, dx))
+
+            # Use the firing image for 50ms after firing; otherwise use base image.
+            if self.firing and current_time - self.firing_timer < 50:
+                self.original_image = self.shoot_image
+            else:
+                self.firing = False
+                self.original_image = self.base_image
+
+            self.image = pygame.transform.rotate(self.original_image, self.angle)
+            self.rect = self.image.get_rect(center=self.position)
+
+            # Fire only if enough time has passed.
+            if current_time - self.last_shot_time >= scaled_interval:
+                self.shoot(current_time)
+
+        # Process projectile movement and collision.
+        for projectile in self.projectiles[:]:
+            projectile.move()
+
+            if not (0 <= projectile.position[0] <= 1280 and 0 <= projectile.position[1] <= 720):
+                self.projectiles.remove(projectile)
+                continue
+
+            # Check collision with enemies.
+            for enemy in enemies:
+                if hasattr(enemy, 'health') and enemy.health <= 0:
+                    continue
+
+                dist = math.hypot(projectile.position[0] - enemy.rect.centerx,
+                                  projectile.position[1] - enemy.rect.centery)
+
+                if dist < enemy.rect.width / 2:
+                    # Determine primary damage.
+                    if self.curr_top_upgrade == 2:
+                        primary_damage = 10
+                    else:
+                        primary_damage = projectile.damage
+                    enemy.take_damage(primary_damage, projectile=projectile)
+                    self.create_impact_effect(projectile.position)
+
+                    # Apply top-upgrade secondary effects.
+                    if self.curr_top_upgrade == 1:
+                        self.apply_secondary_damage(enemy, projectile.damage * 0.7, num_targets=1, enemies=enemies)
+                    elif self.curr_top_upgrade == 3:
+                        self.apply_secondary_damage(enemy, projectile.damage * 0.5, num_targets=4, enemies=enemies)
+
+                    projectile.hit = True
+                    break
+
+            if projectile.hit and projectile in self.projectiles:
+                self.projectiles.remove(projectile)
+
+    def shoot(self, current_time):
+        """
+        Fire a projectile if the target is valid.
+        Switches to the firing image for 50ms.
+        """
+        if hasattr(self.target, 'health') and self.target.health <= 0:
+            return
+
+        self.firing = True
+        self.firing_timer = current_time
+        self.shoot_sound.play()
+
+        # Create a projectile with a speed of 150.
+        proj = CommandoProjectile(self.position, self.angle, speed=50, damage=self.damage)
+        proj.radius = 5
+        # If curr_bottom_upgrade equals 3, add the armor_break attribute.
+        if self.curr_bottom_upgrade == 3:
+            proj.armor_break = True
+
+        self.projectiles.append(proj)
+        self.last_shot_time = current_time
+
+    def apply_secondary_damage(self, main_enemy, secondary_damage, num_targets, enemies):
+        """
+        Applies secondary damage to enemies behind the main_enemy.
+        Considers enemies aligned with the projectile's travel direction (from the main enemy's center)
+        within a tolerance. Applies damage to up to num_targets enemies.
+        """
+        angle_rad = math.radians(self.angle)
+        vx, vy = math.cos(angle_rad), -math.sin(angle_rad)
+        main_center = main_enemy.rect.center
+        candidates = []
+        for enemy in enemies:
+            if enemy == main_enemy:
+                continue
+            if not hasattr(enemy, 'rect'):
+                continue
+            enemy_center = enemy.rect.center
+            dx = enemy_center[0] - main_center[0]
+            dy = enemy_center[1] - main_center[1]
+            proj = dx * vx + dy * vy
+            distance_sq = dx ** 2 + dy ** 2
+            perp_sq = distance_sq - proj ** 2
+            perp = math.sqrt(perp_sq) if perp_sq > 0 else 0
+            if proj > 0 and perp < 30:
+                candidates.append((proj, enemy))
+        candidates.sort(key=lambda x: x[0])
+        for i in range(min(num_targets, len(candidates))):
+            enemy = candidates[i][1]
+            enemy.take_damage(secondary_damage)
+
+    def create_impact_effect(self, position):
+        """
+        Create a shards-like impact effect at the given position.
+        Spawns several small particles radiating outwards that fade over time.
+        """
+        num_particles = 10
+        for _ in range(num_particles):
+            angle = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(1, 3)
+            particle = {
+                'pos': [position[0], position[1]],
+                'vel': [math.cos(angle) * speed, math.sin(angle) * speed],
+                'lifetime': random.randint(200, 400),
+                'start_time': pygame.time.get_ticks(),
+                'radius': random.randint(1, 3),
+                'color': (200, 200, 200)  # Light gray.
+            }
+            global_impact_particles.append(particle)
+
+    def render(self, screen):
+        screen.blit(self.image, self.rect.topleft)
+        for projectile in self.projectiles:
+            projectile.render(screen)
 
 
 class WizardTower:
@@ -2651,10 +3098,10 @@ class MinigunTower:
         self.reload_start_time = 0
         self.last_shot_time = 0  # in seconds
         self.last_update_time = pygame.time.get_ticks() / 1000.0
-        self.max_spool = 15       # Maximum spool level (shots per second when fully spooled)
-        self.current_spool = 0      # Current spool level (starts at 0)
-        self.spool_rate = 2.0       # How quickly the minigun spools up (per second)
-        self.cooldown_rate = 1.5   # How quickly the minigun spools down (per second)
+        self.max_spool = 15  # Maximum spool level (shots per second when fully spooled)
+        self.current_spool = 0  # Current spool level (starts at 0)
+        self.spool_rate = 2.0  # How quickly the minigun spools up (per second)
+        self.cooldown_rate = 1.5  # How quickly the minigun spools down (per second)
         self.sell_amt = 300
         self.projectiles = []
         self.particles = []
@@ -2740,10 +3187,8 @@ class MinigunTower:
             self.beam_active = True
             effective_beam_interval = 250 / game_speed_multiplier / 1000.0  # converting ms to seconds if needed
             if current_time - self.last_beam_damage_time >= effective_beam_interval:
-                self.target.take_damage(1)
+                self.target.take_damage(self.damage)
                 self.last_beam_damage_time = current_time
-            if current_time - self.last_beam_damage_time >= 3.749:
-                self.beam_sfx.play()
         else:
             self.beam_active = False
 
@@ -2797,8 +3242,9 @@ class MinigunTower:
 
         if self.beam_active:
             if self.target:
-                self.beam_sfx.play()
-                self.last_beam_time = current_time  # Update last active time
+                if current_time - self.last_beam_time >= 0.5:  # Ensure at least 200ms has passed
+                    self.beam_sfx.play()
+                    self.last_beam_time = current_time  # Update last active time
 
         if self.curr_bottom_upgrade == 2:
             if self.target is not None:
@@ -3116,8 +3562,14 @@ class CheeseBeacon:
     def _calculate_boosts(self, tower):
         boosts = {}
         # Damage boost
-        dmg_mult = 2 + self.curr_top_upgrade
-        boosts['damage'] = dmg_mult
+        if self.curr_top_upgrade == 0:
+            dmg_mult = 1.5
+            dmg_boost = 2
+            boosts['damage'] = dmg_boost
+        else:
+            dmg_mult = 1.5 + .5 * self.curr_top_upgrade
+            dmg_boost = 2 + self.curr_top_upgrade
+        boosts['damage'] = dmg_boost
 
         # Radius boost
         if self.curr_bottom_upgrade >= 1:
@@ -3229,7 +3681,7 @@ class CheeseBeacon:
                 total_speed /= 1000
                 if not hasattr(tower, '_base_reload_time'):
                     tower._base_reload_time = tower.reload_time
-                tower.reload_time = int(tower._base_reload_time / total_speed)  # maybe broken?
+                tower.reload_time = tower.reload_time / 2
 
             if hasattr(tower, 'spool_rate'):
                 base_speed = getattr(tower, '_base_spool_rate', None)
@@ -3537,9 +3989,36 @@ class AntEnemy:
         self.image = pygame.transform.rotate(self.original_image, angle - 90)
         self.rect = self.image.get_rect(center=self.rect.center)
 
+    def show_damage_indicator(self, damage):
+        # Create a damage text surface using a shared font.
+        font = pygame.font.SysFont("impact", 20, bold=False)
+        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface.set_alpha(128)
+
+        angle_deg = random.uniform(-45, 45)
+        angle_rad = math.radians(angle_deg)
+
+        # Speed magnitude
+        speed = random.uniform(.5, 2)
+
+        # Convert polar to cartesian velocity
+        vel_x = math.sin(angle_rad) * speed
+        vel_y = -math.cos(angle_rad) * speed  # negative because up is -y in Pygame
+
+        # Set up the indicator's properties.
+        indicator = {
+            'surface': text_surface,
+            'pos': list(self.rect.center) + [0, -20],  # starting at the enemy's center
+            'vel': [vel_x, vel_y],
+            'lifetime': random.randint(100, 250),  # milliseconds
+            'start_time': pygame.time.get_ticks()
+        }
+        global_damage_indicators.append(indicator)
+
     def take_damage(self, damage, projectile=None):
         global money
         self.health -= damage
+        self.show_damage_indicator(damage)
         self.spawn_shards()
         if self.health <= 0:
             self.is_alive = False
@@ -3551,7 +4030,7 @@ class AntEnemy:
             screen.blit(self.image, self.rect.topleft)
         else:
             screen.blit(self.img_death, self.rect.topleft)
-            self.update_shards(screen)  # NEW: Render particles
+        self.update_shards(screen)  # NEW: Render particles
 
 
 class BeetleEnemy:
@@ -3658,7 +4137,7 @@ class BeetleEnemy:
                 alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
                 color = (255, 255, 255, alpha)
                 # Create a surface for the shard
-                shard_surface = pygame.Surface((shard['radius']*2, shard['radius']*2), pygame.SRCALPHA)
+                shard_surface = pygame.Surface((shard['radius'] * 2, shard['radius'] * 2), pygame.SRCALPHA)
                 pygame.draw.circle(shard_surface, color, (shard['radius'], shard['radius']), shard['radius'])
                 screen.blit(shard_surface, (shard['pos'][0], shard['pos'][1]))
 
@@ -3669,6 +4148,32 @@ class BeetleEnemy:
         screen.blit(self.image, self.rect.topleft)
         # Render shard particles
         self.update_shards(screen)
+
+    def show_damage_indicator(self, damage):
+        # Create a damage text surface using a shared font.
+        font = pygame.font.SysFont("impact", 20, bold=False)
+        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface.set_alpha(128)
+
+        angle_deg = random.uniform(-45, 45)
+        angle_rad = math.radians(angle_deg)
+
+        # Speed magnitude
+        speed = random.uniform(.5, 2)
+
+        # Convert polar to cartesian velocity
+        vel_x = math.sin(angle_rad) * speed
+        vel_y = -math.cos(angle_rad) * speed  # negative because up is -y in Pygame
+
+        # Set up the indicator's properties.
+        indicator = {
+            'surface': text_surface,
+            'pos': list(self.rect.center) + [0, -20],  # starting at the enemy's center
+            'vel': [vel_x, vel_y],
+            'lifetime': random.randint(100, 250),  # milliseconds
+            'start_time': pygame.time.get_ticks()
+        }
+        global_damage_indicators.append(indicator)
 
     def take_damage(self, damage, projectile=None):
         """
@@ -3694,6 +4199,7 @@ class BeetleEnemy:
 
             # Apply full damage to base health
             self.health -= damage
+            self.show_damage_indicator(damage)
             if self.health <= 0:
                 self.is_alive = False
             return  # Exit immediately to prevent normal armor processing
@@ -3705,6 +4211,7 @@ class BeetleEnemy:
         # Normal damage processing (when not armor_break)
         if self.current_armor_layer > 0:
             self.current_layer_health -= damage
+            self.show_damage_indicator(damage)
             if self.current_layer_health <= 0:
                 overflow = -self.current_layer_health
                 self.current_armor_layer -= 1
@@ -3732,9 +4239,11 @@ class BeetleEnemy:
                 # If there is overflow damage after breaking armor, apply it to health
                 if self.current_armor_layer == 0 and overflow > 0:
                     self.health -= overflow
+                    self.show_damage_indicator(damage)
         else:
             # No armor remains; apply damage directly to base health.
             self.health -= damage
+            self.show_damage_indicator(damage)
 
         if self.health <= 0:
             self.is_alive = False
@@ -3803,7 +4312,7 @@ class HornetEnemy:
                 shard['pos'][1] += shard['vel'][1]
                 alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
                 color = (255, 255, 255, alpha)
-                shard_surface = pygame.Surface((shard['radius']*2, shard['radius']*2), pygame.SRCALPHA)
+                shard_surface = pygame.Surface((shard['radius'] * 2, shard['radius'] * 2), pygame.SRCALPHA)
                 pygame.draw.circle(shard_surface, color, (shard['radius'], shard['radius']), shard['radius'])
                 screen.blit(shard_surface, (shard['pos'][0], shard['pos'][1]))
 
@@ -3812,9 +4321,36 @@ class HornetEnemy:
         self.image = pygame.transform.rotate(self.original_image, angle - 90)
         self.rect = self.image.get_rect(center=self.rect.center)
 
+    def show_damage_indicator(self, damage):
+        # Create a damage text surface using a shared font.
+        font = pygame.font.SysFont("impact", 20, bold=False)
+        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface.set_alpha(128)
+
+        angle_deg = random.uniform(-45, 45)
+        angle_rad = math.radians(angle_deg)
+
+        # Speed magnitude
+        speed = random.uniform(.5, 2)
+
+        # Convert polar to cartesian velocity
+        vel_x = math.sin(angle_rad) * speed
+        vel_y = -math.cos(angle_rad) * speed  # negative because up is -y in Pygame
+
+        # Set up the indicator's properties.
+        indicator = {
+            'surface': text_surface,
+            'pos': list(self.rect.center) + [0, -20],  # starting at the enemy's center
+            'vel': [vel_x, vel_y],
+            'lifetime': random.randint(100, 250),  # milliseconds
+            'start_time': pygame.time.get_ticks()
+        }
+        global_damage_indicators.append(indicator)
+
     def take_damage(self, damage, projectile=None):
         global money
         self.health -= damage
+        self.show_damage_indicator(damage)
         self.spawn_shards()  # NEW: Create particles on hit
         if self.health <= 0:
             self.is_alive = False
@@ -3899,7 +4435,7 @@ class SpiderEnemy:
                 shard['pos'][1] += shard['vel'][1]
                 alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
                 color = (255, 255, 255, alpha)
-                shard_surface = pygame.Surface((shard['radius']*2, shard['radius']*2), pygame.SRCALPHA)
+                shard_surface = pygame.Surface((shard['radius'] * 2, shard['radius'] * 2), pygame.SRCALPHA)
                 pygame.draw.circle(shard_surface, color, (shard['radius'], shard['radius']), shard['radius'])
                 screen.blit(shard_surface, (shard['pos'][0], shard['pos'][1]))
 
@@ -3908,9 +4444,36 @@ class SpiderEnemy:
         self.image = pygame.transform.rotate(self.original_image, angle - 90)
         self.rect = self.image.get_rect(center=self.rect.center)
 
+    def show_damage_indicator(self, damage):
+        # Create a damage text surface using a shared font.
+        font = pygame.font.SysFont("impact", 20, bold=False)
+        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface.set_alpha(128)
+
+        angle_deg = random.uniform(-45, 45)
+        angle_rad = math.radians(angle_deg)
+
+        # Speed magnitude
+        speed = random.uniform(.5, 2)
+
+        # Convert polar to cartesian velocity
+        vel_x = math.sin(angle_rad) * speed
+        vel_y = -math.cos(angle_rad) * speed  # negative because up is -y in Pygame
+
+        # Set up the indicator's properties.
+        indicator = {
+            'surface': text_surface,
+            'pos': list(self.rect.center) + [0, -20],  # starting at the enemy's center
+            'vel': [vel_x, vel_y],
+            'lifetime': random.randint(100, 250),  # milliseconds
+            'start_time': pygame.time.get_ticks()
+        }
+        global_damage_indicators.append(indicator)
+
     def take_damage(self, damage, projectile=None):
         global money
         self.health -= damage
+        self.show_damage_indicator(damage)
         self.spawn_shards()  # NEW: Create particles on hit
         if self.health <= 0:
             self.is_alive = False
@@ -3932,6 +4495,301 @@ class SpiderEnemy:
             screen.blit(self.img_death, self.rect.topleft)
         self.update_shards(screen)  # NEW: Render particles
 
+
+class FireflyEnemy:
+    sfx_splat = load_sound("assets/splat_sfx.mp3")
+    img_death = load_image("assets/splatter.png")
+    MAX_RADIUS = 50
+    MIN_RADIUS = 0
+    BASE_COLOR = (247, 217, 59)
+
+    def __init__(self, position, path):
+        self.position = position
+        self.health = 20
+        self.speed = 1
+        self.path = house_path
+        self.frames = ["assets/firefly_frames/firefly0.png", "assets/firefly_frames/firefly1.png",
+                       "assets/firefly_frames/firefly2.png", "assets/firefly_frames/firefly3.png",
+                       "assets/firefly_frames/firefly4.png", "assets/firefly_frames/firefly5.png",
+                       "assets/firefly_frames/firefly6.png"]
+        self.current_frame = 0
+        self.frame_duration = 75  # milliseconds per frame
+        self.last_frame_update = pygame.time.get_ticks()
+        self.original_image = load_image("assets/firefly_frames/firefly0.png")
+        self.image = self.original_image
+        self.rect = self.image.get_rect(center=position)
+        self.size = self.rect.size
+        self.current_target = 0
+        self.is_alive = True
+        self.shards = []  # NEW: Particle storage
+        self.initial_health = 20  # Store for healing cap
+        self.health = self.initial_health
+        self.affected_enemies = []
+        self.protected_enemies = {}  # Track enemy: last_health
+        self.last_heal_time = pygame.time.get_ticks()
+        self.glow_layers = [
+            {'base_radius': 45, 'current_radius': 0, 'alpha': 0, 'speed': 2.5},
+            {'base_radius': 55, 'current_radius': 0, 'alpha': 0, 'speed': 2.0},
+            {'base_radius': 65, 'current_radius': 0, 'alpha': 0, 'speed': 1.5}
+        ]
+        self.max_glow_radius = max(l['base_radius'] for l in self.glow_layers) + 10
+        self.base_health = 10  # Used for radius calculation
+        self.health = self.base_health
+
+        # Glow properties
+        self.glow_phase = 0
+        self.glow_surface = pygame.Surface((self.MAX_RADIUS * 2, self.MAX_RADIUS * 2), pygame.SRCALPHA)
+        self.glow_rect = self.glow_surface.get_rect()
+
+    def get_current_radius(self):
+        """Calculate radius based on current health"""
+        health_ratio = max(0, self.health) / self.base_health
+        return self.MIN_RADIUS + (self.MAX_RADIUS - self.MIN_RADIUS) * health_ratio
+
+    def update_heal_effect(self, enemies):
+        current_radius = self.get_current_radius()
+        current_time = pygame.time.get_ticks()
+
+        # Update protected enemies list
+        new_protected = [
+            enemy for enemy in enemies
+            if enemy.is_alive
+               and not isinstance(enemy, FireflyEnemy)
+               and math.dist(self.position, enemy.position) <= current_radius
+        ]
+
+        # Check for damage reflection
+        for enemy in new_protected:
+            # Initialize tracking for new enemies
+            if enemy not in self.protected_enemies:
+                self.protected_enemies[enemy] = enemy.health
+
+            # Calculate damage taken since last frame
+            damage_taken = self.protected_enemies[enemy] - enemy.health
+            if damage_taken > 0:
+                # Apply reflected damage to self
+                self.health -= damage_taken * 0.5
+                self.create_reflection_effect()
+
+            # Update stored health
+            self.protected_enemies[enemy] = enemy.health
+
+        # Clean up dead/out-of-range enemies
+        for enemy in list(self.protected_enemies.keys()):
+            if enemy not in new_protected or not enemy.is_alive:
+                del self.protected_enemies[enemy]
+
+        # Update affected enemies list
+        self.affected_enemies = [
+            enemy for enemy in enemies
+            if enemy.is_alive
+               and not isinstance(enemy, FireflyEnemy)
+               and math.dist(self.position, enemy.position) <= current_radius
+        ]
+
+        # Healing and protection logic
+        if current_time - self.last_heal_time >= 1000:
+            self.last_heal_time = current_time
+            for enemy in self.affected_enemies:
+                enemy.health = max(enemy.health, 0.5)
+                # enemy.health += 1
+        else:
+            for enemy in self.affected_enemies:
+                enemy.health = max(enemy.health, 0.5)
+
+    def create_reflection_effect(self):
+        # Visual feedback for damage reflection
+        for _ in range(5):
+            particle = {
+                'pos': list(self.position),
+                'vel': [random.uniform(-2, 2), random.uniform(-2, 2)],
+                'lifetime': random.randint(200, 400),
+                'start_time': pygame.time.get_ticks(),
+                'color': (255, 0, 0),  # Red particles for damage reflection
+                'radius': random.randint(1, 2)
+            }
+            self.shards.append(particle)
+
+    def update_glow_animation(self):
+        """Update glow animation based on health and phase"""
+        self.glow_phase += 0.05
+        if self.glow_phase > 2 * math.pi:
+            self.glow_phase -= 2 * math.pi
+
+    def render_glow(self, screen):
+        current_radius = self.get_current_radius()
+        self.glow_surface.fill((0, 0, 0, 0))
+
+        # Core glow
+        core_alpha = int(80 + math.sin(self.glow_phase) * 40)
+        pygame.draw.circle(
+            self.glow_surface,
+            (*self.BASE_COLOR, core_alpha),
+            (current_radius, current_radius),
+            int(current_radius * 0.8 + math.sin(self.glow_phase) * 3)
+        )
+
+        # Pulse effect
+        pulse_radius = current_radius * 1.2
+        pulse_alpha = int(40 + math.sin(self.glow_phase + 1) * 20)
+        pygame.draw.circle(
+            self.glow_surface,
+            (*self.BASE_COLOR, pulse_alpha),
+            (current_radius, current_radius),
+            int(pulse_radius + math.sin(self.glow_phase + 0.5) * 5),
+            width=3
+        )
+
+        # Outer aura
+        aura_radius = current_radius * 1.5
+        aura_alpha = int(20 + math.sin(self.glow_phase + 2) * 10)
+        pygame.draw.circle(
+            self.glow_surface,
+            (*self.BASE_COLOR, aura_alpha),
+            (current_radius, current_radius),
+            int(aura_radius),
+            width=2
+        )
+
+        # Position and draw
+        screen.blit(self.glow_surface, (
+            self.position[0] - current_radius,
+            self.position[1] - current_radius
+        ))
+
+    def move(self):
+        global user_health
+        self.update_animation()
+        if self.current_target < len(self.path):
+            target_x, target_y = self.path[self.current_target]
+            dx = target_x - self.position[0]
+            dy = target_y - self.position[1]
+            distance = (dx ** 2 + dy ** 2) ** 0.5
+            if distance == 0:
+                return
+            direction_x = dx / distance
+            direction_y = dy / distance
+            self.position = (
+                self.position[0] + direction_x * self.speed,
+                self.position[1] + direction_y * self.speed
+            )
+            self.rect.center = self.position
+            self.update_orientation(direction_x, direction_y)
+            if distance <= self.speed:
+                self.current_target += 1
+        if self.current_target >= len(self.path):
+            self.is_alive = False
+            user_health -= self.health
+        self.update_glow_animation()
+
+    # NEW: Shard particle methods (same as AntEnemy)
+    def spawn_shards(self, count=10):
+        for _ in range(count):
+            shard = {
+                'pos': [self.position[0], self.position[1]],
+                'vel': [random.uniform(-5, 5), random.uniform(-5, 5)],
+                'lifetime': random.randint(100, 600),
+                'start_time': pygame.time.get_ticks(),
+                'radius': random.randint(1, 3)
+            }
+            self.shards.append(shard)
+
+    def update_shards(self, screen):
+        current_time = pygame.time.get_ticks()
+        for shard in self.shards[:]:
+            elapsed = current_time - shard['start_time']
+            if elapsed > shard['lifetime']:
+                self.shards.remove(shard)
+            else:
+                shard['pos'][0] += shard['vel'][0]
+                shard['pos'][1] += shard['vel'][1]
+                alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
+                color = (247, 217, 59, alpha)
+                shard_surface = pygame.Surface((shard['radius'] * 2, shard['radius'] * 2), pygame.SRCALPHA)
+                pygame.draw.circle(shard_surface, color, (shard['radius'], shard['radius']), shard['radius'])
+                screen.blit(shard_surface, (shard['pos'][0], shard['pos'][1]))
+
+    def update_orientation(self, direction_x, direction_y):
+        angle = math.degrees(math.atan2(-direction_y, direction_x))
+        self.image = pygame.transform.rotate(self.original_image, angle - 90)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def show_damage_indicator(self, damage):
+        # Create a damage text surface using a shared font.
+        font = pygame.font.SysFont("impact", 20, bold=False)
+        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface.set_alpha(128)
+
+        angle_deg = random.uniform(-45, 45)
+        angle_rad = math.radians(angle_deg)
+
+        # Speed magnitude
+        speed = random.uniform(.5, 2)
+
+        # Convert polar to cartesian velocity
+        vel_x = math.sin(angle_rad) * speed
+        vel_y = -math.cos(angle_rad) * speed  # negative because up is -y in Pygame
+
+        # Set up the indicator's properties.
+        indicator = {
+            'surface': text_surface,
+            'pos': list(self.rect.center) + [0, -20],  # starting at the enemy's center
+            'vel': [vel_x, vel_y],
+            'lifetime': random.randint(100, 250),  # milliseconds
+            'start_time': pygame.time.get_ticks()
+        }
+        global_damage_indicators.append(indicator)
+
+    def take_damage(self, damage, projectile=None):
+        global money
+        original_health = self.health
+        self.health -= damage
+        self.show_damage_indicator(damage)
+        self.spawn_shards()
+
+        # Prevent negative health
+        self.health = max(self.health, 0)
+
+        # Visual feedback when taking damage
+        if original_health != self.health:
+            self.create_protection_effect()
+
+        if self.health <= 0:
+            self.protected_enemies.clear()
+            self.is_alive = False
+            self.sfx_splat.play()
+            money += 25
+
+    def create_protection_effect(self):
+        # Create shield burst effect
+        for _ in range(15):
+            particle = {
+                'pos': list(self.position),
+                'vel': [random.uniform(-3, 3), random.uniform(-3, 3)],
+                'lifetime': random.randint(300, 600),
+                'start_time': pygame.time.get_ticks(),
+                'color': (247, 217, 59),
+                'radius': random.randint(2, 4)
+            }
+            self.shards.append(particle)
+
+    def update_animation(self):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_frame_update >= self.frame_duration / game_speed_multiplier:
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+            self.image = load_image(self.frames[self.current_frame])
+            self.original_image = load_image(self.frames[self.current_frame])
+            self.last_frame_update = current_time
+
+    def render(self, screen):
+        if self.is_alive:
+            self.render_glow(screen)  # Draw glow first
+            screen.blit(self.image, self.rect.topleft)
+        else:
+            screen.blit(self.img_death, self.rect.topleft)
+        self.update_shards(screen)
+
+
 class DragonflyEnemy:
     sfx_splat = load_sound("assets/splat_sfx.mp3")
     img_death = load_image("assets/splatter.png")
@@ -3939,7 +4797,7 @@ class DragonflyEnemy:
     def __init__(self, position, path):
         self.position = position
         self.health = 8
-        self.speed = 3
+        self.speed = random.randint(3, 4)
         self.path = house_path
         self.frames = ["assets/dragonfly_frames/dragonfly0.png", "assets/dragonfly_frames/dragonfly1.png",
                        "assets/dragonfly_frames/dragonfly2.png", "assets/dragonfly_frames/dragonfly3.png"]
@@ -4001,7 +4859,7 @@ class DragonflyEnemy:
                 shard['pos'][1] += shard['vel'][1]
                 alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
                 color = (255, 255, 255, alpha)
-                shard_surface = pygame.Surface((shard['radius']*2, shard['radius']*2), pygame.SRCALPHA)
+                shard_surface = pygame.Surface((shard['radius'] * 2, shard['radius'] * 2), pygame.SRCALPHA)
                 pygame.draw.circle(shard_surface, color, (shard['radius'], shard['radius']), shard['radius'])
                 screen.blit(shard_surface, (shard['pos'][0], shard['pos'][1]))
 
@@ -4010,9 +4868,36 @@ class DragonflyEnemy:
         self.image = pygame.transform.rotate(self.original_image, angle - 90)
         self.rect = self.image.get_rect(center=self.rect.center)
 
+    def show_damage_indicator(self, damage):
+        # Create a damage text surface using a shared font.
+        font = pygame.font.SysFont("impact", 20, bold=False)
+        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface.set_alpha(128)
+
+        angle_deg = random.uniform(-45, 45)
+        angle_rad = math.radians(angle_deg)
+
+        # Speed magnitude
+        speed = random.uniform(.5, 2)
+
+        # Convert polar to cartesian velocity
+        vel_x = math.sin(angle_rad) * speed
+        vel_y = -math.cos(angle_rad) * speed  # negative because up is -y in Pygame
+
+        # Set up the indicator's properties.
+        indicator = {
+            'surface': text_surface,
+            'pos': list(self.rect.center) + [0, -20],  # starting at the enemy's center
+            'vel': [vel_x, vel_y],
+            'lifetime': random.randint(100, 250),  # milliseconds
+            'start_time': pygame.time.get_ticks()
+        }
+        global_damage_indicators.append(indicator)
+
     def take_damage(self, damage, projectile=None):
         global money
         self.health -= damage
+        self.show_damage_indicator(damage)
         self.spawn_shards()  # NEW: Create particles on hit
         if self.health <= 0:
             self.is_alive = False
@@ -4035,11 +4920,246 @@ class DragonflyEnemy:
         self.update_shards(screen)  # NEW: Render particles
 
 
+class DungBeetleBoss:
+    sfx_splat = load_sound("assets/splat_sfx.mp3")
+    img_death = load_image("assets/splatter.png")
+    sfx_squeak = load_sound("assets/dungbeetle_squeak.mp3")
+    sfx_shield = load_sound("assets/dungbeetle_shield.mp3")
+    sfx_death = load_sound("assets/dungbeetle_death.mp3")
+
+    def __init__(self, position, path):
+        self.position = position
+        self.health = 100
+        self.speed = 0.5
+        self.path = path
+        self.frames = ["assets/dungbeetle_frames/dung0.png", "assets/dungbeetle_frames/dung1.png",
+                       "assets/dungbeetle_frames/dung2.png", "assets/dungbeetle_frames/dung3.png",
+                       "assets/dungbeetle_frames/dung4.png", "assets/dungbeetle_frames/dung5.png",
+                       "assets/dungbeetle_frames/dung6.png", "assets/dungbeetle_frames/dung7.png",
+                       "assets/dungbeetle_frames/dung8.png", "assets/dungbeetle_frames/dung9.png",
+                       "assets/dungbeetle_frames/dung10.png"]
+        self.current_frame = 0
+        self.frame_duration = 100  # milliseconds per frame
+        self.last_frame_update = pygame.time.get_ticks()
+        self.original_image = load_image("assets/dungbeetle_frames/dung0.png")
+        self.image = self.original_image
+        self.rect = self.image.get_rect(center=position)
+        self.size = self.rect.size
+        self.current_target = 0
+        self.is_alive = True
+        self.shards = []  # for hit/blue particle effects
+
+        # Squeak timer: play squeak sound every random interval (3000-10000ms)
+        self.next_squeak_time = pygame.time.get_ticks() + random.randint(2000, 5000)
+
+        # Health threshold for triggering shield effects every 10 points lost.
+        self.next_threshold = self.health - 15
+
+        # For trailing particles when health is below 10
+        self.trail_particles = []
+
+    def move(self):
+        global user_health
+        current_time = pygame.time.get_ticks()
+        self.update_animation()
+
+        # Squeak sound logic.
+        if current_time >= self.next_squeak_time:
+            self.sfx_squeak.play()
+            self.next_squeak_time = current_time + random.randint(3000, 10000)
+
+        # Low health boost: if health below 10, speed increases and trail particles spawn.
+        if self.health < 10:
+            self.speed = 1.5
+            self.spawn_trail_particle()
+
+        # Movement along the path.
+        if self.current_target < len(self.path):
+            target_x, target_y = self.path[self.current_target]
+            dx = target_x - self.position[0]
+            dy = target_y - self.position[1]
+            distance = (dx ** 2 + dy ** 2) ** 0.5
+            if distance != 0:
+                direction_x = dx / distance
+                direction_y = dy / distance
+            else:
+                direction_x = direction_y = 0
+            self.position = (
+                self.position[0] + direction_x * self.speed,
+                self.position[1] + direction_y * self.speed
+            )
+            self.rect.center = self.position
+            self.update_orientation(direction_x, direction_y)
+            if distance <= self.speed:
+                self.current_target += 1
+        if self.current_target >= len(self.path):
+            self.is_alive = False
+            user_health -= self.health
+
+        # Update trail particles.
+        self.update_trail_particles()
+
+    def spawn_trail_particle(self):
+        # Create a subtle blue trail particle when health is low.
+        particle = {
+            'pos': [self.position[0], self.position[1]],
+            'vel': [random.uniform(-0.5, 0.5), random.uniform(-0.5, 0.5)],
+            'lifetime': random.randint(300, 600),
+            'start_time': pygame.time.get_ticks(),
+            'radius': random.randint(2, 4)
+        }
+        self.trail_particles.append(particle)
+
+    def update_trail_particles(self):
+        current_time = pygame.time.get_ticks()
+        for particle in self.trail_particles[:]:
+            elapsed = current_time - particle['start_time']
+            if elapsed > particle['lifetime']:
+                self.trail_particles.remove(particle)
+            else:
+                particle['pos'][0] += particle['vel'][0]
+                particle['pos'][1] += particle['vel'][1]
+                # Update alpha for a smooth fading effect.
+                alpha = max(0, 255 - int((elapsed / particle['lifetime']) * 255))
+                particle['color'] = (0, 0, 255, alpha)
+
+    def spawn_shards(self, count=10):
+        # Standard shards spawned when taking damage.
+        for _ in range(count):
+            shard = {
+                'pos': [self.position[0], self.position[1]],
+                'vel': [random.uniform(-5, 5), random.uniform(-5, 5)],
+                'lifetime': random.randint(100, 600),
+                'start_time': pygame.time.get_ticks(),
+                'radius': random.randint(1, 3)
+            }
+            self.shards.append(shard)
+
+    def spawn_blue_particles(self, count=30):
+        # Spawn a cool, refined radial blue particle effect.
+        # Particles are smaller and fade smoothly.
+        for _ in range(count):
+            angle = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(1, 3)
+            particle = {
+                'pos': [self.position[0], self.position[1]],
+                'vel': [math.cos(angle) * speed, math.sin(angle) * speed],
+                'lifetime': random.randint(400, 800),
+                'start_time': pygame.time.get_ticks(),
+                'radius': random.randint(1, 3),
+                'color': (0, 0, 255)  # Blue particles.
+            }
+            self.shards.append(particle)
+
+    def update_shards(self, screen):
+        current_time = pygame.time.get_ticks()
+        for shard in self.shards[:]:
+            elapsed = current_time - shard['start_time']
+            if elapsed > shard['lifetime']:
+                self.shards.remove(shard)
+            else:
+                shard['pos'][0] += shard['vel'][0]
+                shard['pos'][1] += shard['vel'][1]
+                alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
+                # Use particle's color with fading alpha.
+                color = (*shard['color'][:3], alpha) if 'color' in shard else (255, 255, 255, alpha)
+                shard_surface = pygame.Surface((shard['radius'] * 2, shard['radius'] * 2), pygame.SRCALPHA)
+                pygame.draw.circle(shard_surface, color, (shard['radius'], shard['radius']), shard['radius'])
+                screen.blit(shard_surface, (shard['pos'][0], shard['pos'][1]))
+
+    def update_orientation(self, direction_x, direction_y):
+        angle = math.degrees(math.atan2(-direction_y, direction_x))
+        self.image = pygame.transform.rotate(self.original_image, angle - 90)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def show_damage_indicator(self, damage):
+        # Create a damage text surface using a shared font.
+        font = pygame.font.SysFont("impact", 20, bold=False)
+        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface.set_alpha(128)
+
+        angle_deg = random.uniform(-45, 45)
+        angle_rad = math.radians(angle_deg)
+
+        speed = random.uniform(0.5, 2)
+        vel_x = math.sin(angle_rad) * speed
+        vel_y = -math.cos(angle_rad) * speed  # Negative because up is -y in Pygame
+
+        indicator = {
+            'surface': text_surface,
+            'pos': list(self.rect.center) + [0, -20],
+            'vel': [vel_x, vel_y],
+            'lifetime': random.randint(100, 250),
+            'start_time': pygame.time.get_ticks()
+        }
+        global_damage_indicators.append(indicator)
+
+    def take_damage(self, damage, projectile=None):
+        global money, enemies
+        prev_health = self.health
+        self.health -= damage
+        self.show_damage_indicator(damage)
+        self.spawn_shards()  # Standard shards on hit
+
+        # When health drops by every 10 points, trigger special effects.
+        while self.health <= self.next_threshold and self.next_threshold > 0:
+            self.sfx_shield.play()
+            self.spawn_blue_particles(count=30)  # Cool, refined blue radial effect
+            # Spawn 5 roaches instead of beetles.
+            for _ in range(2):
+                offset_x = random.randint(-20, 20)
+                offset_y = random.randint(-20, 20)
+                spawn_pos = (self.position[0] + offset_x, self.position[1] + offset_y)
+                # Instantiate a RoachMinionEnemy that uses the boss's current target.
+                new_beetle = BeetleEnemy(spawn_pos, self.path)
+                new_beetle.current_target = self.current_target  # Make it follow the boss's next point
+                new_beetle.speed = random.uniform(1, 1.5)
+                enemies.append(new_beetle)
+            self.next_threshold -= 10
+
+        # Upon death, spawn 10 roaches with 2 health.
+        if self.health <= 0 and self.is_alive:
+            self.is_alive = False
+            for _ in range(5):
+                offset_x = random.randint(-30, 30)
+                offset_y = random.randint(-30, 30)
+                spawn_pos = (self.position[0] + offset_x, self.position[1] + offset_y)
+                new_beetle = BeetleEnemy(spawn_pos, self.path)
+                new_beetle.current_target = self.current_target  # Make it follow the boss's next point
+                new_beetle.speed = random.uniform(1, 1.5)
+                enemies.append(new_beetle)
+            self.sfx_death.play()
+            money += 100
+
+    def update_animation(self):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_frame_update >= self.frame_duration / game_speed_multiplier:
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+            self.image = load_image(self.frames[self.current_frame])
+            self.original_image = load_image(self.frames[self.current_frame])
+            self.last_frame_update = current_time
+
+    def render(self, screen):
+        if self.is_alive:
+            screen.blit(self.image, self.rect.topleft)
+        else:
+            screen.blit(self.img_death, self.rect.topleft)
+        self.update_shards(screen)
+        # Render trail particles (with refined blue effect)
+        for particle in self.trail_particles:
+            elapsed = pygame.time.get_ticks() - particle['start_time']
+            alpha = max(0, 255 - int((elapsed / particle['lifetime']) * 255))
+            trail_surface = pygame.Surface((particle['radius'] * 2, particle['radius'] * 2), pygame.SRCALPHA)
+            pygame.draw.circle(trail_surface, (0, 0, 255, alpha), (particle['radius'], particle['radius']),
+                               particle['radius'])
+            screen.blit(trail_surface, (particle['pos'][0], particle['pos'][1]))
+
+
 class RoachQueenEnemy:
     def __init__(self, position, path):
         self.position = position
-        self.health = 25
-        self.speed = 1
+        self.health = 20
+        self.speed = 0.5
         self.path = path
         self.original_image = load_image("assets/roach_queen.png")
         self.image = self.original_image
@@ -4052,6 +5172,7 @@ class RoachQueenEnemy:
         self.last_multiply_time = self.spawn_time + 500  # First multiply after 500ms
         self.multiply_interval = 4000  # Starts at 4000ms, decreases by 500ms down to 500ms
         self.has_multiplied_initially = False
+        self.total_spawned = 2
         # For spawn animation particles
         self.spawn_particles = []
 
@@ -4087,7 +5208,7 @@ class RoachQueenEnemy:
         elif current_time - self.last_multiply_time >= self.multiply_interval:
             self.multiply()
             self.last_multiply_time = current_time
-            self.multiply_interval = max(500, self.multiply_interval - 500)
+            self.multiply_interval = max(1000, self.multiply_interval - 500)
 
         self.update_spawn_particles()
 
@@ -4115,15 +5236,20 @@ class RoachQueenEnemy:
         base_spawn_y = self.position[1] + forward_offset * direction_y
 
         # Spawn two roach minions; pass the queen's current_target so they continue forward.
-        for _ in range(2):
+        for _ in range(self.total_spawned):
             x_offset = random.randint(-16, 16)
             y_offset = random.randint(-16, 16)
+            offset_path = [(x + x_offset, y + y_offset) for (x, y) in house_path]
             spawn_x = base_spawn_x + x_offset
-            spawn_y = base_spawn_y + y_offset # For simplicity; adjust if desired.
+            spawn_y = base_spawn_y + y_offset  # For simplicity; adjust if desired.
             new_speed = random.uniform(1.5, 3.0)
             # Pass the current_target so the minion starts moving toward the same next waypoint.
-            roach = RoachMinionEnemy((spawn_x, spawn_y), self.path, new_speed, current_target=self.current_target)
+            roach = RoachMinionEnemy((spawn_x, spawn_y), self.health / 10, offset_path, new_speed,
+                                     current_target=self.current_target)
             enemies.append(roach)
+        self.total_spawned += 2
+        if self.total_spawned > 10:
+            self.total_spawned = 10
 
     def create_spawn_particles(self):
         # Create a burst of particles for the multiplication animation.
@@ -4154,7 +5280,7 @@ class RoachQueenEnemy:
             if elapsed < particle['lifetime']:
                 alpha = max(0, 255 - int((elapsed / particle['lifetime']) * 255))
                 color = (255, 255, 0, alpha)
-                part_surface = pygame.Surface((particle['radius']*2, particle['radius']*2), pygame.SRCALPHA)
+                part_surface = pygame.Surface((particle['radius'] * 2, particle['radius'] * 2), pygame.SRCALPHA)
                 pygame.draw.circle(part_surface, color, (particle['radius'], particle['radius']), particle['radius'])
                 screen.blit(part_surface, (particle['pos'][0], particle['pos'][1]))
 
@@ -4163,8 +5289,35 @@ class RoachQueenEnemy:
         self.image = pygame.transform.rotate(self.original_image, angle - 90)
         self.rect = self.image.get_rect(center=self.rect.center)
 
+    def show_damage_indicator(self, damage):
+        # Create a damage text surface using a shared font.
+        font = pygame.font.SysFont("impact", 20, bold=False)
+        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface.set_alpha(128)
+
+        angle_deg = random.uniform(-45, 45)
+        angle_rad = math.radians(angle_deg)
+
+        # Speed magnitude
+        speed = random.uniform(.5, 2)
+
+        # Convert polar to cartesian velocity
+        vel_x = math.sin(angle_rad) * speed
+        vel_y = -math.cos(angle_rad) * speed  # negative because up is -y in Pygame
+
+        # Set up the indicator's properties.
+        indicator = {
+            'surface': text_surface,
+            'pos': list(self.rect.center) + [0, -20],  # starting at the enemy's center
+            'vel': [vel_x, vel_y],
+            'lifetime': random.randint(100, 250),  # milliseconds
+            'start_time': pygame.time.get_ticks()
+        }
+        global_damage_indicators.append(indicator)
+
     def take_damage(self, damage, projectile=None):
         self.health -= damage
+        self.show_damage_indicator(damage)
         if self.health <= 0:
             self.is_alive = False
             load_sound("assets/splat_sfx.mp3").play()
@@ -4178,13 +5331,14 @@ class RoachQueenEnemy:
             screen.blit(load_image("assets/splatter.png"), self.rect.topleft)
         self.render_spawn_particles(screen)
 
+
 # ------------------------------------------------------------
 # RoachMinionEnemy class (adjusted to use queen's current_target)
 # ------------------------------------------------------------
 class RoachMinionEnemy:
-    def __init__(self, position, path, speed, current_target=0):
+    def __init__(self, position, health, path, speed, current_target=0):
         self.position = position
-        self.health = 3
+        self.health = health
         self.speed = speed
         self.path = path
         self.original_image = load_image("assets/roach.png")
@@ -4222,8 +5376,35 @@ class RoachMinionEnemy:
         self.image = pygame.transform.rotate(self.original_image, angle - 90)
         self.rect = self.image.get_rect(center=self.rect.center)
 
+    def show_damage_indicator(self, damage):
+        # Create a damage text surface using a shared font.
+        font = pygame.font.SysFont("impact", 20, bold=False)
+        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface.set_alpha(128)
+
+        angle_deg = random.uniform(-45, 45)
+        angle_rad = math.radians(angle_deg)
+
+        # Speed magnitude
+        speed = random.uniform(.5, 2)
+
+        # Convert polar to cartesian velocity
+        vel_x = math.sin(angle_rad) * speed
+        vel_y = -math.cos(angle_rad) * speed  # negative because up is -y in Pygame
+
+        # Set up the indicator's properties.
+        indicator = {
+            'surface': text_surface,
+            'pos': list(self.rect.center) + [0, -20],  # starting at the enemy's center
+            'vel': [vel_x, vel_y],
+            'lifetime': random.randint(100, 250),  # milliseconds
+            'start_time': pygame.time.get_ticks()
+        }
+        global_damage_indicators.append(indicator)
+
     def take_damage(self, damage, projectile=None):
         self.health -= damage
+        self.show_damage_indicator(damage)
         if self.health <= 0:
             self.is_alive = False
             load_sound("assets/splat_sfx.mp3").play()
@@ -4329,7 +5510,7 @@ class CentipedeEnemy:
                 shard['pos'][1] += shard['vel'][1]
                 alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
                 color = (255, 255, 255, alpha)
-                shard_surface = pygame.Surface((shard['radius']*2, shard['radius']*2), pygame.SRCALPHA)
+                shard_surface = pygame.Surface((shard['radius'] * 2, shard['radius'] * 2), pygame.SRCALPHA)
                 pygame.draw.circle(shard_surface, color, (shard['radius'], shard['radius']), shard['radius'])
                 screen.blit(shard_surface, (shard['pos'][0], shard['pos'][1]))
 
@@ -4404,6 +5585,32 @@ class CentipedeEnemy:
         """
         self.update()
 
+    def show_damage_indicator(self, damage):
+        # Create a damage text surface using a shared font.
+        font = pygame.font.SysFont("impact", 20, bold=False)
+        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface.set_alpha(128)
+
+        angle_deg = random.uniform(-45, 45)
+        angle_rad = math.radians(angle_deg)
+
+        # Speed magnitude
+        speed = random.uniform(.5, 2)
+
+        # Convert polar to cartesian velocity
+        vel_x = math.sin(angle_rad) * speed
+        vel_y = -math.cos(angle_rad) * speed  # negative because up is -y in Pygame
+
+        # Set up the indicator's properties.
+        indicator = {
+            'surface': text_surface,
+            'pos': list(self.rect.center) + [0, -20],  # starting at the enemy's center
+            'vel': [vel_x, vel_y],
+            'lifetime': random.randint(100, 250),  # milliseconds
+            'start_time': pygame.time.get_ticks()
+        }
+        global_damage_indicators.append(indicator)
+
     def take_damage(self, damage, hit_position=None, projectile=None, area_center=None, area_radius=0):
         """
         Apply incoming damage:
@@ -4429,8 +5636,10 @@ class CentipedeEnemy:
                 if seg.alive:
                     seg_center = seg.rect.center
                     tolerance = seg.rect.width * 0.5
-                    if math.hypot(seg_center[0] - area_center[0], seg_center[1] - area_center[1]) <= area_radius + tolerance:
+                    if math.hypot(seg_center[0] - area_center[0],
+                                  seg_center[1] - area_center[1]) <= area_radius + tolerance:
                         seg.health -= damage
+                        self.show_damage_indicator(damage)
                         any_hit = True
                         if seg.health <= 0:
                             seg.alive = False
@@ -4442,6 +5651,7 @@ class CentipedeEnemy:
             # If no non-head segments were hit, apply damage to the head.
             head = self.segments[0]
             head.health -= damage
+            self.show_damage_indicator(damage)
             if head.health <= 0:
                 head.alive = False
                 head.death_time = pygame.time.get_ticks()
@@ -4457,6 +5667,7 @@ class CentipedeEnemy:
             if candidates:
                 seg = min(candidates, key=lambda s: math.hypot(s.rect.centerx - hp[0], s.rect.centery - hp[1]))
                 seg.health -= damage
+                self.show_damage_indicator(damage)
                 if seg.health <= 0:
                     seg.alive = False
                     seg.death_time = pygame.time.get_ticks()
@@ -4469,6 +5680,7 @@ class CentipedeEnemy:
         for seg in reversed(self.segments[1:]):
             if seg.alive:
                 seg.health -= damage
+                self.show_damage_indicator(damage)
                 if seg.health <= 0:
                     seg.alive = False
                     seg.death_time = pygame.time.get_ticks()
@@ -4479,6 +5691,7 @@ class CentipedeEnemy:
         # If no non-head segments are alive, apply damage to the head.
         head = self.segments[0]
         head.health -= damage
+        self.show_damage_indicator(damage)
         if head.health <= 0:
             head.alive = False
             head.death_time = pygame.time.get_ticks()
@@ -4560,8 +5773,6 @@ class CentipedeEnemy:
                 rect = rotated_splatter.get_rect(center=seg.position)
                 screen.blit(rotated_splatter, rect.topleft)
         self.update_shards(screen)
-
-
 
 
 class Projectile:
