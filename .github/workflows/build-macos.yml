@@ -23,7 +23,7 @@ jobs:
 
       - name: Build app with PyInstaller
         run: |
-          pyinstaller --windowed --add-data "assets:assets" main.py
+          pyinstaller --windowed --add-data "assets;assets" main.py
 
       - name: Upload built app
         uses: uses: actions/upload-artifact@v3.1.3
