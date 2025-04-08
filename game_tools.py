@@ -45,6 +45,7 @@ UpgradeFlag = False
 SettingsFlag = False
 curr_upgrade_tower = None
 MogFlag = False
+Autoplay = False
 gameoverFlag = False
 last_time_sfx = pygame.time.get_ticks()
 money = 250  # change for debugging
@@ -56,6 +57,9 @@ game_speed_multiplier = 1  # Add at top with other globals
 last_frame_time = 0  # Track frame timing
 global_damage_indicators = []
 global_impact_particles = []
+
+MAX_SHARDS = 200
+MAX_INDICATORS = 200
 
 # Load frames once globally
 frames = [load_image(f"assets/splash/splash{i}.png") for i in range(1, 8)]
@@ -240,7 +244,7 @@ def fade_into_image(scrn: pygame.Surface, image_path: str, duration: int = 200):
 
 def check_game_menu_elements(scrn: pygame.surface) -> str:
     global RoundFlag, money, UpgradeFlag, curr_upgrade_tower, SettingsFlag, music_volume, slider_dragging, user_volume \
-        , gameoverFlag, enemies, current_wave, user_health, game_speed_multiplier
+        , gameoverFlag, enemies, current_wave, user_health, game_speed_multiplier, Autoplay
     purchase = load_sound("assets/purchase_sound.mp3")
     invalid = load_sound("assets/invalid.mp3")
     img_tower_select = load_image("assets/tower_select.png")
@@ -253,12 +257,14 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     img_wizard_text = load_image("assets/wizard_text.png")
     img_beacon_text = load_image("assets/beacon_text.png")
     img_sniper_text = load_image("assets/sniper_text.png")
+    img_frost_text = load_image("assets/frost_text.png")
     img_playbutton = load_image("assets/playbutton.png")
     img_playbutton_1x = load_image("assets/playbutton_1x.png")
     img_playbutton_2x = load_image("assets/playbutton_2x.png")
     img_settingsbutton = load_image("assets/settingsbutton.png")
     img_settings_window = load_image("assets/ingame_settings.png")
     img_music_slider = load_image("assets/music_slider.png")
+    autoplay_check = load_image("assets/autoplay_checked.png")
     mouse = pygame.mouse.get_pos()
     mouse_pressed = pygame.mouse.get_pressed()[0]
 
@@ -324,6 +330,8 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     if SettingsFlag:
         scrn.blit(img_settings_window, (0, 0))
         scrn.blit(img_music_slider, (slider_x, slider_y))
+        if Autoplay:
+            scrn.blit(autoplay_check, (386, 245))
         # slider range - 400 (0%) to 736 (100%)
         if 766 <= mouse[0] <= 766 + 15 and 205 <= mouse[1] <= 205 + 18:
             if detect_single_click():
@@ -332,6 +340,12 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
             if detect_single_click():
                 SettingsFlag = False
                 return "saveandquit"
+        if 387 <= mouse[0] <= 387 + 30 and 247 <= mouse[1] <= 247 + 30:
+            if detect_single_click():
+                if not Autoplay:
+                    Autoplay = True
+                elif Autoplay:
+                    Autoplay = False
         if 550 <= mouse[0] <= 550 + 199 and 286 <= mouse[1] <= 286 + 114:
             if detect_single_click():
                 SettingsFlag = False
@@ -357,6 +371,17 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
             if money >= 150:
                 purchase.play()
                 return "mrcheese"
+            else:
+                invalid.play()
+
+    # COLBY FROST
+    elif 1195 <= mouse[0] <= 1195 + 73 and 101 <= mouse[1] <= 101 + 88:
+        scrn.blit(img_frost_text, (1113, 53))
+        scrn.blit(img_tower_select, (1195, 101))
+        if detect_single_click():
+            if money >= 200:
+                purchase.play()
+                return "frost"
             else:
                 invalid.play()
 
@@ -489,10 +514,10 @@ def handle_upgrade(scrn, tower):
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_protein_upgrade, (883, 194))
             scrn.blit(text_protein, (962, 172))
-        if tower.curr_top_upgrade == 1:
+        if tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_diploma_upgrade, (883, 65))
             scrn.blit(text_diploma, (952, 42))
-        if tower.curr_bottom_upgrade == 1:
+        if tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
             scrn.blit(img_steroids_upgrade, (883, 194))
             scrn.blit(text_steroids, (954, 172))
         # check bounds for sell button
@@ -920,7 +945,7 @@ def handle_upgrade(scrn, tower):
                         tower.base_image = load_image("assets/sniper+collateral+fmj.png")
                         tower.shoot_image = load_image("assets/sniper+collateral+fmj_shoot.png")
                 # 50cal
-                elif tower.curr_top_upgrade == 1 and money >= 1200:
+                elif tower.curr_top_upgrade == 1 and money >= 1200 and tower.curr_bottom_upgrade < 2:
                     purchase.play()
                     money -= 1200
                     tower.sell_amt += 600
@@ -935,7 +960,7 @@ def handle_upgrade(scrn, tower):
                         tower.base_image = load_image("assets/sniper+50cal+rechamber.png")
                         tower.shoot_image = load_image("assets/sniper+50cal+rechamber_shoot.png")
                 # chain collateral
-                elif tower.curr_top_upgrade == 2 and money >= 1500:
+                elif tower.curr_top_upgrade == 2 and money >= 1500 and tower.curr_bottom_upgrade < 2:
                     purchase.play()
                     money -= 1500
                     tower.sell_amt += 750
@@ -983,7 +1008,7 @@ def handle_upgrade(scrn, tower):
                         tower.base_image = load_image("assets/sniper+hollowpoint+rechamber.png")
                         tower.shoot_image = load_image("assets/sniper+hollowpoint+rechamber_shoot.png")
                 # semiauto
-                elif tower.curr_bottom_upgrade == 1 and money >= 2000:
+                elif tower.curr_bottom_upgrade == 1 and money >= 2000 and tower.curr_top_upgrade < 2:
                     purchase.play()
                     money -= 2000
                     tower.sell_amt += 1000
@@ -998,7 +1023,7 @@ def handle_upgrade(scrn, tower):
                         tower.base_image = load_image("assets/sniper+collateral+semiauto.png")
                         tower.shoot_image = load_image("assets/sniper+collateral+semiauto_shoot.png")
                 # semiauto
-                elif tower.curr_bottom_upgrade == 2 and money >= 1500:
+                elif tower.curr_bottom_upgrade == 2 and money >= 1500 and tower.curr_top_upgrade < 2:
                     purchase.play()
                     money -= 1500
                     tower.sell_amt += 750
@@ -1012,6 +1037,110 @@ def handle_upgrade(scrn, tower):
                         tower.image = load_image("assets/sniper+collateral+fmj.png")
                         tower.base_image = load_image("assets/sniper+collateral+fmj.png")
                         tower.shoot_image = load_image("assets/sniper+collateral+fmj_shoot.png")
+    if isinstance(tower, RatFrost):
+        # top upgrades
+        img_snowball_upgrade = load_image("assets/upgrade_snowball.png")
+        img_deadly_snowballs_upgrade = load_image("assets/upgrade_deadly_snowballs.png")
+        img_snowball_barrage_upgrade = load_image("assets/upgrade_snowball_barrage.png")
+        # bottom upgrades
+        img_freeze_radius_upgrade = load_image("assets/upgrade_freeze_radius.png")
+        img_snow_flurry_upgrade = load_image("assets/upgrade_snow_flurry.png")
+        img_freezing_temps_upgrade = load_image("assets/upgrade_freezing_temps.png")
+
+        upgrade_font = get_font("arial", 16)
+        # top upgrades
+        text_snowball = upgrade_font.render("Snowballs", True, (0, 0, 0))
+        text_deadly = upgrade_font.render("Deadly Snowballs", True, (0, 0, 0))
+        text_barrage = upgrade_font.render("Snowball Barrage", True, (0, 0, 0))
+        # bottom upgrades
+        text_radius = upgrade_font.render("Bigger Storm", True, (0, 0, 0))
+        text_flurry = upgrade_font.render("Snow Flurries", True, (0, 0, 0))
+        text_freezing = upgrade_font.render("Sub-Zero Temps", True, (0, 0, 0))
+
+        # show upgrade images
+        if tower.curr_top_upgrade == 0:
+            scrn.blit(img_snowball_upgrade, (883, 65))
+            scrn.blit(text_snowball, (962, 42))
+        elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
+            scrn.blit(img_deadly_snowballs_upgrade, (883, 65))
+            scrn.blit(text_deadly, (962, 42))
+        elif tower.curr_top_upgrade == 2 and tower.curr_bottom_upgrade < 2:
+            scrn.blit(img_snowball_barrage_upgrade, (883, 65))
+            scrn.blit(text_barrage, (962, 42))
+        if tower.curr_bottom_upgrade == 0:
+            scrn.blit(img_freeze_radius_upgrade, (883, 194))
+            scrn.blit(text_radius, (954, 172))
+        elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
+            scrn.blit(img_snow_flurry_upgrade, (883, 194))
+            scrn.blit(text_flurry, (962, 172))
+        elif tower.curr_bottom_upgrade == 2 and tower.curr_top_upgrade < 2:
+            scrn.blit(img_freezing_temps_upgrade, (883, 194))
+            scrn.blit(text_freezing, (962, 172))
+
+        # TOP UPGRADE PATH
+        if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+            scrn.blit(img_upgrade_highlighted, (883, 65))
+            if detect_single_click():
+                # snowballs
+                if tower.curr_top_upgrade == 0 and money >= 250:
+                    purchase.play()
+                    money -= 250
+                    tower.sell_amt += 125
+                    tower.curr_top_upgrade = 1
+                    UpgradeFlag = True
+
+                # deadly snowballs
+                elif tower.curr_top_upgrade == 1 and money >= 300 and tower.curr_bottom_upgrade < 2:
+                    purchase.play()
+                    money -= 300
+                    tower.sell_amt += 150
+                    tower.curr_top_upgrade = 2
+                    UpgradeFlag = True
+
+                # snowball barrage
+                elif tower.curr_top_upgrade == 2 and money >= 450 and tower.curr_bottom_upgrade < 2:
+                    purchase.play()
+                    money -= 450
+                    tower.sell_amt += 225
+                    tower.curr_top_upgrade = 3
+                    UpgradeFlag = True
+
+        # sell button
+        if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
+            if detect_single_click():
+                money += tower.sell_amt
+                towers.remove(tower)
+                UpgradeFlag = False
+                return
+
+        # BOTTOM UPGRADE PATH
+        if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+            scrn.blit(img_upgrade_highlighted, (883, 194))
+            if detect_single_click():
+                # radius
+                if tower.curr_bottom_upgrade == 0 and money >= 350:
+                    purchase.play()
+                    money -= 350
+                    tower.sell_amt += 175
+                    tower.curr_bottom_upgrade = 1
+                    UpgradeFlag = True
+
+                # snow flurry
+                elif tower.curr_bottom_upgrade == 1 and money >= 450 and tower.curr_top_upgrade < 2:
+                    purchase.play()
+                    money -= 450
+                    tower.sell_amt += 225
+                    tower.curr_bottom_upgrade = 2
+                    UpgradeFlag = True
+
+                # subzero
+                elif tower.curr_bottom_upgrade == 2 and money >= 350 and tower.curr_top_upgrade < 2:
+                    purchase.play()
+                    money -= 350
+                    tower.sell_amt += 175
+                    tower.curr_bottom_upgrade = 3
+                    UpgradeFlag = True
+
     if isinstance(tower, WizardTower):
         img_apprentice_upgrade = load_image("assets/upgrade_apprentice.png")
         img_master_upgrade = load_image("assets/upgrade_master.png")
@@ -1143,14 +1272,14 @@ def handle_upgrade(scrn, tower):
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_piercing_upgrade, (883, 65))
             scrn.blit(text_piercing, (952, 42))
-        elif tower.curr_top_upgrade == 1:
+        elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_shotgun_upgrade, (883, 65))
             scrn.blit(text_shotgun, (959, 42))
 
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_rpg_upgrade, (883, 194))
             scrn.blit(text_rpg, (942, 172))
-        elif tower.curr_bottom_upgrade == 1:
+        elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
             scrn.blit(img_thumper_upgrade, (883, 194))
             scrn.blit(text_grenade, (941, 172))
         # piercing upgrade
@@ -1453,7 +1582,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             scrn.blit(img_base_rat, (mouse[0] - 25, mouse[1] - 25))
             scrn.blit(circle_surface, (mouse[0] - 100, mouse[1] - 100))
         if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower) and tower == "mrcheese":
-            tower_mrcheese = MrCheese((mouse[0], mouse[1]), radius=75, weapon="Cheese", damage=1,
+            tower_mrcheese = MrCheese((mouse[0], mouse[1]), radius=100, weapon="Cheese", damage=1,
                                       image_path="assets/base_rat.png", projectile_image="assets/projectile_cheese.png")
             towers.append(tower_mrcheese)
             tower_click.play()
@@ -1462,7 +1591,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             return True
     elif tower == "soldier":
         img_base_soldier = load_image("assets/base_soldier.png")
-        circle_surface = pygame.Surface((200, 200), pygame.SRCALPHA)
+        circle_surface = pygame.Surface((150, 150), pygame.SRCALPHA)
         for event in pygame.event.get():
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_ESCAPE:
@@ -1481,6 +1610,28 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
             money -= 250
+            return True
+    elif tower == "frost":
+        img_base_frost = load_image("assets/base_frost.png")
+        circle_surface = pygame.Surface((150, 150), pygame.SRCALPHA)
+        for event in pygame.event.get():
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_ESCAPE:
+                    return True
+        if check_hitbox(house_hitbox, relative_pos, towers):
+            pygame.draw.circle(circle_surface, (0, 0, 0, 128), (75, 75), 75)
+            scrn.blit(img_base_frost, (mouse[0] - 25, mouse[1] - 25))
+            scrn.blit(circle_surface, (mouse[0] - 75, mouse[1] - 75))
+        elif not check_hitbox(house_hitbox, relative_pos, towers):
+            pygame.draw.circle(circle_surface, (255, 0, 0, 128), (75, 75), 75)
+            scrn.blit(img_base_frost, (mouse[0] - 25, mouse[1] - 25))
+            scrn.blit(circle_surface, (mouse[0] - 75, mouse[1] - 75))
+        if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower) and tower == "frost":
+            tower_frost = RatFrost((mouse[0], mouse[1]))
+            towers.append(tower_frost)
+            tower_click.play()
+            play_splash_animation(scrn, (mouse[0], mouse[1]))
+            money -= 200
             return True
     elif tower == "sniper":
         img_base_sniper = load_image("assets/sniper_base.png")
@@ -2251,10 +2402,12 @@ class CheddarCommando:
 
     def update(self, enemies):
         """Update targeting, projectiles, explosion animation, and reload state."""
+
         # Reset ammo when round ends
         if not RoundFlag:
             self.shot_count = 0
-        # Targeting logic
+
+        # === Targeting ===
         self.target = None
         potential_targets = []
         if not self.is_reloading:
@@ -2270,11 +2423,11 @@ class CheddarCommando:
         if self.target:
             dx = self.target.position[0] - self.position[0]
             dy = self.target.position[1] - self.position[1]
-            self.angle = math.degrees(math.atan2(-dy, dx))
-            self.image = pygame.transform.rotate(self.original_image, self.angle)
+            angle = math.degrees(math.atan2(-dy, dx))
+            self.image = pygame.transform.rotate(self.original_image, angle)
             self.rect = self.image.get_rect(center=self.position)
 
-        # Explosion animation update using delta time
+        # === Explosion Animation (optimized) ===
         if self.explosion_active:
             current_time = pygame.time.get_ticks()
             if self.last_explosion_update == 0:
@@ -2287,24 +2440,22 @@ class CheddarCommando:
                 self.explosion_active = False
                 self.explosion_radius = 0
 
-        # Process projectiles
+        # === Process Projectiles ===
         for projectile in self.projectiles[:]:
             projectile.move()
             for enemy in enemies:
-                # Use enemy center plus half its width to allow partial overlap to count
                 enemy_center = enemy.rect.center
                 dist = math.hypot(projectile.position[0] - enemy_center[0],
                                   projectile.position[1] - enemy_center[1])
                 if dist < enemy.rect.width / 2:
                     enemy.take_damage(projectile.damage, projectile=projectile)
-                    if projectile.explosive:
+                    if projectile.explosive and not self.explosion_active:
                         self.explosion_pos = enemy.rect.center
                         self.explosion(enemies)
                         self.explosion_sfx.play()
                     projectile.hit = True
                     if not projectile.piercing:
                         break
-            # Remove the redundant damage application here
             if projectile.hit:
                 if not projectile.piercing:
                     self.projectiles.remove(projectile)
@@ -2313,7 +2464,7 @@ class CheddarCommando:
                     if projectile.penetration <= 0:
                         self.projectiles.remove(projectile)
 
-        # Reload handling
+        # === Reload Handling ===
         if self.is_reloading:
             scaled_reload = self.reload_time / game_speed_multiplier
             if pygame.time.get_ticks() - self.reload_start_time >= scaled_reload:
@@ -2384,7 +2535,10 @@ class CheddarCommando:
             if self.curr_top_upgrade > 1:
                 spread_angles = [-20, -10, 0, 10, 20]
                 for offset in spread_angles:
-                    proj = CommandoProjectile(self.position, self.angle + offset, speed=20, damage=self.damage)
+                    dx = self.target.position[0] - self.position[0]
+                    dy = self.target.position[1] - self.position[1]
+                    angle = math.degrees(math.atan2(-dy, dx))
+                    proj = CommandoProjectile(self.position, angle + offset, speed=20, damage=self.damage)
                     if self.curr_bottom_upgrade >= 1:
                         proj.explosive = True
                         proj.armor_break = True
@@ -2394,7 +2548,10 @@ class CheddarCommando:
                         proj.piercing = True
                     self.projectiles.append(proj)
             else:
-                proj = CommandoProjectile(self.position, self.angle, speed=20, damage=self.damage)
+                dx = self.target.position[0] - self.position[0]
+                dy = self.target.position[1] - self.position[1]
+                angle = math.degrees(math.atan2(-dy, dx))
+                proj = CommandoProjectile(self.position, angle, speed=20, damage=self.damage)
                 if self.curr_bottom_upgrade >= 1:
                     proj.explosive = True
                     proj.armor_break = True
@@ -2429,6 +2586,269 @@ class CheddarCommando:
                 self.is_reloading = True
                 self.reload_start_time = pygame.time.get_ticks()
                 self.reload_sound.play()
+
+
+class RatFrost:
+    sfx_frost = load_sound("assets/frost_sfx.mp3")
+    sfx_freeze = load_sound("assets/slow_sfx.mp3")
+
+    def __init__(self, position):
+        self.position = position
+        self.base_image = load_image("assets/base_frost.png")
+        self.image = self.base_image
+        self.rect = self.image.get_rect(center=position)
+        self.sell_amt = 100
+        self.angle = 0
+
+        # Base stats
+        self.radius = 75
+        self.slow_multiplier = 0.75
+        self.radius_image = load_image("assets/frost_freeze_radius_75.png")
+        self.projectiles = []
+        self.snowball_interval = 1500
+        self.last_shot = 0
+        self.last_freeze_time = 0
+
+        # Upgrades
+        self.curr_top_upgrade = 0
+        self.curr_bottom_upgrade = 0
+        self.active_enemies = set()  # For damage-over-time tracking
+        self.damage_timer = 0
+
+        # Visual effects
+        self.aura_surface = pygame.Surface((150, 150), pygame.SRCALPHA)
+        self.trail_surface = pygame.Surface((30, 30), pygame.SRCALPHA)
+        self._create_aura_texture()
+
+        # Lazily import enemy classes when an instance is created.
+        self.immune_classes, self.vulnerable_classes = self._get_enemy_classes()
+
+        # Define a fixed attack range for firing & slowing enemies.
+        self.attack_range = self.radius
+
+    def _get_enemy_classes(self):
+        from game_tools import (CentipedeEnemy, DungBeetleBoss, BeetleEnemy,
+                                RoachMinionEnemy, RoachQueenEnemy, HornetEnemy,
+                                FireflyEnemy, DragonflyEnemy)
+        immune = (CentipedeEnemy, DungBeetleBoss, BeetleEnemy,
+                  RoachQueenEnemy, RoachMinionEnemy)
+        vulnerable = (HornetEnemy, FireflyEnemy, DragonflyEnemy)
+        return immune, vulnerable
+
+    def _create_aura_texture(self):
+        for r in range(75, 0, -1):
+            alpha = int(50 * (1 - r / 75))
+            pygame.draw.circle(self.aura_surface, (203, 239, 248, alpha), (75, 75), r, 2)
+
+    def update(self, enemies):
+        if self.curr_bottom_upgrade > 0:
+            self.radius = 100
+            self.attack_range = self.radius
+        # Find the closest enemy within the attack range.
+        closest = None
+        min_dist = float('inf')
+        for enemy in enemies:
+            if isinstance(enemy, self.immune_classes):
+                continue
+            dx = enemy.position[0] - self.position[0]
+            dy = enemy.position[1] - self.position[1]
+            dist = math.hypot(dx, dy)
+            if dist < min_dist:
+                min_dist = dist
+                closest = enemy
+
+        # Only target if enemy is within the attack range.
+        if closest and math.hypot(closest.position[0]-self.position[0],
+                                  closest.position[1]-self.position[1]) <= self.attack_range \
+                and self.curr_top_upgrade > 0:
+            dx = closest.position[0] - self.position[0]
+            dy = closest.position[1] - self.position[1]
+            self.angle = math.degrees(math.atan2(-dy, dx))
+            self.image = pygame.transform.rotate(self.base_image, self.angle)
+            self.rect = self.image.get_rect(center=self.position)
+
+        current_time = pygame.time.get_ticks()
+        tower_slow = 0.65 if self.curr_bottom_upgrade >= 2 else 0.85
+
+        self.active_enemies.clear()
+        vulnerable_hit = False
+        for enemy in enemies:
+            if isinstance(enemy, self.immune_classes):
+                continue
+
+            # Initialize enemy properties if needed.
+            if not hasattr(enemy, "base_speed"):
+                enemy.base_speed = enemy.speed
+            if not hasattr(enemy, "freeze_multiplier"):
+                enemy.freeze_multiplier = 1.0
+
+            # Reset enemy speed to its base.
+            enemy.speed = enemy.base_speed
+
+            dx = enemy.position[0] - self.position[0]
+            dy = enemy.position[1] - self.position[1]
+            if math.hypot(dx, dy) <= self.attack_range:
+                self.active_enemies.add(enemy)
+                # Apply tower slow combined with any accumulated freeze.
+                effective_multiplier = tower_slow * enemy.freeze_multiplier
+                enemy.speed = enemy.base_speed * effective_multiplier
+
+                if isinstance(enemy, self.vulnerable_classes):
+                    enemy.speed = max(enemy.speed * tower_slow, .25)
+                    vulnerable_hit = True
+
+                if self.curr_bottom_upgrade >= 3 and current_time - self.damage_timer >= 1000:
+                    enemy.take_damage(0.25)
+
+        # Play freeze SFX every 6000 ms if at least one vulnerable enemy is in range.
+        if vulnerable_hit and (current_time - self.last_freeze_time >= 6000):
+            self.last_freeze_time = current_time
+            self.sfx_freeze.play()
+
+        if self.curr_bottom_upgrade >= 3 and current_time - self.damage_timer >= 1000:
+            self.damage_timer = current_time
+
+        # Fire snowballs only if the closest enemy is within the attack range.
+        if self.curr_top_upgrade >= 1 and closest:
+            if math.hypot(closest.position[0]-self.position[0],
+                          closest.position[1]-self.position[1]) <= self.attack_range + 100:
+                if current_time - self.last_shot >= self._get_fire_interval():
+                    self._fire_snowball(closest)
+                    self.last_shot = current_time
+
+        # Update projectiles.
+        # If a projectile has collided and its collision timer has expired, remove it.
+        for proj in self.projectiles[:]:
+            proj.update()
+            if proj.collided and (current_time - proj.collision_time >= 500):
+                self.projectiles.remove(proj)
+            elif not proj.collided and proj.check_collision(enemies):
+                # When collision is detected, play the frost sfx.
+                self.sfx_frost.play()
+
+    def _get_fire_interval(self):
+        if self.curr_top_upgrade >= 3:
+            return 750 / game_speed_multiplier
+        if self.curr_top_upgrade >= 1:
+            return 1500 / game_speed_multiplier
+        return float('inf')
+
+    def _fire_snowball(self, target_enemy):
+        proj = FrostProjectile(
+            start_pos=self.position,
+            target=target_enemy,
+            speed=15,
+            slow_amount=0.25 if self.curr_top_upgrade < 2 else 0.35,
+            damage=1 if self.curr_top_upgrade >= 2 else 0
+        )
+        self.projectiles.append(proj)
+
+    def shoot(self):
+        pass
+
+    def render(self, screen):
+        # Render the frost aura.
+        if self.curr_bottom_upgrade < 1:
+            radius_img = "assets/frost_freeze_radius_75.png"
+        else:
+            radius_img = "assets/frost_freeze_radius_100.png"
+        screen.blit(load_image(radius_img), (self.position[0] - self.radius, self.position[1] - self.radius))
+        # Render the tower.
+        screen.blit(self.image, self.rect.topleft)
+        # Render all projectiles.
+        for proj in self.projectiles:
+            proj.render(screen)
+
+
+class FrostProjectile:
+    def __init__(self, start_pos, target, speed, slow_amount, damage):
+        self.position = list(start_pos)
+        self.speed = speed
+        self.slow = slow_amount
+        self.damage = damage
+        self.trail = []
+        self.target = target  # Reference to the enemy target.
+        self.collided = False
+        self.collision_time = None
+
+        # Set initial velocity toward the target.
+        self.update_velocity()
+
+        # Visual properties.
+        self.image = pygame.Surface((8, 8), pygame.SRCALPHA)
+        pygame.draw.circle(self.image, (255, 255, 255, 200), (4, 4), 4)
+        self.impact_particles = []
+
+    def update_velocity(self):
+        if self.target is not None:
+            dx = self.target.position[0] - self.position[0]
+            dy = self.target.position[1] - self.position[1]
+            dist = math.hypot(dx, dy)
+            if dist > 0:
+                self.velocity = [dx / dist * self.speed, dy / dist * self.speed]
+            else:
+                self.velocity = [0, 0]
+        else:
+            self.velocity = [0, 0]
+
+    def update(self):
+        # Recalculate velocity for homing.
+        self.update_velocity()
+        self.position[0] += self.velocity[0]
+        self.position[1] += self.velocity[1]
+
+        # Manage trail.
+        self.trail.append(list(self.position))
+        if len(self.trail) > 15:
+            self.trail.pop(0)
+
+    def check_collision(self, enemies):
+        if self.collided:
+            return False  # Already processed collision.
+        for enemy in enemies:
+            if math.hypot(enemy.position[0] - self.position[0],
+                          enemy.position[1] - self.position[1]) < 20:
+                if not hasattr(enemy, "freeze_multiplier"):
+                    enemy.freeze_multiplier = 1.0
+                # Stack the freeze effect.
+                enemy.freeze_multiplier = max(enemy.freeze_multiplier * (1 - self.slow), 0.15)
+                if self.damage > 0:
+                    enemy.take_damage(self.damage)
+                self._create_impact_effect()
+                self.collided = True
+                self.collision_time = pygame.time.get_ticks()
+                return True
+        return False
+
+    def _create_impact_effect(self):
+        # Create 8 impact particles.
+        for _ in range(8):
+            self.impact_particles.append({
+                "pos": list(self.position),
+                "vel": [random.uniform(-2, 2), random.uniform(-2, 2)],
+                "life": 1000
+            })
+
+    def render(self, screen):
+        # Render the trail.
+        for i, pos in enumerate(self.trail):
+            alpha = int(255 * (i / len(self.trail)))
+            pygame.draw.circle(screen, (255, 255, 255, alpha), pos, int(3 * (i / len(self.trail))))
+        # Render the projectile if it hasn't collided.
+        if not self.collided:
+            screen.blit(self.image, (self.position[0] - 4, self.position[1] - 4))
+        # Render impact particles.
+        for p in self.impact_particles[:]:
+            p["pos"][0] += p["vel"][0]
+            p["pos"][1] += p["vel"][1]
+            p["life"] -= 20
+            alpha = int(255 * (p["life"] / 1000))
+            pygame.draw.circle(screen, (230, 250, 255, alpha),
+                               (int(p["pos"][0]), int(p["pos"][1])),
+                               max(1, int(3 * (p["life"] / 1000))))
+            if p["life"] <= 0:
+                self.impact_particles.remove(p)
+
 
 
 class RatSniper:
@@ -2605,7 +3025,7 @@ class RatSniper:
         Create a shards-like impact effect at the given position.
         Spawns several small particles radiating outwards that fade over time.
         """
-        num_particles = 10
+        num_particles = 5
         for _ in range(num_particles):
             angle = random.uniform(0, 2 * math.pi)
             speed = random.uniform(1, 3)
@@ -2803,7 +3223,7 @@ class WizardTower:
             explosion_radius = 35
 
             # Spawn explosion particles
-            for _ in range(30):
+            for _ in range(15):
                 self.spark_particles.append({
                     'pos': list(explosion_pos),
                     'vel': [random.uniform(-8, 8), random.uniform(-8, 8)],
@@ -3229,7 +3649,7 @@ class MinigunTower:
             for _ in range(5):
                 self.particles.append(MinigunParticle(position, color))
         else:
-            for _ in range(15):
+            for _ in range(2):
                 self.particles.append(MinigunParticle(position, color))
 
     def render(self, screen):
@@ -3933,7 +4353,7 @@ class AntEnemy:
         self.size = self.rect.size
         self.current_target = 0
         self.is_alive = True
-        self.shards = []  # New: Particle storage
+        # global_impact_particles = []  # New: Particle storage
 
     def move(self):
         global user_health
@@ -3958,7 +4378,8 @@ class AntEnemy:
             self.is_alive = False
             user_health -= self.health
 
-    def spawn_shards(self, count=8):
+    def spawn_shards(self, count=4):
+        global global_impact_particles
         for _ in range(count):
             shard = {
                 'pos': [self.position[0], self.position[1]],
@@ -3967,14 +4388,15 @@ class AntEnemy:
                 'start_time': pygame.time.get_ticks(),
                 'radius': random.randint(1, 3)
             }
-            self.shards.append(shard)
+            if len(global_impact_particles) < MAX_SHARDS:
+                global_impact_particles.append(shard)
 
     def update_shards(self, screen):
         current_time = pygame.time.get_ticks()
-        for shard in self.shards[:]:
+        for shard in global_impact_particles[:]:
             elapsed = current_time - shard['start_time']
             if elapsed > shard['lifetime']:
-                self.shards.remove(shard)
+                global_impact_particles.remove(shard)
             else:
                 shard['pos'][0] += shard['vel'][0]
                 shard['pos'][1] += shard['vel'][1]
@@ -4013,7 +4435,8 @@ class AntEnemy:
             'lifetime': random.randint(100, 250),  # milliseconds
             'start_time': pygame.time.get_ticks()
         }
-        global_damage_indicators.append(indicator)
+        if len(global_damage_indicators) < MAX_INDICATORS:
+            global_damage_indicators.append(indicator)
 
     def take_damage(self, damage, projectile=None):
         global money
@@ -4023,7 +4446,7 @@ class AntEnemy:
         if self.health <= 0:
             self.is_alive = False
             self.sfx_splat.play()
-            money += 5
+            money += 2
 
     def render(self, screen):
         if self.is_alive:
@@ -4068,7 +4491,7 @@ class BeetleEnemy:
         self.armor_break_sound = load_sound("assets/armor_break.mp3")
 
         # Shard effect properties for armor break
-        self.shards = []  # List to store shard particles
+        # global_impact_particles = []  # List to store shard particles
 
     def move(self):
         """
@@ -4105,7 +4528,8 @@ class BeetleEnemy:
         self.image = pygame.transform.rotate(self.original_image, angle - 90)
         self.rect = self.image.get_rect(center=self.rect.center)
 
-    def spawn_shards(self, count=10):
+    def spawn_shards(self, count=5):
+        global global_impact_particles
         """
         Spawn a burst of shards to simulate armor breaking.
         Each shard is represented as a dictionary with position, velocity, lifetime, and start_time.
@@ -4113,22 +4537,23 @@ class BeetleEnemy:
         for _ in range(count):
             shard = {
                 'pos': [self.position[0], self.position[1]],
-                'vel': [random.uniform(-3, 8), random.uniform(-3, 3)],
-                'lifetime': random.randint(100, 600),  # lifetime in milliseconds
+                'vel': [random.uniform(-3, 3), random.uniform(-3, 3)],
+                'lifetime': random.randint(100, 300),  # lifetime in milliseconds
                 'start_time': pygame.time.get_ticks(),
                 'radius': random.randint(1, 3)
             }
-            self.shards.append(shard)
+            if len(global_impact_particles) < MAX_SHARDS:
+                global_impact_particles.append(shard)
 
     def update_shards(self, screen):
         """
         Update and render shard particles.
         """
         current_time = pygame.time.get_ticks()
-        for shard in self.shards[:]:
+        for shard in global_impact_particles[:]:
             elapsed = current_time - shard['start_time']
             if elapsed > shard['lifetime']:
-                self.shards.remove(shard)
+                global_impact_particles.remove(shard)
             else:
                 # Update position
                 shard['pos'][0] += shard['vel'][0]
@@ -4173,9 +4598,11 @@ class BeetleEnemy:
             'lifetime': random.randint(100, 250),  # milliseconds
             'start_time': pygame.time.get_ticks()
         }
-        global_damage_indicators.append(indicator)
+        if len(global_damage_indicators) < MAX_INDICATORS:
+            global_damage_indicators.append(indicator)
 
     def take_damage(self, damage, projectile=None):
+        global money
         """
         Process incoming damage. If the projectile has an attribute armor_break,
         remove all armor instantly and spawn shards. Otherwise, apply damage to armor first.
@@ -4187,7 +4614,7 @@ class BeetleEnemy:
                 self.armor_break_sound.play()
 
             # Spawn shards effect
-            self.spawn_shards(count=15)
+            self.spawn_shards(count=5)
 
             # Instantly remove all armor layers
             self.current_armor_layer = 0
@@ -4202,6 +4629,7 @@ class BeetleEnemy:
             self.show_damage_indicator(damage)
             if self.health <= 0:
                 self.is_alive = False
+                money += 10
             return  # Exit immediately to prevent normal armor processing
 
         # For every hit, play the armor hit sound if armor is present
@@ -4217,7 +4645,7 @@ class BeetleEnemy:
                 self.current_armor_layer -= 1
 
                 # Spawn shards effect on armor layer break
-                self.spawn_shards(count=10)
+                self.spawn_shards(count=5)
 
                 # If breaking the last armor layer, play the armor break sound
                 if self.current_armor_layer == 0:
@@ -4247,6 +4675,7 @@ class BeetleEnemy:
 
         if self.health <= 0:
             self.is_alive = False
+            money += 10
 
 
 class HornetEnemy:
@@ -4264,7 +4693,7 @@ class HornetEnemy:
         self.size = self.rect.size
         self.current_target = 0
         self.is_alive = True
-        self.shards = []  # NEW: Particle storage
+        # global_impact_particles = []  # NEW: Particle storage
 
     def move(self):
         global user_health
@@ -4290,7 +4719,8 @@ class HornetEnemy:
             user_health -= self.health
 
     # NEW: Shard particle methods (same as AntEnemy)
-    def spawn_shards(self, count=10):
+    def spawn_shards(self, count=5):
+        global global_impact_particles
         for _ in range(count):
             shard = {
                 'pos': [self.position[0], self.position[1]],
@@ -4299,14 +4729,15 @@ class HornetEnemy:
                 'start_time': pygame.time.get_ticks(),
                 'radius': random.randint(1, 3)
             }
-            self.shards.append(shard)
+            if len(global_impact_particles) < MAX_SHARDS:
+                global_impact_particles.append(shard)
 
     def update_shards(self, screen):
         current_time = pygame.time.get_ticks()
-        for shard in self.shards[:]:
+        for shard in global_impact_particles[:]:
             elapsed = current_time - shard['start_time']
             if elapsed > shard['lifetime']:
-                self.shards.remove(shard)
+                global_impact_particles.remove(shard)
             else:
                 shard['pos'][0] += shard['vel'][0]
                 shard['pos'][1] += shard['vel'][1]
@@ -4345,7 +4776,8 @@ class HornetEnemy:
             'lifetime': random.randint(100, 250),  # milliseconds
             'start_time': pygame.time.get_ticks()
         }
-        global_damage_indicators.append(indicator)
+        if len(global_damage_indicators) < MAX_INDICATORS:
+            global_damage_indicators.append(indicator)
 
     def take_damage(self, damage, projectile=None):
         global money
@@ -4355,7 +4787,7 @@ class HornetEnemy:
         if self.health <= 0:
             self.is_alive = False
             self.sfx_splat.play()
-            money += 10
+            money += 4
 
     def render(self, screen):
         if self.is_alive:
@@ -4386,7 +4818,7 @@ class SpiderEnemy:
         self.size = self.rect.size
         self.current_target = 0
         self.is_alive = True
-        self.shards = []  # NEW: Particle storage
+        # global_impact_particles = []  # NEW: Particle storage
 
     def move(self):
         global user_health
@@ -4413,7 +4845,8 @@ class SpiderEnemy:
             user_health -= self.health
 
     # NEW: Shard particle methods (same as AntEnemy)
-    def spawn_shards(self, count=10):
+    def spawn_shards(self, count=5):
+        global global_impact_particles
         for _ in range(count):
             shard = {
                 'pos': [self.position[0], self.position[1]],
@@ -4422,14 +4855,15 @@ class SpiderEnemy:
                 'start_time': pygame.time.get_ticks(),
                 'radius': random.randint(1, 3)
             }
-            self.shards.append(shard)
+            if len(global_impact_particles) < MAX_SHARDS:
+                global_impact_particles.append(shard)
 
     def update_shards(self, screen):
         current_time = pygame.time.get_ticks()
-        for shard in self.shards[:]:
+        for shard in global_impact_particles[:]:
             elapsed = current_time - shard['start_time']
             if elapsed > shard['lifetime']:
-                self.shards.remove(shard)
+                global_impact_particles.remove(shard)
             else:
                 shard['pos'][0] += shard['vel'][0]
                 shard['pos'][1] += shard['vel'][1]
@@ -4468,7 +4902,8 @@ class SpiderEnemy:
             'lifetime': random.randint(100, 250),  # milliseconds
             'start_time': pygame.time.get_ticks()
         }
-        global_damage_indicators.append(indicator)
+        if len(global_damage_indicators) < MAX_INDICATORS:
+            global_damage_indicators.append(indicator)
 
     def take_damage(self, damage, projectile=None):
         global money
@@ -4478,7 +4913,7 @@ class SpiderEnemy:
         if self.health <= 0:
             self.is_alive = False
             self.sfx_splat.play()
-            money += 25
+            money += 6
 
     def update_animation(self):
         current_time = pygame.time.get_ticks()
@@ -4499,7 +4934,7 @@ class SpiderEnemy:
 class FireflyEnemy:
     sfx_splat = load_sound("assets/splat_sfx.mp3")
     img_death = load_image("assets/splatter.png")
-    MAX_RADIUS = 50
+    MAX_RADIUS = 75
     MIN_RADIUS = 0
     BASE_COLOR = (247, 217, 59)
 
@@ -4521,9 +4956,9 @@ class FireflyEnemy:
         self.size = self.rect.size
         self.current_target = 0
         self.is_alive = True
-        self.shards = []  # NEW: Particle storage
-        self.initial_health = 20  # Store for healing cap
-        self.health = self.initial_health
+        # global_impact_particles = []  # NEW: Particle storage
+        self.health = 20
+        self.initial_health = self.health  # Store for healing cap
         self.affected_enemies = []
         self.protected_enemies = {}  # Track enemy: last_health
         self.last_heal_time = pygame.time.get_ticks()
@@ -4533,8 +4968,7 @@ class FireflyEnemy:
             {'base_radius': 65, 'current_radius': 0, 'alpha': 0, 'speed': 1.5}
         ]
         self.max_glow_radius = max(l['base_radius'] for l in self.glow_layers) + 10
-        self.base_health = 10  # Used for radius calculation
-        self.health = self.base_health
+        self.base_health = self.health  # Used for radius calculation
 
         # Glow properties
         self.glow_phase = 0
@@ -4544,7 +4978,8 @@ class FireflyEnemy:
     def get_current_radius(self):
         """Calculate radius based on current health"""
         health_ratio = max(0, self.health) / self.base_health
-        return self.MIN_RADIUS + (self.MAX_RADIUS - self.MIN_RADIUS) * health_ratio
+        ratio_clamped = min(health_ratio, 1.0)  # clamp to max 1.0
+        return self.MIN_RADIUS + (self.MAX_RADIUS - self.MIN_RADIUS) * ratio_clamped
 
     def update_heal_effect(self, enemies):
         current_radius = self.get_current_radius()
@@ -4588,18 +5023,18 @@ class FireflyEnemy:
         ]
 
         # Healing and protection logic
-        if current_time - self.last_heal_time >= 1000:
+        if current_time - self.last_heal_time >= 750:
             self.last_heal_time = current_time
             for enemy in self.affected_enemies:
                 enemy.health = max(enemy.health, 0.5)
-                # enemy.health += 1
+                enemy.health += 1
         else:
             for enemy in self.affected_enemies:
                 enemy.health = max(enemy.health, 0.5)
 
     def create_reflection_effect(self):
         # Visual feedback for damage reflection
-        for _ in range(5):
+        for _ in range(2):
             particle = {
                 'pos': list(self.position),
                 'vel': [random.uniform(-2, 2), random.uniform(-2, 2)],
@@ -4608,7 +5043,7 @@ class FireflyEnemy:
                 'color': (255, 0, 0),  # Red particles for damage reflection
                 'radius': random.randint(1, 2)
             }
-            self.shards.append(particle)
+            global_impact_particles.append(particle)
 
     def update_glow_animation(self):
         """Update glow animation based on health and phase"""
@@ -4683,7 +5118,8 @@ class FireflyEnemy:
         self.update_glow_animation()
 
     # NEW: Shard particle methods (same as AntEnemy)
-    def spawn_shards(self, count=10):
+    def spawn_shards(self, count=5):
+        global global_impact_particles
         for _ in range(count):
             shard = {
                 'pos': [self.position[0], self.position[1]],
@@ -4692,14 +5128,15 @@ class FireflyEnemy:
                 'start_time': pygame.time.get_ticks(),
                 'radius': random.randint(1, 3)
             }
-            self.shards.append(shard)
+            if len(global_impact_particles) < MAX_SHARDS:
+                global_impact_particles.append(shard)
 
     def update_shards(self, screen):
         current_time = pygame.time.get_ticks()
-        for shard in self.shards[:]:
+        for shard in global_impact_particles[:]:
             elapsed = current_time - shard['start_time']
             if elapsed > shard['lifetime']:
-                self.shards.remove(shard)
+                global_impact_particles.remove(shard)
             else:
                 shard['pos'][0] += shard['vel'][0]
                 shard['pos'][1] += shard['vel'][1]
@@ -4738,7 +5175,8 @@ class FireflyEnemy:
             'lifetime': random.randint(100, 250),  # milliseconds
             'start_time': pygame.time.get_ticks()
         }
-        global_damage_indicators.append(indicator)
+        if len(global_damage_indicators) < MAX_INDICATORS:
+            global_damage_indicators.append(indicator)
 
     def take_damage(self, damage, projectile=None):
         global money
@@ -4758,11 +5196,11 @@ class FireflyEnemy:
             self.protected_enemies.clear()
             self.is_alive = False
             self.sfx_splat.play()
-            money += 25
+            money += 10
 
     def create_protection_effect(self):
         # Create shield burst effect
-        for _ in range(15):
+        for _ in range(5):
             particle = {
                 'pos': list(self.position),
                 'vel': [random.uniform(-3, 3), random.uniform(-3, 3)],
@@ -4771,7 +5209,7 @@ class FireflyEnemy:
                 'color': (247, 217, 59),
                 'radius': random.randint(2, 4)
             }
-            self.shards.append(particle)
+            global_impact_particles.append(particle)
 
     def update_animation(self):
         current_time = pygame.time.get_ticks()
@@ -4810,7 +5248,7 @@ class DragonflyEnemy:
         self.size = self.rect.size
         self.current_target = 0
         self.is_alive = True
-        self.shards = []  # NEW: Particle storage
+        # global_impact_particles = []  # NEW: Particle storage
 
     def move(self):
         global user_health
@@ -4837,7 +5275,8 @@ class DragonflyEnemy:
             user_health -= self.health
 
     # NEW: Shard particle methods (same as AntEnemy)
-    def spawn_shards(self, count=10):
+    def spawn_shards(self, count=5):
+        global global_impact_particles
         for _ in range(count):
             shard = {
                 'pos': [self.position[0], self.position[1]],
@@ -4846,14 +5285,15 @@ class DragonflyEnemy:
                 'start_time': pygame.time.get_ticks(),
                 'radius': random.randint(1, 3)
             }
-            self.shards.append(shard)
+            if len(global_impact_particles) < MAX_SHARDS:
+                global_impact_particles.append(shard)
 
     def update_shards(self, screen):
         current_time = pygame.time.get_ticks()
-        for shard in self.shards[:]:
+        for shard in global_impact_particles[:]:
             elapsed = current_time - shard['start_time']
             if elapsed > shard['lifetime']:
-                self.shards.remove(shard)
+                global_impact_particles.remove(shard)
             else:
                 shard['pos'][0] += shard['vel'][0]
                 shard['pos'][1] += shard['vel'][1]
@@ -4892,7 +5332,8 @@ class DragonflyEnemy:
             'lifetime': random.randint(100, 250),  # milliseconds
             'start_time': pygame.time.get_ticks()
         }
-        global_damage_indicators.append(indicator)
+        if len(global_damage_indicators) < MAX_INDICATORS:
+            global_damage_indicators.append(indicator)
 
     def take_damage(self, damage, projectile=None):
         global money
@@ -4902,7 +5343,7 @@ class DragonflyEnemy:
         if self.health <= 0:
             self.is_alive = False
             self.sfx_splat.play()
-            money += 25
+            money += 10
 
     def update_animation(self):
         current_time = pygame.time.get_ticks()
@@ -4947,7 +5388,7 @@ class DungBeetleBoss:
         self.size = self.rect.size
         self.current_target = 0
         self.is_alive = True
-        self.shards = []  # for hit/blue particle effects
+        # global_impact_particles = []  # for hit/blue particle effects
 
         # Squeak timer: play squeak sound every random interval (3000-10000ms)
         self.next_squeak_time = pygame.time.get_ticks() + random.randint(2000, 5000)
@@ -5023,17 +5464,19 @@ class DungBeetleBoss:
                 alpha = max(0, 255 - int((elapsed / particle['lifetime']) * 255))
                 particle['color'] = (0, 0, 255, alpha)
 
-    def spawn_shards(self, count=10):
+    def spawn_shards(self, count=2):
+        global global_impact_particles
         # Standard shards spawned when taking damage.
         for _ in range(count):
             shard = {
                 'pos': [self.position[0], self.position[1]],
                 'vel': [random.uniform(-5, 5), random.uniform(-5, 5)],
-                'lifetime': random.randint(100, 600),
+                'lifetime': random.randint(100, 300),
                 'start_time': pygame.time.get_ticks(),
                 'radius': random.randint(1, 3)
             }
-            self.shards.append(shard)
+            if len(global_impact_particles) < MAX_SHARDS:
+                global_impact_particles.append(shard)
 
     def spawn_blue_particles(self, count=30):
         # Spawn a cool, refined radial blue particle effect.
@@ -5049,14 +5492,14 @@ class DungBeetleBoss:
                 'radius': random.randint(1, 3),
                 'color': (0, 0, 255)  # Blue particles.
             }
-            self.shards.append(particle)
+            global_impact_particles.append(particle)
 
     def update_shards(self, screen):
         current_time = pygame.time.get_ticks()
-        for shard in self.shards[:]:
+        for shard in global_impact_particles[:]:
             elapsed = current_time - shard['start_time']
             if elapsed > shard['lifetime']:
-                self.shards.remove(shard)
+                global_impact_particles.remove(shard)
             else:
                 shard['pos'][0] += shard['vel'][0]
                 shard['pos'][1] += shard['vel'][1]
@@ -5092,7 +5535,8 @@ class DungBeetleBoss:
             'lifetime': random.randint(100, 250),
             'start_time': pygame.time.get_ticks()
         }
-        global_damage_indicators.append(indicator)
+        if len(global_damage_indicators) < MAX_INDICATORS:
+            global_damage_indicators.append(indicator)
 
     def take_damage(self, damage, projectile=None):
         global money, enemies
@@ -5158,7 +5602,7 @@ class DungBeetleBoss:
 class RoachQueenEnemy:
     def __init__(self, position, path):
         self.position = position
-        self.health = 20
+        self.health = 25
         self.speed = 0.5
         self.path = path
         self.original_image = load_image("assets/roach_queen.png")
@@ -5313,7 +5757,8 @@ class RoachQueenEnemy:
             'lifetime': random.randint(100, 250),  # milliseconds
             'start_time': pygame.time.get_ticks()
         }
-        global_damage_indicators.append(indicator)
+        if len(global_damage_indicators) < MAX_INDICATORS:
+            global_damage_indicators.append(indicator)
 
     def take_damage(self, damage, projectile=None):
         self.health -= damage
@@ -5322,7 +5767,7 @@ class RoachQueenEnemy:
             self.is_alive = False
             load_sound("assets/splat_sfx.mp3").play()
             global money
-            money += 5
+            money += 15
 
     def render(self, screen):
         if self.is_alive:
@@ -5347,7 +5792,7 @@ class RoachMinionEnemy:
         self.size = self.rect.size
         self.current_target = current_target  # Start from the queen's target
         self.is_alive = True
-        self.shards = []  # For particle effects if needed
+        # global_impact_particles = []  # For particle effects if needed
 
     def move(self):
         global user_health
@@ -5400,13 +5845,16 @@ class RoachMinionEnemy:
             'lifetime': random.randint(100, 250),  # milliseconds
             'start_time': pygame.time.get_ticks()
         }
-        global_damage_indicators.append(indicator)
+        if len(global_damage_indicators) < MAX_INDICATORS:
+            global_damage_indicators.append(indicator)
 
     def take_damage(self, damage, projectile=None):
+        global money
         self.health -= damage
         self.show_damage_indicator(damage)
         if self.health <= 0:
             self.is_alive = False
+            money += 3
             load_sound("assets/splat_sfx.mp3").play()
 
     def render(self, screen):
@@ -5456,6 +5904,7 @@ class CentipedeEnemy:
         self.base_speed = 1
         self.speed = self.base_speed
         self.links = links
+        self.health = 6
 
         # Load images
         head_img = load_image("assets/centipede_head.png")
@@ -5480,9 +5929,10 @@ class CentipedeEnemy:
         self.segments.append(self.Segment("tail", 3, tail_img, position))
 
         # Initialize shard particles list.
-        self.shards = []
+        # global_impact_particles = []
 
     def spawn_shards(self, count=10):
+        global global_impact_particles
         """
         Spawn a burst of shard particles to simulate a link breaking.
         """
@@ -5494,17 +5944,18 @@ class CentipedeEnemy:
                 'start_time': pygame.time.get_ticks(),
                 'radius': random.randint(1, 3)
             }
-            self.shards.append(shard)
+            if len(global_impact_particles) < MAX_SHARDS:
+                global_impact_particles.append(shard)
 
     def update_shards(self, screen):
         """
         Update and render shard particles.
         """
         current_time = pygame.time.get_ticks()
-        for shard in self.shards[:]:
+        for shard in global_impact_particles[:]:
             elapsed = current_time - shard['start_time']
             if elapsed > shard['lifetime']:
-                self.shards.remove(shard)
+                global_impact_particles.remove(shard)
             else:
                 shard['pos'][0] += shard['vel'][0]
                 shard['pos'][1] += shard['vel'][1]
@@ -5609,9 +6060,11 @@ class CentipedeEnemy:
             'lifetime': random.randint(100, 250),  # milliseconds
             'start_time': pygame.time.get_ticks()
         }
-        global_damage_indicators.append(indicator)
+        if len(global_damage_indicators) < MAX_INDICATORS:
+            global_damage_indicators.append(indicator)
 
     def take_damage(self, damage, hit_position=None, projectile=None, area_center=None, area_radius=0):
+        global money
         """
         Apply incoming damage:
           - If a projectile is provided and its explosive flag is True, then set default explosion parameters.
@@ -5654,6 +6107,7 @@ class CentipedeEnemy:
             self.show_damage_indicator(damage)
             if head.health <= 0:
                 head.alive = False
+                money += 10
                 head.death_time = pygame.time.get_ticks()
             return
 
@@ -5694,6 +6148,7 @@ class CentipedeEnemy:
         self.show_damage_indicator(damage)
         if head.health <= 0:
             head.alive = False
+            money += 10
             head.death_time = pygame.time.get_ticks()
 
     def remove_segment(self, seg):

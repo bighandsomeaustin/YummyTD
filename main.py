@@ -64,11 +64,21 @@ while running:
             if event.type == pygame.QUIT:
                 pygame.quit()
 
-        option = mainmenu.playscreen_control(screen, resumeFlag)
-        if option == "close":
-            state = "Menu"
-        if option == "New":
-            state = "New Game"
+        if not mainmenu.optionFlag:
+            mainmenu.render_mainmenu(screen)
+            img_play_screen = pygame.image.load("assets/play_screen.png").convert_alpha()
+            screen.blit(img_play_screen, (0, 0))
+            option = mainmenu.playscreen_control(screen, resumeFlag)
+            if option == "close":
+                state = "Menu"
+            elif option == "New":
+                state = "New Game"
+            elif option == "options":
+                mainmenu.optionFlag = True
+
+        if mainmenu.optionFlag:
+            mainmenu.options_control(screen)
+
         pygame.display.flip()
         clock.tick(60)  # limits FPS to 60
 
@@ -79,7 +89,7 @@ while running:
         mixer.music.load("assets/map_music.mp3")
         mixer.music.play(-1)
         game_tools.user_health = 100
-        game_tools.money = 250
+        game_tools.money = 25000
         round_number = 1
         game_tools.towers.clear()
         game_tools.enemies.clear()
@@ -136,7 +146,10 @@ while running:
                     if isinstance(tower, game_tools.RatBank):
                         tower.process_loan_payment()
                         tower.process_interest()
-                game_tools.RoundFlag = False
+                if game_tools.Autoplay:
+                    game_tools.RoundFlag = True
+                else:
+                    game_tools.RoundFlag = False
                 round_number += 1
                 start_new_wave(round_number)
                 cursor_select = "NULL"
