@@ -21,12 +21,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller
 
-      - name: Build app with PyInstaller
+      - name: Build with PyInstaller
         run: |
           pyinstaller --windowed --add-data "assets:assets" main.py
 
-      - name: Upload built app
-        uses: actions/upload-artifact@7c927c5c37a0c81291c6d09e2c73d6d3f6db2ad5
+      - name: Zip the .app
+        run: |
+          cd dist
+          zip -r YummyTD.zip *.app
+
+      - name: Upload zip artifact
+        uses: actions/upload-artifact@v3
         with:
-          name: macOS-app
-          path: dist/*.app
+          name: YummyTD-macOS
+          path: dist/YummyTD.zip
