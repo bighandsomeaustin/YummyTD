@@ -247,7 +247,7 @@ def load_game(filename):
             data = json.load(f)
     except FileNotFoundError:
         print(f"No save file found at {filename}.")
-        return 1, 0, False
+        return 1, 0, False, 250
 
     wave_number = data.get("wave_number", 1)
     kill_count = data.get("kill_count", 0)
@@ -329,7 +329,7 @@ def load_settings(filename):
             data = json.load(f)
     except FileNotFoundError:
         print(f"No save file found at {filename}.")
-        return 500, 500, 2, False, False
+        return 500, 500, 2, False, False, 1.0
 
     max_shards = data.get("max_shards", 500)
     max_indicators = data.get("max_indicators", 500)
