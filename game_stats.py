@@ -1,0 +1,1 @@
+global_kill_total = {"count": 0}

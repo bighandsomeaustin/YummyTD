@@ -3,6 +3,9 @@ from pygame import mixer
 import math
 import time
 import random
+import game_stats
+
+import save_manager
 
 pygame.init()
 pygame.display.set_mode((1280, 720))
@@ -43,9 +46,12 @@ hitbox_position = (0, 0)  # Top-left corner
 RoundFlag = False
 UpgradeFlag = False
 SettingsFlag = False
+TowerFlag = False
 curr_upgrade_tower = None
 MogFlag = False
 Autoplay = False
+showFPS = False
+showCursor = False
 gameoverFlag = False
 last_time_sfx = pygame.time.get_ticks()
 money = 250  # change for debugging
@@ -54,12 +60,69 @@ music_volume = 1.0
 user_volume = 1.0
 slider_dragging = False
 game_speed_multiplier = 1  # Add at top with other globals
+max_speed_multiplier = 2
 last_frame_time = 0  # Track frame timing
 global_damage_indicators = []
 global_impact_particles = []
 
-MAX_SHARDS = 200
-MAX_INDICATORS = 200
+MAX_SHARDS = 500
+MAX_INDICATORS = 500
+
+
+class Shard:
+    def __init__(self, pos, velocity, color=(255, 255, 255), radius=3, lifetime=30):
+        self.pos = list(pos)
+        self.velocity = velocity
+        self.color = color
+        self.radius = radius
+        self.lifetime = lifetime
+
+    def update(self):
+        self.pos[0] += self.velocity[0]
+        self.pos[1] += self.velocity[1]
+        self.lifetime -= 1
+
+    def draw(self, surface):
+        if self.lifetime > 0:
+            pygame.draw.circle(surface, self.color, (int(self.pos[0]), int(self.pos[1])), self.radius)
+
+
+def spawn_shard(pos, color=(255, 255, 255), count=5, speed=3, radius_range=(1, 3), lifetime_range=(100, 600)):
+    global global_impact_particles
+    if MAX_SHARDS <= 0:
+        return
+
+    for _ in range(count):
+        angle = random.uniform(0, 2 * math.pi)
+        velocity = [math.cos(angle) * random.randint(-1 * speed, speed), math.sin(angle) * random.randint(-1 * speed, speed)]
+        shard = {
+            'pos': [pos[0], pos[1]],
+            'vel': velocity,
+            'lifetime': random.randint(*lifetime_range),
+            'start_time': pygame.time.get_ticks(),
+            'radius': random.randint(*radius_range),
+            'color': color
+        }
+        if len(global_impact_particles) < MAX_SHARDS:
+            global_impact_particles.append(shard)
+
+
+def update_shards(screen):
+    current_time = pygame.time.get_ticks()
+    for shard in global_impact_particles[:]:
+        elapsed = current_time - shard['start_time']
+        if elapsed > shard['lifetime']:
+            global_impact_particles.remove(shard)
+        else:
+            shard['pos'][0] += shard['vel'][0]
+            shard['pos'][1] += shard['vel'][1]
+            alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
+            base_color = shard.get('color', (255, 255, 255))
+            color = (*base_color, alpha)
+            surf = pygame.Surface((shard['radius'] * 2, shard['radius'] * 2), pygame.SRCALPHA)
+            pygame.draw.circle(surf, color, (shard['radius'], shard['radius']), shard['radius'])
+            screen.blit(surf, shard['pos'])
+
 
 # Load frames once globally
 frames = [load_image(f"assets/splash/splash{i}.png") for i in range(1, 8)]
@@ -192,6 +255,8 @@ def check_hitbox(image, position, placed_towers):
                 pixel = tower.image.get_at((int(relative_x), int(relative_y)))
                 if pixel.a != 0:  # Not transparent
                     return False
+                else:
+                    return True
     return True  # Valid placement
 
 
@@ -244,7 +309,7 @@ def fade_into_image(scrn: pygame.Surface, image_path: str, duration: int = 200):
 
 def check_game_menu_elements(scrn: pygame.surface) -> str:
     global RoundFlag, money, UpgradeFlag, curr_upgrade_tower, SettingsFlag, music_volume, slider_dragging, user_volume \
-        , gameoverFlag, enemies, current_wave, user_health, game_speed_multiplier, Autoplay
+        , gameoverFlag, enemies, current_wave, user_health, game_speed_multiplier, Autoplay, max_speed_multiplier, TowerFlag
     purchase = load_sound("assets/purchase_sound.mp3")
     invalid = load_sound("assets/invalid.mp3")
     img_tower_select = load_image("assets/tower_select.png")
@@ -277,7 +342,11 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     # Calculate slider x based on music_volume (0.0 to 1.0)
     slider_x = slider_min + user_volume * (slider_max - slider_min)
 
+    TowerFlag = False
+
     if user_health <= 0 and not gameoverFlag:
+        pygame.mixer.stop()
+        save_manager.wipe_save("my_save.json")
         user_health = 0
         gameoverFlag = True
         mixer.music.load("assets/song_gameover.mp3")
@@ -309,6 +378,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
         scrn.blit(img_playbutton, (1110, 665))
         if 1110 <= mouse[0] <= 1110 + 81 and 665 <= mouse[1] <= 665 + 50:
             if detect_single_click():
+                TowerFlag = False
                 RoundFlag = True
                 return "nextround"
     if RoundFlag:
@@ -319,7 +389,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
         # 2x speed
         if 1110 <= mouse[0] <= 1110 + 81 and 665 <= mouse[1] <= 665 + 50:
             if detect_single_click():
-                game_speed_multiplier = 2 if game_speed_multiplier == 1 else 1
+                game_speed_multiplier = max_speed_multiplier if game_speed_multiplier == 1 else 1
 
     # settings button
     scrn.blit(img_settingsbutton, (1192, 665))
@@ -336,9 +406,15 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
         if 766 <= mouse[0] <= 766 + 15 and 205 <= mouse[1] <= 205 + 18:
             if detect_single_click():
                 SettingsFlag = False
+                save_manager.save_settings("settings.json", MAX_SHARDS, MAX_INDICATORS,
+                                           max_speed_multiplier, showFPS, showCursor,
+                                           user_volume)
         if 306 <= mouse[0] <= 306 + 199 and 286 <= mouse[1] <= 286 + 114:
             if detect_single_click():
                 SettingsFlag = False
+                save_manager.save_settings("settings.json", MAX_SHARDS, MAX_INDICATORS,
+                                           max_speed_multiplier, showFPS, showCursor,
+                                           user_volume)
                 return "saveandquit"
         if 387 <= mouse[0] <= 387 + 30 and 247 <= mouse[1] <= 247 + 30:
             if detect_single_click():
@@ -349,7 +425,10 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
         if 550 <= mouse[0] <= 550 + 199 and 286 <= mouse[1] <= 286 + 114:
             if detect_single_click():
                 SettingsFlag = False
-                return "saveandquit"  # change to quit w/o saving later
+                save_manager.save_settings("settings.json", MAX_SHARDS, MAX_INDICATORS,
+                                           max_speed_multiplier, showFPS, showCursor,
+                                           user_volume)
+                return "quit"
         # If left mouse button is pressed, check for dragging
         if mouse_pressed:
             # If not already dragging, check if the click is near the slider knob
@@ -482,19 +561,37 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
                     tower.is_selected = True
                 UpgradeFlag = True
                 curr_upgrade_tower = tower
-    if UpgradeFlag:
+    if UpgradeFlag and not TowerFlag:
         handle_upgrade(scrn, curr_upgrade_tower)
     return "NULL"
 
 
+def blit_text(scrn, text, choice):
+    font = get_font("arial", 16)
+    if choice == "top":
+        rect = pygame.Rect(897, 39, 193, 24)
+    elif choice == "bottom":
+        rect = pygame.Rect(897, 170, 193, 24)
+    else:
+        rect = pygame.Rect(897, 170, 193, 24)
+    text_surface = font.render(text, True, (0, 0, 0))
+    text_rect = text_surface.get_rect(center=rect.center)
+    scrn.blit(text_surface, text_rect)
+
+
 def handle_upgrade(scrn, tower):
-    global UpgradeFlag, money, MogFlag
+    global UpgradeFlag, money, MogFlag, TowerFlag
+    TowerFlag = False
     mouse = pygame.mouse.get_pos()
     purchase = load_sound("assets/purchase_sound.mp3")
     img_upgrade_window = load_image("assets/upgrade_window.png")
     img_upgrade_highlighted = load_image("assets/upgrade_window_highlighted.png")
+    img_max_upgrades = load_image("assets/upgrade_max.png")
     img_sell_button = load_image("assets/sell_button.png")
     upgrade_font = get_font("arial", 16)
+    # cleaner bounds
+    top = (883, 65)
+    bottom = (883, 194)
     scrn.blit(img_upgrade_window, (882, 0))
     scrn.blit(img_sell_button, (997, 298))
     text_sell = upgrade_font.render(f"SELL: ${tower.sell_amt}", True, (255, 255, 255))
@@ -504,22 +601,24 @@ def handle_upgrade(scrn, tower):
         img_protein_upgrade = load_image("assets/upgrade_protein.png")
         img_diploma_upgrade = load_image("assets/upgrade_diploma.png")
         img_steroids_upgrade = load_image("assets/upgrade_culture_injection.png")
-        text_booksmart = upgrade_font.render("Book Smart", True, (0, 0, 0))
-        text_protein = upgrade_font.render("Protein 9000", True, (0, 0, 0))
-        text_diploma = upgrade_font.render("College Diploma", True, (0, 0, 0))
-        text_steroids = upgrade_font.render("Culture Injection", True, (0, 0, 0))
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_booksmart_upgrade, (883, 65))
-            scrn.blit(text_booksmart, (962, 42))
+            blit_text(scrn, "Book Smart", "top")
+        elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
+            scrn.blit(img_diploma_upgrade, (883, 65))
+            blit_text(scrn, "College Diploma", "top")
+        else:
+            scrn.blit(img_max_upgrades, top)
+
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_protein_upgrade, (883, 194))
-            scrn.blit(text_protein, (962, 172))
-        if tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
-            scrn.blit(img_diploma_upgrade, (883, 65))
-            scrn.blit(text_diploma, (952, 42))
-        if tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
+            blit_text(scrn, "Protein 9000", "bottom")
+        elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
             scrn.blit(img_steroids_upgrade, (883, 194))
-            scrn.blit(text_steroids, (954, 172))
+            blit_text(scrn, "Culture Injection", "bottom")
+        else:
+            scrn.blit(img_max_upgrades, bottom)
+
         # check bounds for sell button
         if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
             if detect_single_click():
@@ -599,15 +698,17 @@ def handle_upgrade(scrn, tower):
     if isinstance(tower, RatTent):
         img_fasterrats_upgrade = load_image("assets/upgrade_fasterrats.png")
         img_strongrats_upgrade = load_image("assets/upgrade_strongerrats.png")
-        upgrade_font = get_font("arial", 16)
-        text_faster = upgrade_font.render("Faster Rats", True, (0, 0, 0))
-        text_stronger = upgrade_font.render("Stronger Rats", True, (0, 0, 0))
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_fasterrats_upgrade, (883, 65))
-            scrn.blit(text_faster, (962, 42))
+            blit_text(scrn, "Faster Rats", "top")
+        else:
+            scrn.blit(img_max_upgrades, top)
+
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_strongrats_upgrade, (883, 194))
-            scrn.blit(text_stronger, (962, 172))
+            blit_text(scrn, "Stronger Rats", "bottom")
+        else:
+            scrn.blit(img_max_upgrades, bottom)
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
             scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
@@ -662,9 +763,13 @@ def handle_upgrade(scrn, tower):
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_amplifier_upgrade, (883, 65))
             scrn.blit(text_faster, (962, 42))
+        else:
+            scrn.blit(img_max_upgrades, top)
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_longerriffs_upgrade, (883, 194))
             scrn.blit(text_stronger, (962, 172))
+        else:
+            scrn.blit(img_max_upgrades, bottom)
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
             scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
@@ -720,9 +825,13 @@ def handle_upgrade(scrn, tower):
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_credit_upgrade, (883, 65))
             scrn.blit(text_credit, (952, 42))
+        else:
+            scrn.blit(img_max_upgrades, top)
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_cheesefargo_upgrade, (883, 194))
             scrn.blit(text_fargo, (962, 172))
+        else:
+            scrn.blit(img_max_upgrades, bottom)
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
             scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
@@ -763,27 +872,26 @@ def handle_upgrade(scrn, tower):
         img_twinguns_upgrade = load_image("assets/upgrade_twinguns.png")
         img_flamebullets_upgrade = load_image("assets/upgrade_flame.png")
         img_deathray_upgrade = load_image("assets/upgrade_deathray.png")
-        upgrade_font = get_font("arial", 16)
-        text_faster_spool = upgrade_font.render("Faster Spool", True, (0, 0, 0))
-        text_biggermags = upgrade_font.render("Bigger Mags", True, (0, 0, 0))
-        text_twinguns = upgrade_font.render("Twin Guns", True, (0, 0, 0))
-        text_flame = upgrade_font.render("Flaming Fromage", True, (0, 0, 0))
-        text_deathray = upgrade_font.render("Death Ray", True, (0, 0, 0))
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_fasterspool_upgrade, (883, 65))
-            scrn.blit(text_faster_spool, (962, 42))
+            blit_text(scrn, "Faster Spool", "top")
         elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_biggermags_upgrade, (883, 65))
-            scrn.blit(text_biggermags, (962, 42))
+            blit_text(scrn, "Bigger Mags", "top")
         elif tower.curr_top_upgrade == 2 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_twinguns_upgrade, (883, 65))
-            scrn.blit(text_twinguns, (962, 42))
+            blit_text(scrn, "Twin Guns", "top")
+        else:
+            scrn.blit(img_max_upgrades, top)
+
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_flamebullets_upgrade, (883, 194))
-            scrn.blit(text_flame, (954, 172))
+            blit_text(scrn, "Flaming Fromage", "bottom")
         elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 3:
             scrn.blit(img_deathray_upgrade, (883, 194))
-            scrn.blit(text_deathray, (962, 172))
+            blit_text(scrn, "Death Ray", "bottom")
+        else:
+            scrn.blit(img_max_upgrades, bottom)
         # TOP UPGRADE PATH
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
             scrn.blit(img_upgrade_highlighted, (883, 65))
@@ -892,31 +1000,28 @@ def handle_upgrade(scrn, tower):
         img_rechamber_upgrade = load_image("assets/upgrade_rechambering.png")
         img_semiauto_upgrade = load_image("assets/upgrade_semiauto.png")
         img_fmj_upgrade = load_image("assets/upgrade_fmj.png")
-        upgrade_font = get_font("arial", 16)
-        text_collateral = upgrade_font.render("Collateral Hits", True, (0, 0, 0))
-        text_50cal = upgrade_font.render("50cal Rounds", True, (0, 0, 0))
-        text_chain = upgrade_font.render("Collateral Chain", True, (0, 0, 0))
-        text_rechamber = upgrade_font.render("Fast Rechambering", True, (0, 0, 0))
-        text_fmj = upgrade_font.render("FMJ Rounds", True, (0, 0, 0))
-        text_semiauto = upgrade_font.render("Semi-Automatic", True, (0, 0, 0))
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_collateral_upgrade, (883, 65))
-            scrn.blit(text_collateral, (962, 42))
+            blit_text(scrn, "Collateral Hits", "top")
         elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_50cal_upgrade, (883, 65))
-            scrn.blit(text_50cal, (962, 42))
+            blit_text(scrn, "50cal Rounds", "top")
         elif tower.curr_top_upgrade == 2 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_chain_upgrade, (883, 65))
-            scrn.blit(text_chain, (962, 42))
+            blit_text(scrn, "Collateral Chain", "top")
+        else:
+            scrn.blit(img_max_upgrades, top)
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_rechamber_upgrade, (883, 194))
-            scrn.blit(text_rechamber, (954, 172))
+            blit_text(scrn, "Fast Rechambering", "bottom")
         elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
             scrn.blit(img_semiauto_upgrade, (883, 194))
-            scrn.blit(text_semiauto, (962, 172))
+            blit_text(scrn, "FMJ Rounds", "bottom")
         elif tower.curr_bottom_upgrade == 2 and tower.curr_top_upgrade < 2:
             scrn.blit(img_fmj_upgrade, (883, 194))
-            scrn.blit(text_fmj, (962, 172))
+            blit_text(scrn, "Semi-Automatic", "bottom")
+        else:
+            scrn.blit(img_max_upgrades, bottom)
         # TOP UPGRADE PATH
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
             scrn.blit(img_upgrade_highlighted, (883, 65))
@@ -1047,35 +1152,29 @@ def handle_upgrade(scrn, tower):
         img_snow_flurry_upgrade = load_image("assets/upgrade_snow_flurry.png")
         img_freezing_temps_upgrade = load_image("assets/upgrade_freezing_temps.png")
 
-        upgrade_font = get_font("arial", 16)
-        # top upgrades
-        text_snowball = upgrade_font.render("Snowballs", True, (0, 0, 0))
-        text_deadly = upgrade_font.render("Deadly Snowballs", True, (0, 0, 0))
-        text_barrage = upgrade_font.render("Snowball Barrage", True, (0, 0, 0))
-        # bottom upgrades
-        text_radius = upgrade_font.render("Bigger Storm", True, (0, 0, 0))
-        text_flurry = upgrade_font.render("Snow Flurries", True, (0, 0, 0))
-        text_freezing = upgrade_font.render("Sub-Zero Temps", True, (0, 0, 0))
-
         # show upgrade images
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_snowball_upgrade, (883, 65))
-            scrn.blit(text_snowball, (962, 42))
+            blit_text(scrn, "Snowballs", "top")
         elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_deadly_snowballs_upgrade, (883, 65))
-            scrn.blit(text_deadly, (962, 42))
+            blit_text(scrn, "Deadly Snowballs", "top")
         elif tower.curr_top_upgrade == 2 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_snowball_barrage_upgrade, (883, 65))
-            scrn.blit(text_barrage, (962, 42))
+            blit_text(scrn, "Snowball Barrage", "top")
+        else:
+            scrn.blit(img_max_upgrades, top)
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_freeze_radius_upgrade, (883, 194))
-            scrn.blit(text_radius, (954, 172))
+            blit_text(scrn, "Bigger Storm", "bottom")
         elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
             scrn.blit(img_snow_flurry_upgrade, (883, 194))
-            scrn.blit(text_flurry, (962, 172))
+            blit_text(scrn, "Snow Flurries", "bottom")
         elif tower.curr_bottom_upgrade == 2 and tower.curr_top_upgrade < 2:
             scrn.blit(img_freezing_temps_upgrade, (883, 194))
-            scrn.blit(text_freezing, (962, 172))
+            blit_text(scrn, "Sub-Zero Temps", "bottom")
+        else:
+            scrn.blit(img_max_upgrades, bottom)
 
         # TOP UPGRADE PATH
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
@@ -1147,27 +1246,26 @@ def handle_upgrade(scrn, tower):
         img_explosive_orbs_upgrade = load_image("assets/upgrade_explosiveorbs.png")
         img_lightning_upgrade = load_image("assets/upgrade_lightning.png")
         img_storm_upgrade = load_image("assets/upgrade_storm.png")
-        upgrade_font = get_font("arial", 16)
-        text_apprentice = upgrade_font.render("Rat Apprentice", True, (0, 0, 0))
-        text_master = upgrade_font.render("Master Wizard", True, (0, 0, 0))
-        text_explosiveorbs = upgrade_font.render("Explosive Orbs", True, (0, 0, 0))
-        text_lightning = upgrade_font.render("Lightning Spell", True, (0, 0, 0))
-        text_storm = upgrade_font.render("Lightning Storm", True, (0, 0, 0))
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_apprentice_upgrade, (883, 65))
-            scrn.blit(text_apprentice, (962, 42))
+            blit_text(scrn, "Rat Apprentice", "top")
         elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_master_upgrade, (883, 65))
-            scrn.blit(text_master, (962, 42))
+            blit_text(scrn, "Master Wizard", "top")
         elif tower.curr_top_upgrade == 2 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_explosive_orbs_upgrade, (883, 65))
-            scrn.blit(text_explosiveorbs, (962, 42))
+            blit_text(scrn, "Explosive Orbs", "top")
+        else:
+            scrn.blit(img_max_upgrades, bottom)
+
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_lightning_upgrade, (883, 194))
-            scrn.blit(text_lightning, (954, 172))
+            blit_text(scrn, "Lightning Spell", "bottom")
         elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 3:
             scrn.blit(img_storm_upgrade, (883, 194))
-            scrn.blit(text_storm, (962, 172))
+            blit_text(scrn, "Lightning Storm", "bottom")
+        else:
+            scrn.blit(img_max_upgrades, bottom)
         # TOP UPGRADE PATH
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
             scrn.blit(img_upgrade_highlighted, (883, 65))
@@ -1264,24 +1362,23 @@ def handle_upgrade(scrn, tower):
         img_rpg_upgrade = load_image("assets/upgrade_rocket.png")
         img_piercing_upgrade = load_image("assets/upgrade_piercing.png")
         img_thumper_upgrade = load_image("assets/upgrade_thumper.png")
-        upgrade_font = get_font("arial", 16)
-        text_shotgun = upgrade_font.render("Shotgun", True, (0, 0, 0))
-        text_piercing = upgrade_font.render("Piercing Rounds", True, (0, 0, 0))
-        text_rpg = upgrade_font.render("Explosive Rounds", True, (0, 0, 0))
-        text_grenade = upgrade_font.render("Grenade Launcher", True, (0, 0, 0))
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_piercing_upgrade, (883, 65))
-            scrn.blit(text_piercing, (952, 42))
+            blit_text(scrn, "Piercing Rounds", "top")
         elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_shotgun_upgrade, (883, 65))
-            scrn.blit(text_shotgun, (959, 42))
+            blit_text(scrn, "Shotgun", "top")
+        else:
+            scrn.blit(img_max_upgrades, top)
 
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_rpg_upgrade, (883, 194))
-            scrn.blit(text_rpg, (942, 172))
+            blit_text(scrn, "Explosive Rounds", "bottom")
         elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
             scrn.blit(img_thumper_upgrade, (883, 194))
-            scrn.blit(text_grenade, (941, 172))
+            blit_text(scrn, "Grenade Launcher", "bottom")
+        else:
+            scrn.blit(img_max_upgrades, bottom)
         # piercing upgrade
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
             scrn.blit(img_upgrade_highlighted, (883, 65))
@@ -1352,28 +1449,26 @@ def handle_upgrade(scrn, tower):
         img_damage5_upgrade = load_image("assets/upgrade_damage5.png")
         img_radius_upgrade = load_image("assets/upgrade_radius.png")
         img_speed_upgrade = load_image("assets/upgrade_speed.png")
-        upgrade_font = get_font("arial", 16)
-        text_damage3 = upgrade_font.render("Organic Cheese", True, (0, 0, 0))
-        text_damage4 = upgrade_font.render("Pasteurized Cheese", True, (0, 0, 0))
-        text_damage5 = upgrade_font.render("Antibiotic-Free", True, (0, 0, 0))
-        text_radius = upgrade_font.render("Vitamin Enhanced Cheese", True, (0, 0, 0))
-        text_speed = upgrade_font.render("Caffienated Cheese", True, (0, 0, 0))
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_damage3_upgrade, (883, 65))
-            scrn.blit(text_damage3, (952, 42))
+            blit_text(scrn, "Organic Cheese", "top")
         elif tower.curr_top_upgrade == 1:
             scrn.blit(img_damage4_upgrade, (883, 65))
-            scrn.blit(text_damage4, (965, 42))
+            blit_text(scrn, "Pasteurized Cheese", "top")
         elif tower.curr_top_upgrade == 2:
             scrn.blit(img_damage5_upgrade, (883, 65))
-            scrn.blit(text_damage5, (956, 42))
+            blit_text(scrn, "Antibiotic-Free", "top")
+        else:
+            scrn.blit(img_max_upgrades, bottom)
 
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_radius_upgrade, (883, 194))
-            scrn.blit(text_radius, (922, 172))
+            blit_text(scrn, "Vitamin Enhanced Cheese", "bottom")
         elif tower.curr_bottom_upgrade == 1:
             scrn.blit(img_speed_upgrade, (883, 194))
-            scrn.blit(text_speed, (941, 172))
+            blit_text(scrn, "Caffienated Cheese", "bottom")
+        else:
+            scrn.blit(img_max_upgrades, bottom)
         # damage 3x
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
             scrn.blit(img_upgrade_highlighted, (883, 65))
@@ -1465,6 +1560,7 @@ def handle_upgrade(scrn, tower):
     for event in pygame.event.get():
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
+                TowerFlag = False
                 UpgradeFlag = False
                 return
         if event.type == pygame.QUIT:
@@ -1477,7 +1573,6 @@ def handle_upgrade(scrn, tower):
 
 def update_towers(scrn: pygame.surface):
     global towers, enemies, last_frame_time
-
     # Calculate delta time
     current_time = pygame.time.get_ticks()
     delta = (current_time - last_frame_time) * game_speed_multiplier
@@ -1531,6 +1626,8 @@ def update_stats(scrn: pygame.surface, health: int, money: int, round_number: in
     text2 = money_font.render(f"{money}", True, (255, 255, 255))
     text3 = round_font.render(f"Round {round_number}", True, (255, 255, 255))
 
+    img_kills = load_image("assets/kills_icon.png")
+
     # DEBUGGING CURSOR POS
     mouse = pygame.mouse.get_pos()
     fps = int(clock.get_fps())  # Get current FPS from the passed clock
@@ -1546,10 +1643,20 @@ def update_stats(scrn: pygame.surface, health: int, money: int, round_number: in
     # update all damage indicators!
     update_and_render_damage_indicators(scrn)
 
+    # total kills icon
+    kill_font = get_font("arial", 16)
+    text_kills = kill_font.render(f"{game_stats.global_kill_total['count']}", True, (255, 255, 255))
+
+    scrn.blit(img_kills, (22, 673))
+    scrn.blit(text_kills, (58, 678))
+
     # Display the FPS counter just above the x/y position text
-    scrn.blit(text_fps, (1000, 650))
-    scrn.blit(text_x, (1000, 670))
-    scrn.blit(text_y, (1000, 690))
+    if showFPS:
+        scrn.blit(text_fps, (1000, 690))
+
+    if showCursor:
+        scrn.blit(text_x, (932, 670))
+        scrn.blit(text_y, (932, 690))
 
     # BACK TO REGULAR STUFF
     scrn.blit(text1, (55, 15))
@@ -1558,13 +1665,15 @@ def update_stats(scrn: pygame.surface, health: int, money: int, round_number: in
 
 
 def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
-    global money
+    global money, TowerFlag
+    TowerFlag = True
     image_house_hitbox = 'assets/house_illegal_regions.png'
     house_hitbox = load_image(image_house_hitbox)
     tower_click = load_sound("assets/tower_placed.mp3")
     mouse = pygame.mouse.get_pos()
     relative_pos = (mouse[0] - hitbox_position[0], mouse[1] - hitbox_position[1])
     if tower == "NULL":
+        TowerFlag = False
         return True
     elif tower == "mrcheese":
         img_base_rat = load_image("assets/base_rat.png")
@@ -1572,6 +1681,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
         for event in pygame.event.get():
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_ESCAPE:
+                    TowerFlag = False
                     return True
         if check_hitbox(house_hitbox, relative_pos, towers):
             pygame.draw.circle(circle_surface, (0, 0, 0, 128), (100, 100), 100)
@@ -1588,6 +1698,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
             money -= 150
+            TowerFlag = False
             return True
     elif tower == "soldier":
         img_base_soldier = load_image("assets/base_soldier.png")
@@ -1595,6 +1706,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
         for event in pygame.event.get():
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_ESCAPE:
+                    TowerFlag = False
                     return True
         if check_hitbox(house_hitbox, relative_pos, towers):
             pygame.draw.circle(circle_surface, (0, 0, 0, 128), (75, 75), 75)
@@ -1610,6 +1722,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
             money -= 250
+            TowerFlag = False
             return True
     elif tower == "frost":
         img_base_frost = load_image("assets/base_frost.png")
@@ -1617,6 +1730,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
         for event in pygame.event.get():
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_ESCAPE:
+                    TowerFlag = False
                     return True
         if check_hitbox(house_hitbox, relative_pos, towers):
             pygame.draw.circle(circle_surface, (0, 0, 0, 128), (75, 75), 75)
@@ -1632,6 +1746,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
             money -= 200
+            TowerFlag = False
             return True
     elif tower == "sniper":
         img_base_sniper = load_image("assets/sniper_base.png")
@@ -1639,6 +1754,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
         for event in pygame.event.get():
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_ESCAPE:
+                    TowerFlag = False
                     return True
         if check_hitbox(house_hitbox, relative_pos, towers):
             pygame.draw.circle(circle_surface, (0, 0, 0, 128), (25, 25), 25)
@@ -1654,6 +1770,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
             money -= 350
+            TowerFlag = False
             return True
     elif tower == "wizard":
         img_base_wizard = load_image("assets/wizard_base.png")
@@ -1661,6 +1778,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
         for event in pygame.event.get():
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_ESCAPE:
+                    TowerFlag = False
                     return True
         if check_hitbox(house_hitbox, relative_pos, towers):
             pygame.draw.circle(circle_surface, (0, 0, 0, 128), (100, 100), 100)
@@ -1676,6 +1794,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
             money -= 400
+            TowerFlag = False
             return True
     elif tower == "beacon":
         img_base_beacon = load_image("assets/beacon_base.png")
@@ -1683,6 +1802,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
         for event in pygame.event.get():
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_ESCAPE:
+                    TowerFlag = False
                     return True
         if check_hitbox(house_hitbox, relative_pos, towers):
             pygame.draw.circle(circle_surface, (0, 0, 0, 128), (100, 100), 100)
@@ -1698,6 +1818,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
             money -= 900
+            TowerFlag = False
             return True
     elif tower == "rattent":
         img_base_tent = load_image("assets/base_camp.png")
@@ -1705,6 +1826,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
         for event in pygame.event.get():
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_ESCAPE:
+                    TowerFlag = False
                     return True
         if check_hitbox(house_hitbox, relative_pos, towers):
             pygame.draw.circle(circle_surface, (0, 0, 0, 128), (50, 50), 50)
@@ -1731,12 +1853,14 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
             money -= 650
+            TowerFlag = False
             return True
     elif tower == "ratbank":
         img_base_bank = load_image("assets/rat_bank.png")
         for event in pygame.event.get():
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_ESCAPE:
+                    TowerFlag = False
                     return True
         if check_hitbox(house_hitbox, relative_pos, towers):
             scrn.blit(img_base_bank, (mouse[0] - 25, mouse[1] - 25))
@@ -1748,6 +1872,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
             money -= 700
+            TowerFlag = False
             return True
     elif tower == "ozbourne":
         img_base_ozbourne = load_image("assets/alfredo_ozbourne_base.png")
@@ -1755,6 +1880,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
         for event in pygame.event.get():
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_ESCAPE:
+                    TowerFlag = False
                     return True
         if check_hitbox(house_hitbox, relative_pos, towers):
             pygame.draw.circle(circle_surface, (0, 0, 0, 128), (75, 75), 75)
@@ -1771,6 +1897,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
             money -= 500
+            TowerFlag = False
             return True
     elif tower == "minigun":
         img_base_minigun = load_image("assets/base_minigun.png")
@@ -1778,6 +1905,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
         for event in pygame.event.get():
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_ESCAPE:
+                    TowerFlag = False
                     return True
         if check_hitbox(house_hitbox, relative_pos, towers):
             pygame.draw.circle(circle_surface, (0, 0, 0, 128), (75, 75), 75)
@@ -1793,6 +1921,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
             money -= 600
+            TowerFlag = False
             return True
 
     return False
@@ -1894,7 +2023,7 @@ class RatTent:
         self.recruit_speed = recruit_speed
         self.recruit_damage = recruit_damage
         self.damage = self.recruit_damage
-        self.image = load_image(image_path)
+        self.image = load_image("assets/base_camp.png")
         self.rect = self.image.get_rect(center=position)
         self.spawn_interval = spawn_interval
         self.last_spawn_time = 0
@@ -1943,7 +2072,7 @@ class MrCheese:
         self.radius = radius
         self.weapon = weapon
         self.damage = damage
-        self.image = load_image(image_path)
+        self.image = load_image("assets/base_rat.png")
         self.original_image = self.image
         self.rect = self.image.get_rect(center=position)
         self.angle = 0
@@ -2072,7 +2201,7 @@ class MrCheese:
 class RatBank:
     def __init__(self, position, image_path):
         self.position = position
-        self.image = load_image(image_path)
+        self.image = load_image("assets/rat_bank.png")
         self.rect = self.image.get_rect(center=position)
         self.radius = 0
         # Investment properties
@@ -2241,6 +2370,7 @@ class RatBank:
                     self.briefundFlag = True
 
     def process_interest(self):
+        global money
         """
         Called at the end of each round to apply interest to the invested cash,
         update cash_generated, and recalculate the stock value.
@@ -2249,6 +2379,7 @@ class RatBank:
         round_diff = self.curr_round - self.invested_round
         self.cash_generated += int((self.cash_invested + self.cash_generated) *
                                    (self.interest_rate - 1))
+        money += 100
 
     def process_loan_payment(self):
         """
@@ -2660,7 +2791,7 @@ class RatFrost:
         # Only target if enemy is within the attack range.
         if closest and math.hypot(closest.position[0]-self.position[0],
                                   closest.position[1]-self.position[1]) <= self.attack_range \
-                and self.curr_top_upgrade > 0:
+                and self.curr_top_upgrade > 1:
             dx = closest.position[0] - self.position[0]
             dy = closest.position[1] - self.position[1]
             self.angle = math.degrees(math.atan2(-dy, dx))
@@ -2746,13 +2877,19 @@ class RatFrost:
     def shoot(self):
         pass
 
+    def target(self):
+        pass
+
     def render(self, screen):
         # Render the frost aura.
         if self.curr_bottom_upgrade < 1:
             radius_img = "assets/frost_freeze_radius_75.png"
-        else:
+        elif self.radius > 75:
             radius_img = "assets/frost_freeze_radius_100.png"
-        screen.blit(load_image(radius_img), (self.position[0] - self.radius, self.position[1] - self.radius))
+        if self.curr_bottom_upgrade < 1:
+            screen.blit(load_image(radius_img), (self.position[0] - 75, self.position[1] - 75))
+        else:
+            screen.blit(load_image(radius_img), (self.position[0] - 100, self.position[1] - 100))
         # Render the tower.
         screen.blit(self.image, self.rect.topleft)
         # Render all projectiles.
@@ -3531,6 +3668,8 @@ class MinigunTower:
         self.prev_pos = (0, 0)
         self.last_beam_damage_time = 0
         self.beam_sfx = load_sound("assets/laser_fire.mp3")
+        self.beam_channel = pygame.mixer.Channel(5)  # dedicated channel
+        self.beam_playing = False  # state flag
 
     def find_target(self, enemies):
         target = None
@@ -3605,12 +3744,18 @@ class MinigunTower:
         # Death ray update (unchanged from your original code)
         if self.curr_bottom_upgrade == 2 and self.target:
             self.beam_active = True
+            if not self.beam_playing:
+                self.beam_channel.play(self.beam_sfx, loops=-1)
+                self.beam_playing = True
             effective_beam_interval = 250 / game_speed_multiplier / 1000.0  # converting ms to seconds if needed
             if current_time - self.last_beam_damage_time >= effective_beam_interval:
                 self.target.take_damage(self.damage)
                 self.last_beam_damage_time = current_time
         else:
             self.beam_active = False
+            if self.beam_playing:
+                self.beam_channel.stop()
+                self.beam_playing = False
 
         # Update particles
         for particle in self.particles[:]:
@@ -3660,12 +3805,6 @@ class MinigunTower:
             if self.curr_bottom_upgrade < 2:
                 projectile.render(screen)
 
-        if self.beam_active:
-            if self.target:
-                if current_time - self.last_beam_time >= 0.5:  # Ensure at least 200ms has passed
-                    self.beam_sfx.play()
-                    self.last_beam_time = current_time  # Update last active time
-
         if self.curr_bottom_upgrade == 2:
             if self.target is not None:
                 self.prev_pos = self.target.position  # Save last position
@@ -3682,7 +3821,7 @@ class MinigunTower:
 
     def render_reload(self, screen):
         current_time = pygame.time.get_ticks() / 1000.0
-        progress = (current_time - self.reload_start_time) / self.reload_time
+        progress = 1.0 if self.reload_time == 0 else (current_time - self.reload_start_time) / self.reload_time
         progress = min(progress, 1)
         bar_width = self.rect.width
         bar_height = 5
@@ -3780,7 +3919,7 @@ class Ozbourne:
         self.radius = radius
         self.weapon = weapon
         self.damage = damage
-        self.image = load_image(image_path)
+        self.image = load_image("assets/alfredo_ozbourne_base.png")
         self.original_image = self.image
         self.rect = self.image.get_rect(center=position)
         self.riff_interval = riff_interval
@@ -3797,6 +3936,7 @@ class Ozbourne:
         self.riff_count = 0
         self.damage_default = self.damage
         self.riff_sfx = load_sound("assets/riff1.mp3")
+        self.riff_channel = pygame.mixer.Channel(4)
         # Flag to track if riff_longer is currently playing
         self.riff_playing = False
 
@@ -3816,8 +3956,8 @@ class Ozbourne:
         # If upgraded and an enemy is in range, ensure riff_longer is playing
         if self.curr_bottom_upgrade == 1 and enemy_in_range:
             if not self.riff_playing:
-                mixer.music.load("assets/riff_longer.mp3")
-                mixer.music.play(-1)
+                mixer.music.pause()
+                self.riff_channel.play(self.riff_sfx, loops=-1)
                 self.riff_playing = True
             # Trigger blast at the specified interval
             if pygame.time.get_ticks() - self.last_blast_time >= scaled_interval:
@@ -3826,8 +3966,8 @@ class Ozbourne:
         else:
             # If no enemy is in range (or not upgraded), switch back to main music if needed
             if self.riff_playing:
-                mixer.music.load("assets/map_music.mp3")
-                mixer.music.play(-1)
+                self.riff_channel.stop()
+                mixer.music.unpause()
                 self.riff_playing = False
             elif (pygame.time.get_ticks() - self.last_blast_time >= scaled_interval) and enemy_in_range:
                 self.blast(enemies)
@@ -4378,34 +4518,6 @@ class AntEnemy:
             self.is_alive = False
             user_health -= self.health
 
-    def spawn_shards(self, count=4):
-        global global_impact_particles
-        for _ in range(count):
-            shard = {
-                'pos': [self.position[0], self.position[1]],
-                'vel': [random.uniform(-3, 3), random.uniform(-3, 3)],
-                'lifetime': random.randint(100, 600),
-                'start_time': pygame.time.get_ticks(),
-                'radius': random.randint(1, 3)
-            }
-            if len(global_impact_particles) < MAX_SHARDS:
-                global_impact_particles.append(shard)
-
-    def update_shards(self, screen):
-        current_time = pygame.time.get_ticks()
-        for shard in global_impact_particles[:]:
-            elapsed = current_time - shard['start_time']
-            if elapsed > shard['lifetime']:
-                global_impact_particles.remove(shard)
-            else:
-                shard['pos'][0] += shard['vel'][0]
-                shard['pos'][1] += shard['vel'][1]
-                alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
-                color = (255, 255, 255, alpha)
-                shard_surface = pygame.Surface((shard['radius'] * 2, shard['radius'] * 2), pygame.SRCALPHA)
-                pygame.draw.circle(shard_surface, color, (shard['radius'], shard['radius']), shard['radius'])
-                screen.blit(shard_surface, (shard['pos'][0], shard['pos'][1]))
-
     def update_orientation(self, direction_x, direction_y):
         angle = math.degrees(math.atan2(-direction_y, direction_x))
         self.image = pygame.transform.rotate(self.original_image, angle - 90)
@@ -4414,7 +4526,7 @@ class AntEnemy:
     def show_damage_indicator(self, damage):
         # Create a damage text surface using a shared font.
         font = pygame.font.SysFont("impact", 20, bold=False)
-        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface = font.render(f"{damage:.1f}", True, (255, 0, 0))
         text_surface.set_alpha(128)
 
         angle_deg = random.uniform(-45, 45)
@@ -4442,9 +4554,17 @@ class AntEnemy:
         global money
         self.health -= damage
         self.show_damage_indicator(damage)
-        self.spawn_shards()
+        spawn_shard(
+            pos=self.position,
+            color=(255, 255, 255),
+            count=4,
+            speed=3,
+            radius_range=(1, 3),
+            lifetime_range=(100, 600)
+        )
         if self.health <= 0:
             self.is_alive = False
+            game_stats.global_kill_total["count"] += 1
             self.sfx_splat.play()
             money += 2
 
@@ -4453,7 +4573,6 @@ class AntEnemy:
             screen.blit(self.image, self.rect.topleft)
         else:
             screen.blit(self.img_death, self.rect.topleft)
-        self.update_shards(screen)  # NEW: Render particles
 
 
 class BeetleEnemy:
@@ -4535,15 +4654,7 @@ class BeetleEnemy:
         Each shard is represented as a dictionary with position, velocity, lifetime, and start_time.
         """
         for _ in range(count):
-            shard = {
-                'pos': [self.position[0], self.position[1]],
-                'vel': [random.uniform(-3, 3), random.uniform(-3, 3)],
-                'lifetime': random.randint(100, 300),  # lifetime in milliseconds
-                'start_time': pygame.time.get_ticks(),
-                'radius': random.randint(1, 3)
-            }
-            if len(global_impact_particles) < MAX_SHARDS:
-                global_impact_particles.append(shard)
+            spawn_shard(self.position, count=5)
 
     def update_shards(self, screen):
         """
@@ -4571,13 +4682,11 @@ class BeetleEnemy:
         Render the beetle on the given screen along with shard particles if any.
         """
         screen.blit(self.image, self.rect.topleft)
-        # Render shard particles
-        self.update_shards(screen)
 
     def show_damage_indicator(self, damage):
         # Create a damage text surface using a shared font.
         font = pygame.font.SysFont("impact", 20, bold=False)
-        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface = font.render(f"{damage:.1f}", True, (255, 0, 0))
         text_surface.set_alpha(128)
 
         angle_deg = random.uniform(-45, 45)
@@ -4629,6 +4738,7 @@ class BeetleEnemy:
             self.show_damage_indicator(damage)
             if self.health <= 0:
                 self.is_alive = False
+                game_stats.global_kill_total["count"] += 1
                 money += 10
             return  # Exit immediately to prevent normal armor processing
 
@@ -4675,6 +4785,7 @@ class BeetleEnemy:
 
         if self.health <= 0:
             self.is_alive = False
+            game_stats.global_kill_total["count"] += 1
             money += 10
 
 
@@ -4722,15 +4833,7 @@ class HornetEnemy:
     def spawn_shards(self, count=5):
         global global_impact_particles
         for _ in range(count):
-            shard = {
-                'pos': [self.position[0], self.position[1]],
-                'vel': [random.uniform(-5, 5), random.uniform(-5, 5)],
-                'lifetime': random.randint(100, 600),
-                'start_time': pygame.time.get_ticks(),
-                'radius': random.randint(1, 3)
-            }
-            if len(global_impact_particles) < MAX_SHARDS:
-                global_impact_particles.append(shard)
+            spawn_shard(self.position, count=5)
 
     def update_shards(self, screen):
         current_time = pygame.time.get_ticks()
@@ -4755,7 +4858,7 @@ class HornetEnemy:
     def show_damage_indicator(self, damage):
         # Create a damage text surface using a shared font.
         font = pygame.font.SysFont("impact", 20, bold=False)
-        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface = font.render(f"{damage:.1f}", True, (255, 0, 0))
         text_surface.set_alpha(128)
 
         angle_deg = random.uniform(-45, 45)
@@ -4787,6 +4890,7 @@ class HornetEnemy:
         if self.health <= 0:
             self.is_alive = False
             self.sfx_splat.play()
+            game_stats.global_kill_total["count"] += 1
             money += 4
 
     def render(self, screen):
@@ -4794,7 +4898,6 @@ class HornetEnemy:
             screen.blit(self.image, self.rect.topleft)
         else:
             screen.blit(self.img_death, self.rect.topleft)
-        self.update_shards(screen)  # NEW: Render particles
 
 
 class SpiderEnemy:
@@ -4848,15 +4951,7 @@ class SpiderEnemy:
     def spawn_shards(self, count=5):
         global global_impact_particles
         for _ in range(count):
-            shard = {
-                'pos': [self.position[0], self.position[1]],
-                'vel': [random.uniform(-5, 5), random.uniform(-5, 5)],
-                'lifetime': random.randint(100, 600),
-                'start_time': pygame.time.get_ticks(),
-                'radius': random.randint(1, 3)
-            }
-            if len(global_impact_particles) < MAX_SHARDS:
-                global_impact_particles.append(shard)
+            spawn_shard(self.position, count=5)
 
     def update_shards(self, screen):
         current_time = pygame.time.get_ticks()
@@ -4881,7 +4976,7 @@ class SpiderEnemy:
     def show_damage_indicator(self, damage):
         # Create a damage text surface using a shared font.
         font = pygame.font.SysFont("impact", 20, bold=False)
-        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface = font.render(f"{damage:.1f}", True, (255, 0, 0))
         text_surface.set_alpha(128)
 
         angle_deg = random.uniform(-45, 45)
@@ -4914,6 +5009,7 @@ class SpiderEnemy:
             self.is_alive = False
             self.sfx_splat.play()
             money += 6
+            game_stats.global_kill_total["count"] += 1
 
     def update_animation(self):
         current_time = pygame.time.get_ticks()
@@ -4928,7 +5024,7 @@ class SpiderEnemy:
             screen.blit(self.image, self.rect.topleft)
         else:
             screen.blit(self.img_death, self.rect.topleft)
-        self.update_shards(screen)  # NEW: Render particles
+
 
 
 class FireflyEnemy:
@@ -5121,15 +5217,7 @@ class FireflyEnemy:
     def spawn_shards(self, count=5):
         global global_impact_particles
         for _ in range(count):
-            shard = {
-                'pos': [self.position[0], self.position[1]],
-                'vel': [random.uniform(-5, 5), random.uniform(-5, 5)],
-                'lifetime': random.randint(100, 600),
-                'start_time': pygame.time.get_ticks(),
-                'radius': random.randint(1, 3)
-            }
-            if len(global_impact_particles) < MAX_SHARDS:
-                global_impact_particles.append(shard)
+            spawn_shard(self.position, count=5)
 
     def update_shards(self, screen):
         current_time = pygame.time.get_ticks()
@@ -5154,7 +5242,7 @@ class FireflyEnemy:
     def show_damage_indicator(self, damage):
         # Create a damage text surface using a shared font.
         font = pygame.font.SysFont("impact", 20, bold=False)
-        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface = font.render(f"{damage:.1f}", True, (255, 0, 0))
         text_surface.set_alpha(128)
 
         angle_deg = random.uniform(-45, 45)
@@ -5197,6 +5285,7 @@ class FireflyEnemy:
             self.is_alive = False
             self.sfx_splat.play()
             money += 10
+            game_stats.global_kill_total["count"] += 1
 
     def create_protection_effect(self):
         # Create shield burst effect
@@ -5225,7 +5314,6 @@ class FireflyEnemy:
             screen.blit(self.image, self.rect.topleft)
         else:
             screen.blit(self.img_death, self.rect.topleft)
-        self.update_shards(screen)
 
 
 class DragonflyEnemy:
@@ -5235,7 +5323,7 @@ class DragonflyEnemy:
     def __init__(self, position, path):
         self.position = position
         self.health = 8
-        self.speed = random.randint(3, 4)
+        self.speed = 3.25
         self.path = house_path
         self.frames = ["assets/dragonfly_frames/dragonfly0.png", "assets/dragonfly_frames/dragonfly1.png",
                        "assets/dragonfly_frames/dragonfly2.png", "assets/dragonfly_frames/dragonfly3.png"]
@@ -5276,32 +5364,7 @@ class DragonflyEnemy:
 
     # NEW: Shard particle methods (same as AntEnemy)
     def spawn_shards(self, count=5):
-        global global_impact_particles
-        for _ in range(count):
-            shard = {
-                'pos': [self.position[0], self.position[1]],
-                'vel': [random.uniform(-5, 5), random.uniform(-5, 5)],
-                'lifetime': random.randint(100, 600),
-                'start_time': pygame.time.get_ticks(),
-                'radius': random.randint(1, 3)
-            }
-            if len(global_impact_particles) < MAX_SHARDS:
-                global_impact_particles.append(shard)
-
-    def update_shards(self, screen):
-        current_time = pygame.time.get_ticks()
-        for shard in global_impact_particles[:]:
-            elapsed = current_time - shard['start_time']
-            if elapsed > shard['lifetime']:
-                global_impact_particles.remove(shard)
-            else:
-                shard['pos'][0] += shard['vel'][0]
-                shard['pos'][1] += shard['vel'][1]
-                alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
-                color = (255, 255, 255, alpha)
-                shard_surface = pygame.Surface((shard['radius'] * 2, shard['radius'] * 2), pygame.SRCALPHA)
-                pygame.draw.circle(shard_surface, color, (shard['radius'], shard['radius']), shard['radius'])
-                screen.blit(shard_surface, (shard['pos'][0], shard['pos'][1]))
+        spawn_shard(self.position, count=5)
 
     def update_orientation(self, direction_x, direction_y):
         angle = math.degrees(math.atan2(-direction_y, direction_x))
@@ -5311,7 +5374,7 @@ class DragonflyEnemy:
     def show_damage_indicator(self, damage):
         # Create a damage text surface using a shared font.
         font = pygame.font.SysFont("impact", 20, bold=False)
-        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface = font.render(f"{damage:.1f}", True, (255, 0, 0))
         text_surface.set_alpha(128)
 
         angle_deg = random.uniform(-45, 45)
@@ -5344,6 +5407,7 @@ class DragonflyEnemy:
             self.is_alive = False
             self.sfx_splat.play()
             money += 10
+            game_stats.global_kill_total["count"] += 1
 
     def update_animation(self):
         current_time = pygame.time.get_ticks()
@@ -5358,7 +5422,6 @@ class DragonflyEnemy:
             screen.blit(self.image, self.rect.topleft)
         else:
             screen.blit(self.img_death, self.rect.topleft)
-        self.update_shards(screen)  # NEW: Render particles
 
 
 class DungBeetleBoss:
@@ -5468,15 +5531,7 @@ class DungBeetleBoss:
         global global_impact_particles
         # Standard shards spawned when taking damage.
         for _ in range(count):
-            shard = {
-                'pos': [self.position[0], self.position[1]],
-                'vel': [random.uniform(-5, 5), random.uniform(-5, 5)],
-                'lifetime': random.randint(100, 300),
-                'start_time': pygame.time.get_ticks(),
-                'radius': random.randint(1, 3)
-            }
-            if len(global_impact_particles) < MAX_SHARDS:
-                global_impact_particles.append(shard)
+            spawn_shard(self.position, count=5)
 
     def spawn_blue_particles(self, count=30):
         # Spawn a cool, refined radial blue particle effect.
@@ -5518,7 +5573,7 @@ class DungBeetleBoss:
     def show_damage_indicator(self, damage):
         # Create a damage text surface using a shared font.
         font = pygame.font.SysFont("impact", 20, bold=False)
-        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface = font.render(f"{damage:.1f}", True, (255, 0, 0))
         text_surface.set_alpha(128)
 
         angle_deg = random.uniform(-45, 45)
@@ -5574,6 +5629,7 @@ class DungBeetleBoss:
                 enemies.append(new_beetle)
             self.sfx_death.play()
             money += 100
+            game_stats.global_kill_total["count"] += 1
 
     def update_animation(self):
         current_time = pygame.time.get_ticks()
@@ -5588,7 +5644,6 @@ class DungBeetleBoss:
             screen.blit(self.image, self.rect.topleft)
         else:
             screen.blit(self.img_death, self.rect.topleft)
-        self.update_shards(screen)
         # Render trail particles (with refined blue effect)
         for particle in self.trail_particles:
             elapsed = pygame.time.get_ticks() - particle['start_time']
@@ -5736,7 +5791,7 @@ class RoachQueenEnemy:
     def show_damage_indicator(self, damage):
         # Create a damage text surface using a shared font.
         font = pygame.font.SysFont("impact", 20, bold=False)
-        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface = font.render(f"{damage:.1f}", True, (255, 0, 0))
         text_surface.set_alpha(128)
 
         angle_deg = random.uniform(-45, 45)
@@ -5768,6 +5823,7 @@ class RoachQueenEnemy:
             load_sound("assets/splat_sfx.mp3").play()
             global money
             money += 15
+            game_stats.global_kill_total["count"] += 1
 
     def render(self, screen):
         if self.is_alive:
@@ -5824,7 +5880,7 @@ class RoachMinionEnemy:
     def show_damage_indicator(self, damage):
         # Create a damage text surface using a shared font.
         font = pygame.font.SysFont("impact", 20, bold=False)
-        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface = font.render(f"{damage:.1f}", True, (255, 0, 0))
         text_surface.set_alpha(128)
 
         angle_deg = random.uniform(-45, 45)
@@ -5855,6 +5911,7 @@ class RoachMinionEnemy:
         if self.health <= 0:
             self.is_alive = False
             money += 3
+            game_stats.global_kill_total["count"] += 1
             load_sound("assets/splat_sfx.mp3").play()
 
     def render(self, screen):
@@ -5937,15 +5994,7 @@ class CentipedeEnemy:
         Spawn a burst of shard particles to simulate a link breaking.
         """
         for _ in range(count):
-            shard = {
-                'pos': [self.position[0], self.position[1]],
-                'vel': [random.uniform(-3, 8), random.uniform(-3, 3)],
-                'lifetime': random.randint(100, 600),
-                'start_time': pygame.time.get_ticks(),
-                'radius': random.randint(1, 3)
-            }
-            if len(global_impact_particles) < MAX_SHARDS:
-                global_impact_particles.append(shard)
+            spawn_shard(self.position, count=5)
 
     def update_shards(self, screen):
         """
@@ -6039,7 +6088,7 @@ class CentipedeEnemy:
     def show_damage_indicator(self, damage):
         # Create a damage text surface using a shared font.
         font = pygame.font.SysFont("impact", 20, bold=False)
-        text_surface = font.render(str(int(damage)), True, (255, 0, 0))
+        text_surface = font.render(f"{damage:.1f}", True, (255, 0, 0))
         text_surface.set_alpha(128)
 
         angle_deg = random.uniform(-45, 45)
@@ -6108,6 +6157,7 @@ class CentipedeEnemy:
             if head.health <= 0:
                 head.alive = False
                 money += 10
+                game_stats.global_kill_total["count"] += 1
                 head.death_time = pygame.time.get_ticks()
             return
 
@@ -6149,6 +6199,7 @@ class CentipedeEnemy:
         if head.health <= 0:
             head.alive = False
             money += 10
+            game_stats.global_kill_total["count"] += 1
             head.death_time = pygame.time.get_ticks()
 
     def remove_segment(self, seg):
@@ -6227,7 +6278,7 @@ class CentipedeEnemy:
                 rotated_splatter = pygame.transform.flip(rotated_splatter, True, False)
                 rect = rotated_splatter.get_rect(center=seg.position)
                 screen.blit(rotated_splatter, rect.topleft)
-        self.update_shards(screen)
+        # self.update_shards(screen)
 
 
 class Projectile:

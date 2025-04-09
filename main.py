@@ -3,9 +3,11 @@ import pygame
 from pygame import mixer
 import mainmenu
 import game_tools
-from save_progress import (save_data, load_data)
+import save_manager
 from waves import (send_wave, start_new_wave)
 from game_tools import music_volume, load_image
+from save_manager import save_game, load_game
+import game_stats
 
 # pygame setup
 
@@ -22,8 +24,11 @@ running = True
 state = "Menu"
 resumeFlag = False
 curr_wave = False
-round_number = 1   # change for debugging
+round_number = 1  # change for debugging
 PlayFlag = True
+
+game_tools.MAX_SHARDS, game_tools.MAX_INDICATORS, game_tools.max_speed_multiplier, game_tools.showFPS, \
+    game_tools.showCursor, game_tools.user_volume = save_manager.load_settings("settings.json")
 
 while running:
     # poll for events
@@ -35,6 +40,9 @@ while running:
     if state == "Menu":
         mixer.music.load("assets/menu_music.mp3")
         mixer.music.play(loops=-1)
+        loaded_round, loaded_kills, resumeFlag, game_tools.money = load_game("my_save.json")
+        round_number = loaded_round
+        game_stats.global_kill_total["count"] = loaded_kills
 
     # MAIN MENU
     while state == "Menu":
@@ -75,6 +83,8 @@ while running:
                 state = "New Game"
             elif option == "options":
                 mainmenu.optionFlag = True
+            elif option == "Resume":
+                state = "Resume"
 
         if mainmenu.optionFlag:
             mainmenu.options_control(screen)
@@ -83,29 +93,30 @@ while running:
         clock.tick(60)  # limits FPS to 60
 
     if state == "New Game":
+        resumeFlag = False
+        save_manager.wipe_save("my_save.json")
         game_tools.fade_into_image(screen, "assets/house_map_baselayer.png", 500)
         image_map = pygame.image.load("assets/house_map_baselayer.png").convert_alpha()
         mixer.music.fadeout(1000)
         mixer.music.load("assets/map_music.mp3")
         mixer.music.play(-1)
         game_tools.user_health = 100
-        game_tools.money = 25000
+        game_tools.money = 250
         round_number = 1
         game_tools.towers.clear()
         game_tools.enemies.clear()
         start_new_wave(round_number)
         state = "Game"
-        # save current new game data
-        # this will overwrite any previous saves
-        # save_data(game_tools.towers, "towers.pkl")
-        # save_data(game_tools.user_health, "health.pkl")
-        # save_data(round_number, "round_number.pkl")
-        # save_data(game_tools.money, "money.pkl")
-        # load new game values (default)
-        # game_tools.towers = load_data("towers.pkl")
-        # game_tools.user_health = load_data("health.pkl")
-        # game_tools.money = load_data("money.pkl")
-        # round_number = load_data("round_number.pkl")
+
+    if state == "Resume":
+        game_tools.fade_into_image(screen, "assets/house_map_baselayer.png", 500)
+        image_map = pygame.image.load("assets/house_map_baselayer.png").convert_alpha()
+        mixer.music.fadeout(1000)
+        mixer.music.load("assets/map_music.mp3")
+        mixer.music.play(-1)
+        start_new_wave(round_number)
+        game_tools.TowerFlag = False
+        state = "Game"
 
     while state == "Game":
         for events in pygame.event.get():
@@ -117,17 +128,27 @@ while running:
                 pygame.quit()
             if events.type == pygame.KEYDOWN:
                 if events.key == pygame.K_ESCAPE:
+                    game_tools.TowerFlag = False
                     exit_new_tower = True
 
         game_tools.update_towers(screen)
         game_tools.update_stats(screen, game_tools.user_health, game_tools.money, round_number, clock)
         game_tools.current_wave = round_number
-
+        game_tools.update_shards(screen)
         cursor_select = game_tools.check_game_menu_elements(screen)
+
         if cursor_select == "saveandquit":
-            # save game
+            game_tools.TowerFlag = False
+            resumeFlag = True
+            save_game("my_save.json", round_number, game_stats.global_kill_total["count"], resumeFlag, game_tools.money)
+            state = "Menu"
+        if cursor_select == 'quit':
+            game_tools.TowerFlag = False
             state = "Menu"
         if cursor_select == "newgame":
+            resumeFlag = False
+            game_stats.global_kill_total["count"] = 0
+            save_manager.wipe_save("my_save.json")
             state = "New Game"
         if cursor_select == 'menu':
             state = 'Menu'
@@ -151,6 +172,9 @@ while running:
                 else:
                     game_tools.RoundFlag = False
                 round_number += 1
+                resumeFlag = True
+                if round_number > 1:
+                    save_game("my_save.json", round_number, game_stats.global_kill_total["count"], resumeFlag, game_tools.money)
                 start_new_wave(round_number)
                 cursor_select = "NULL"
 

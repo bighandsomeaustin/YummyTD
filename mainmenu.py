@@ -2,9 +2,11 @@ import pygame
 from pygame import mixer
 
 import game_tools
+import save_manager
 from game_tools import load_image, MAX_SHARDS, MAX_INDICATORS, user_volume
 
 optionFlag = False
+warningFlag = False
 shard_slider_dragging = False
 indicator_slider_dragging = False
 music_slider_dragging = False
@@ -91,6 +93,7 @@ def mainmenu_control(scrn: pygame.Surface) -> bool:
 
 
 def playscreen_control(scrn: pygame.Surface, resume_flag: bool) -> str:
+    global warningFlag
     """
     tracks cursor position on menu and controls menu elements
     :return: str
@@ -100,6 +103,7 @@ def playscreen_control(scrn: pygame.Surface, resume_flag: bool) -> str:
     img_newgame = pygame.image.load("assets/play_newgame.png").convert_alpha()
     img_resumegame = pygame.image.load("assets/play_resumegame.png").convert_alpha()
     img_options = pygame.image.load("assets/play_options.png").convert_alpha()
+    img_warning = pygame.image.load("assets/newgame_warning.png").convert_alpha()
     scrn.blit(img_newgame, (222, 310))
     scrn.blit(img_resumegame, (565, 310))
     scrn.blit(img_options, (893, 310))
@@ -121,32 +125,46 @@ def playscreen_control(scrn: pygame.Surface, resume_flag: bool) -> str:
         if ev.type == pygame.QUIT:
             pygame.quit()
             exit()
+        if ev.type == pygame.MOUSEBUTTONUP:
+            if ev.button == 1:
+                click = True
 
     mouse = pygame.mouse.get_pos()
-    click = pygame.mouse.get_pressed()[0]
+    # click = pygame.mouse.get_pressed()[0]
 
     if 171 <= mouse[0] <= (171 + 52) and 223 <= mouse[1] <= (223 + 60):
         if click:
             button_press.play()
             return "close"
 
-    if 222 <= mouse[0] <= (222 + 220) and 310 <= mouse[1] <= (310 + 170):
+    if 222 <= mouse[0] <= (222 + 220) and 310 <= mouse[1] <= (310 + 170) and not warningFlag:
         scrn.blit(img_newgame_hovered, (222, 310))
         if click and resume_flag:
+            click = False
             button_press.play()
-            # add warning
-            return "New"
+            warningFlag = True
         elif click:
             button_press.play()
             return "New"
 
-    if 565 <= mouse[0] <= (565 + 220) and 310 <= mouse[1] <= (310 + 170) and resume_flag:
+    if warningFlag:
+        scrn.blit(img_warning, (0, 0))
+        if 226 <= mouse[0] <= (226 + 295) and 326 <= mouse[1] <= (326 + 179):
+            if click:
+                warningFlag = False
+                return "New"
+        elif 692 <= mouse[0] <= (692 + 220) and 310 <= mouse[1] <= (310 + 170):
+            if click:
+                warningFlag = False
+                return "close"
+
+    if 565 <= mouse[0] <= (565 + 220) and 310 <= mouse[1] <= (310 + 170) and resume_flag and not warningFlag:
         scrn.blit(img_resumegame_hovered, (565, 310))
         if click:
             button_press.play()
-            return "close"
+            return "Resume"
 
-    if 893 <= mouse[0] <= (893 + 220) and 310 <= mouse[1] <= (310 + 170):
+    if 893 <= mouse[0] <= (893 + 220) and 310 <= mouse[1] <= (310 + 170) and not warningFlag:
         scrn.blit(img_option_hovered, (893, 310))
         if click:
             button_press.play()
@@ -162,8 +180,49 @@ def options_control(scrn: pygame.Surface) -> str:
     options_window = load_image("assets/mainmenu_settings.png")
     option_slider = load_image("assets/mainmenu_slider.png")
     music_slider_img = load_image("assets/music_slider.png")
+    checked = load_image("assets/autoplay_checked.png")
+    button_press = game_tools.load_sound("assets/button_press.mp3")
 
     scrn.blit(options_window, (0, 0))
+    if game_tools.showFPS:
+        scrn.blit(checked, (970, 346))
+    if game_tools.showCursor:
+        scrn.blit(checked, (970, 392))
+
+    speed_font = game_tools.get_font("arial", 24)
+    text_speed = speed_font.render(f"{game_tools.max_speed_multiplier}", True, (0, 0, 0))
+    scrn.blit(text_speed, (976, 300))
+
+    if 1004 <= mouse[0] <= 1004 + 21 and 301 <= mouse[1] <= 301 + 25:
+        if game_tools.detect_single_click():
+            button_press.play()
+            game_tools.max_speed_multiplier += 1
+            if game_tools.max_speed_multiplier > 10:
+                game_tools.max_speed_multiplier = 10
+    elif 1032 <= mouse[0] <= 1032 + 21 and 301 <= mouse[1] <= 301 + 25:
+        if game_tools.detect_single_click():
+            button_press.play()
+            game_tools.max_speed_multiplier -= 1
+            if game_tools.max_speed_multiplier < 2:
+                game_tools.max_speed_multiplier = 2
+
+    if 967 <= mouse[0] <= 967 + 34 and 345 <= mouse[1] <= 345 + 30:
+        if game_tools.detect_single_click():
+            if not game_tools.showFPS:
+                button_press.play()
+                game_tools.showFPS = True
+            elif game_tools.showFPS:
+                button_press.play()
+                game_tools.showFPS = False
+
+    if 967 <= mouse[0] <= 967 + 34 and 389 <= mouse[1] <= 389 + 30:
+        if game_tools.detect_single_click():
+            if not game_tools.showCursor:
+                button_press.play()
+                game_tools.showCursor = True
+            elif game_tools.showCursor:
+                button_press.play()
+                game_tools.showCursor = False
 
     # ===== SHARD SLIDER =====
     shard_slider_min = 243
@@ -187,12 +246,16 @@ def options_control(scrn: pygame.Surface) -> str:
     music_slider_x = music_slider_min + game_tools.user_volume * (music_slider_max - music_slider_min)
     scrn.blit(music_slider_img, (music_slider_x - 15, music_slider_y))  # -15 to center handle
 
+
+
     # Close button logic
     if 1039 <= mouse[0] <= 1070 and 140 <= mouse[1] <= 178:
         if game_tools.detect_single_click():
             button_press = pygame.mixer.Sound("assets/button_press.mp3")
             button_press.play()
             optionFlag = False
+            save_manager.save_settings("settings.json", game_tools.MAX_SHARDS, game_tools.MAX_INDICATORS,
+                                       game_tools.max_speed_multiplier, game_tools.showFPS, game_tools.showCursor, game_tools.user_volume)
             return "options"
 
     # ===== DRAGGING LOGIC =====

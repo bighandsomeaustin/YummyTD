@@ -2,6 +2,7 @@ import math
 import pygame
 import game_tools
 import random
+import game_stats
 
 # -----------------------------
 # Global Variables and Initialization
@@ -194,7 +195,7 @@ for r in range(19, 101):
         segments.append({"enemies": ["DUNG_BEETLE"],
                          "spawn_interval": 2000,
                          "delay": 7000})
-        segments.append({"enemies": (["FIREFLY"] + ["BEETLE"] * 2 + ["FIREFLY"] + ["BEETLE"] * 2) * 12,
+        segments.append({"enemies": (["FIREFLY"] + ["BEETLE"] * 2 + ["FIREFLY"] + ["BEETLE"] * 2) * 8,
                          "spawn_interval": 500,
                          "delay": 2000})
         # dragonfly rush
@@ -220,7 +221,7 @@ for r in range(19, 101):
 
     # insane barrage of dragonflies, beetles, spiders
     elif r == 28:
-        segments.append({"enemies": (["BEETLE"] + ["SPIDER"] + ["DRAGONFLY"] * 8) * 20,
+        segments.append({"enemies": (["BEETLE"] + ["SPIDER"] + ["DRAGONFLY"] * 5) * 15,
                          "spawn_interval": 150,
                          "delay": 3000})
         segments.append({"enemies": (["FIREFLY"] + ["ROACH_QUEEN"] + ["ROACH"] * 3) * 5,
@@ -259,7 +260,7 @@ for r in range(19, 101):
         segments.append({"enemies": ["HORNET"] * 20,
                          "spawn_interval": 400,
                          "delay": 3000})
-        segments.append({"enemies": ["BEETLE"] * 10,
+        segments.append({"enemies": ["BEETLE"] * 5,
                          "spawn_interval": 500,
                          "delay": 3000})
         # THEN BOOM!!!
@@ -271,11 +272,14 @@ for r in range(19, 101):
     elif r == 32:
 
         for i in range(2):
-            for _ in range(10):
-                segments.append({"enemies": (["DRAGONFLY"] * 4 + ["FIREFLY"] * 2),
+            for _ in range(6):
+                segments.append({"enemies": (["BEETLE"] * 4 + ["FIREFLY"] * 2),
                                  "spawn_interval": 100,
                                  "delay": 500})
 
+            segments.append({"enemies": ["DRAGON"] * 2,
+                             "spawn_interval": 100,
+                             "delay": 0})
             segments.append({"enemies": ["DUNG_BEETLE"],
                              "spawn_interval": 200,
                              "delay": 2500})
@@ -436,17 +440,17 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
     global rush_active, rush_info, rush_spawned, original_spawn_interval, enemies
 
     if round_number > 30:
-        health_mult = 3
+        health_mult = 1.5
     elif round_number > 50:
-        health_mult = 5
+        health_mult = 2
     elif round_number > 70:
-        health_mult = 7
+        health_mult = 2.5
     elif round_number > 80:
-        health_mult = 8
+        health_mult = 2.75
     elif round_number > 90:
-        health_mult = 9
+        health_mult = 3
     elif round_number > 100:
-        health_mult = round_number % 10
+        health_mult = ((round_number % 10) / 2) - 1
     else:
         health_mult = 1
 
@@ -535,11 +539,12 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
         if isinstance(enemy, game_tools.FireflyEnemy):
             enemy.update_heal_effect(enemies)
 
-        # Then process enemy movement and damage
+    # Then process enemy movement and damage
     for enemy in enemies.copy():  # Use copy to avoid modification during iteration
         enemy.move()
         if not enemy.is_alive:
             enemies.remove(enemy)
+            game_stats.global_kill_total["count"] += 1
 
         # Then render (order matters less here)
     for enemy in enemies:
