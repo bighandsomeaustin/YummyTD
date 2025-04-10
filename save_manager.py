@@ -42,20 +42,25 @@ TOWER_CONSTRUCTOR_ATTRIBUTES = {
     ],
     "MinigunTower": [
         "position",
+        "image_path",
     ],
     "RatSniper": [
         "position",
         "shoot_interval",
         "damage",
+        "image_path",
     ],
     "RatFrost": [
         "position",
+        "image_path",
     ],
     "WizardTower": [
         "position",
+        "image_path",
     ],
     "CheeseBeacon": [
         "position",
+        "image_path",
     ],
     "CheddarCommando": [
         "position",
@@ -63,6 +68,7 @@ TOWER_CONSTRUCTOR_ATTRIBUTES = {
         "damage",
         "shoot_interval",
         "reload_time",
+        "image_path",
     ],
 }
 
@@ -233,14 +239,15 @@ def save_game(filename, wave_number, kill_count, resume_flag, money):
     print(f"Game saved to {filename}!")
 
 
-def save_settings(filename, max_shards, max_indicators, game_speed, showfps, showcursor, music_level):
+def save_settings(filename, max_shards, max_indicators, game_speed, showfps, showcursor, music_level, fullscreen):
     data = {
         "max_shards": max_shards,
         "max_indicators": max_indicators,
         "game_speed": game_speed,
         "showfps": showfps,
         "showcursor": showcursor,
-        "music_level": music_level
+        "music_level": music_level,
+        "fullscreen": fullscreen
     }
 
     with open(filename, "w") as f:
@@ -340,7 +347,7 @@ def load_settings(filename):
             data = json.load(f)
     except FileNotFoundError:
         print(f"No save file found at {filename}.")
-        return 500, 500, 2, False, False, 1.0
+        return 500, 500, 2, False, False, 1.0, False
 
     max_shards = data.get("max_shards", 500)
     max_indicators = data.get("max_indicators", 500)
@@ -348,8 +355,9 @@ def load_settings(filename):
     showfps = data.get("showfps", False)
     showcursor = data.get("showcursor", False)
     music_level = data.get("music_level", 1.0)
+    fullscreen = data.get("fullscreen", False)
 
-    return max_shards, max_indicators, game_speed, showfps, showcursor, music_level
+    return max_shards, max_indicators, game_speed, showfps, showcursor, music_level, fullscreen
 
 
 def wipe_save(filename):

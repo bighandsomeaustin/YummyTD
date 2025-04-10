@@ -12,6 +12,7 @@ money = game_tools.money  # This is updated in game_tools
 last_spawn_time = 0
 segment_completion_time = None
 FINAL_CLEANUP_DELAY = 1000 / game_tools.game_speed_multiplier  # in milliseconds
+new_enemy = None
 
 # Round configuration: each round is a list of segments.
 # Each segment is a dict with keys:
@@ -277,7 +278,7 @@ for r in range(19, 101):
                                  "spawn_interval": 100,
                                  "delay": 500})
 
-            segments.append({"enemies": ["DRAGON"] * 2,
+            segments.append({"enemies": ["DRAGONFLY"] * 4,
                              "spawn_interval": 100,
                              "delay": 0})
             segments.append({"enemies": ["DUNG_BEETLE"],
@@ -437,7 +438,7 @@ FINAL_CLEANUP_DELAY = 1000  # in milliseconds
 
 def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
     global current_round_config, current_segment_index, segment_enemy_spawned, segment_start_time, segment_completion_time
-    global rush_active, rush_info, rush_spawned, original_spawn_interval, enemies
+    global rush_active, rush_info, rush_spawned, original_spawn_interval, enemies, new_enemy
 
     if round_number > 30:
         health_mult = 1.5
@@ -495,37 +496,37 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
             # Create a slightly varied path.
             offset_path = [(x + random.randint(-8, 8), y) for (x, y) in game_tools.house_path]
             if enemy_type == "ANT":
-                enemies.append(game_tools.AntEnemy(spawn_pos, 1, 1, offset_path, "assets/ant_base.png"))
+                new_enemy = (game_tools.AntEnemy(spawn_pos, 1, 1, offset_path, "assets/ant_base.png"))
             elif enemy_type == "HORNET":
-                enemies.append(game_tools.HornetEnemy(spawn_pos, 2, 2, offset_path, "assets/hornet_base.png"))
+                new_enemy = (game_tools.HornetEnemy(spawn_pos, 2, 2, offset_path, "assets/hornet_base.png"))
             elif enemy_type == "BEETLE":
-                enemies.append(game_tools.BeetleEnemy(spawn_pos, offset_path))
+                new_enemy = (game_tools.BeetleEnemy(spawn_pos, offset_path))
             elif enemy_type == "SPIDER":
-                enemies.append(game_tools.SpiderEnemy(spawn_pos, offset_path))
+                new_enemy = (game_tools.SpiderEnemy(spawn_pos, offset_path))
             elif enemy_type == "CENTIPEDE":
-                enemies.append(game_tools.CentipedeEnemy(spawn_pos, offset_path))
+                new_enemy = (game_tools.CentipedeEnemy(spawn_pos, offset_path))
             elif enemy_type == "CENTIPEDE_BOSS":
-                enemies.append(game_tools.CentipedeEnemy(spawn_pos, offset_path, links=24))
+                new_enemy = (game_tools.CentipedeEnemy(spawn_pos, offset_path, links=24))
             elif enemy_type == "DRAGONFLY":
-                enemies.append(game_tools.DragonflyEnemy(spawn_pos, offset_path))
+                new_enemy = (game_tools.DragonflyEnemy(spawn_pos, offset_path))
             elif enemy_type == "ROACH_QUEEN":
-                enemies.append(game_tools.RoachQueenEnemy(spawn_pos, offset_path))
+                new_enemy = (game_tools.RoachQueenEnemy(spawn_pos, offset_path))
             elif enemy_type == "ROACH":
-                enemies.append(game_tools.RoachMinionEnemy(position=spawn_pos, path=offset_path,
+                new_enemy = (game_tools.RoachMinionEnemy(position=spawn_pos, path=offset_path,
                                                            speed=random.randint(1, 4), health=3))
             elif enemy_type == "FIREFLY":
-                enemies.append(game_tools.FireflyEnemy(spawn_pos, offset_path))
+                new_enemy = (game_tools.FireflyEnemy(spawn_pos, offset_path))
             elif enemy_type == "DUNG_BEETLE":
-                enemies.append(game_tools.DungBeetleBoss(spawn_pos, offset_path))
+                new_enemy = (game_tools.DungBeetleBoss(spawn_pos, offset_path))
 
-            # apply health multiplier for later rounds
-            for enemy in enemies:
-                if hasattr(enemy, "health"):
-                    enemy.health *= health_mult
-                # handle weird enemy classes
-                if isinstance(enemy, game_tools.CentipedeEnemy):
-                    for seg in enemy.segments:
+            # apply damage multiplier
+            if new_enemy is not None:
+                if hasattr(new_enemy, "health"):
+                    new_enemy.health *= health_mult
+                if isinstance(new_enemy, game_tools.CentipedeEnemy):
+                    for seg in new_enemy.segments:
                         seg.health *= health_mult
+                enemies.append(new_enemy)
 
             segment_enemy_spawned += 1
             if rush_active:

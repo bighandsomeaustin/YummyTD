@@ -10,19 +10,34 @@ warningFlag = False
 shard_slider_dragging = False
 indicator_slider_dragging = False
 music_slider_dragging = False
+FullscreenFlag = False
+screen = None
+game_surface = None
+
+display_info = pygame.display.Info()
+full_width, full_height = display_info.current_w, display_info.current_h
+
+if FullscreenFlag:
+    # Create borderless fullscreen using FULLSCREEN|NOFRAME
+    screen = pygame.display.set_mode((full_width, full_height), pygame.FULLSCREEN | pygame.NOFRAME)
+    # Create a fixed-resolution off-screen surface for game rendering
+    game_surface = pygame.Surface((1280, 720))
+else:
+    screen = pygame.display.set_mode((1280, 720))
+    game_surface = screen
 
 
-def render_mainmenu(scrn: pygame.Surface):
+def render_mainmenu(screen: pygame.Surface):
     """
     Draws the main menu screen
-    :param scrn: pygame.Surface
+    :param screen: pygame.Surface
     :return: none
     """
 
     font1 = pygame.font.SysFont('chalkduster.ttf', 20)
     version = font1.render('Version 1.0.0', True, (0, 255, 0))
     text_rect1 = version.get_rect()
-    scrn.blit(version, text_rect1)
+    screen.blit(version, text_rect1)
 
     # Draw menu background
     img_menu = pygame.image.load("assets/menu_background.png").convert()
@@ -37,19 +52,19 @@ def render_mainmenu(scrn: pygame.Surface):
     img_quit = pygame.image.load("assets/mainmenu_quit.png").convert_alpha()
 
     # render background
-    scrn.blit(img_menu, (0, 0))
+    screen.blit(img_menu, (0, 0))
 
     # render play button
-    scrn.blit(img_play, (502, 555))
+    screen.blit(img_play, (502, 555))
 
     # render quit button
-    scrn.blit(img_quit, (502, 635))
+    screen.blit(img_quit, (502, 635))
 
     # render logo
-    scrn.blit(img_logo, (384, 40))
+    screen.blit(img_logo, (384, 40))
 
 
-def mainmenu_control(scrn: pygame.Surface) -> bool:
+def mainmenu_control(screen: pygame.Surface) -> bool:
     """
     tracks cursor position on menu and controls menu elements
     :return: bool
@@ -73,26 +88,26 @@ def mainmenu_control(scrn: pygame.Surface) -> bool:
     click = pygame.mouse.get_pressed()[0]
 
     if 502 <= mouse[0] <= 777 and 555 <= mouse[1] <= (555 + 75):
-        scrn.blit(hover_play, (502, 555))
+        screen.blit(hover_play, (502, 555))
         if click:
             button_press.play()
             return True
     else:
-        scrn.blit(img_play, (502, 555))
+        screen.blit(img_play, (502, 555))
 
     if 502 <= mouse[0] <= 777 and 635 <= mouse[1] <= (635 + 75):
-        scrn.blit(hover_quit, (502, 635))
+        screen.blit(hover_quit, (502, 635))
         if click:
             button_press.play()
             pygame.quit()
             exit()
     else:
-        scrn.blit(img_quit, (502, 635))
+        screen.blit(img_quit, (502, 635))
 
     return False
 
 
-def playscreen_control(scrn: pygame.Surface, resume_flag: bool) -> str:
+def playscreen_control(screen: pygame.Surface, resume_flag: bool) -> str:
     global warningFlag
     """
     tracks cursor position on menu and controls menu elements
@@ -104,9 +119,9 @@ def playscreen_control(scrn: pygame.Surface, resume_flag: bool) -> str:
     img_resumegame = pygame.image.load("assets/play_resumegame.png").convert_alpha()
     img_options = pygame.image.load("assets/play_options.png").convert_alpha()
     img_warning = pygame.image.load("assets/newgame_warning.png").convert_alpha()
-    scrn.blit(img_newgame, (222, 310))
-    scrn.blit(img_resumegame, (565, 310))
-    scrn.blit(img_options, (893, 310))
+    screen.blit(img_newgame, (222, 310))
+    screen.blit(img_resumegame, (565, 310))
+    screen.blit(img_options, (893, 310))
     img_newgame_hovered = pygame.image.load(
         "assets/play_newgame_hovered.png").convert_alpha()
     img_resumegame_hovered = pygame.image.load(
@@ -117,7 +132,7 @@ def playscreen_control(scrn: pygame.Surface, resume_flag: bool) -> str:
         "assets/play_options_pressed.png").convert_alpha()
 
     if not resume_flag:
-        scrn.blit(img_resumegame_unavailable, (565, 310))
+        screen.blit(img_resumegame_unavailable, (565, 310))
 
     click = False
 
@@ -138,7 +153,7 @@ def playscreen_control(scrn: pygame.Surface, resume_flag: bool) -> str:
             return "close"
 
     if 222 <= mouse[0] <= (222 + 220) and 310 <= mouse[1] <= (310 + 170) and not warningFlag:
-        scrn.blit(img_newgame_hovered, (222, 310))
+        screen.blit(img_newgame_hovered, (222, 310))
         if click and resume_flag:
             click = False
             button_press.play()
@@ -148,7 +163,7 @@ def playscreen_control(scrn: pygame.Surface, resume_flag: bool) -> str:
             return "New"
 
     if warningFlag:
-        scrn.blit(img_warning, (0, 0))
+        screen.blit(img_warning, (0, 0))
         if 226 <= mouse[0] <= (226 + 295) and 326 <= mouse[1] <= (326 + 179):
             if click:
                 warningFlag = False
@@ -159,20 +174,21 @@ def playscreen_control(scrn: pygame.Surface, resume_flag: bool) -> str:
                 return "close"
 
     if 565 <= mouse[0] <= (565 + 220) and 310 <= mouse[1] <= (310 + 170) and resume_flag and not warningFlag:
-        scrn.blit(img_resumegame_hovered, (565, 310))
+        screen.blit(img_resumegame_hovered, (565, 310))
         if click:
             button_press.play()
             return "Resume"
 
     if 893 <= mouse[0] <= (893 + 220) and 310 <= mouse[1] <= (310 + 170) and not warningFlag:
-        scrn.blit(img_option_hovered, (893, 310))
+        screen.blit(img_option_hovered, (893, 310))
         if click:
             button_press.play()
             return "options"
 
 
-def options_control(scrn: pygame.Surface) -> str:
-    global optionFlag, shard_slider_dragging, indicator_slider_dragging, music_slider_dragging
+def options_control() -> str:
+    global optionFlag, shard_slider_dragging, indicator_slider_dragging, music_slider_dragging, FullscreenFlag, \
+            full_height, full_width, screen, game_surface, display_info
     mouse = pygame.mouse.get_pos()
     mouse_pressed = pygame.mouse.get_pressed()[0]
 
@@ -183,15 +199,17 @@ def options_control(scrn: pygame.Surface) -> str:
     checked = load_image("assets/autoplay_checked.png")
     button_press = game_tools.load_sound("assets/button_press.mp3")
 
-    scrn.blit(options_window, (0, 0))
+    screen.blit(options_window, (0, 0))
     if game_tools.showFPS:
-        scrn.blit(checked, (970, 346))
+        screen.blit(checked, (970, 346))
     if game_tools.showCursor:
-        scrn.blit(checked, (970, 392))
+        screen.blit(checked, (970, 392))
+    if FullscreenFlag:
+        screen.blit(checked, (970, 438))
 
     speed_font = game_tools.get_font("arial", 24)
     text_speed = speed_font.render(f"{game_tools.max_speed_multiplier}", True, (0, 0, 0))
-    scrn.blit(text_speed, (976, 300))
+    screen.blit(text_speed, (976, 300))
 
     if 1004 <= mouse[0] <= 1004 + 21 and 301 <= mouse[1] <= 301 + 25:
         if game_tools.detect_single_click():
@@ -224,27 +242,33 @@ def options_control(scrn: pygame.Surface) -> str:
                 button_press.play()
                 game_tools.showCursor = False
 
+    if 967 <= mouse[0] <= 967 + 34 and 433 <= mouse[1] <= 433 + 30:
+        if game_tools.detect_single_click():
+            toggle_fullscreen()
+            optionFlag = False
+
+
     # ===== SHARD SLIDER =====
     shard_slider_min = 243
     shard_slider_max = 243 + 227
     shard_slider_y = 347
     shard_slider_range = shard_slider_max - shard_slider_min
     shard_slider_x = shard_slider_min + (game_tools.MAX_SHARDS / 1000) * shard_slider_range
-    scrn.blit(option_slider, (shard_slider_x - 8, shard_slider_y))  # -8 to center handle
+    screen.blit(option_slider, (shard_slider_x - 8, shard_slider_y))  # -8 to center handle
 
     # ===== INDICATOR SLIDER =====
     indicator_slider_min = 243
     indicator_slider_max = 243 + 227
     indicator_slider_y = 419
     indicator_slider_x = indicator_slider_min + (game_tools.MAX_INDICATORS / 1000) * (indicator_slider_max - indicator_slider_min)
-    scrn.blit(option_slider, (indicator_slider_x - 8, indicator_slider_y))  # -8 to center handle
+    screen.blit(option_slider, (indicator_slider_x - 8, indicator_slider_y))  # -8 to center handle
 
     # ===== MUSIC SLIDER =====
     music_slider_min = 439
     music_slider_max = 439 + 583
     music_slider_y = 522
     music_slider_x = music_slider_min + game_tools.user_volume * (music_slider_max - music_slider_min)
-    scrn.blit(music_slider_img, (music_slider_x - 15, music_slider_y))  # -15 to center handle
+    screen.blit(music_slider_img, (music_slider_x - 15, music_slider_y))  # -15 to center handle
 
 
 
@@ -255,7 +279,7 @@ def options_control(scrn: pygame.Surface) -> str:
             button_press.play()
             optionFlag = False
             save_manager.save_settings("settings.json", game_tools.MAX_SHARDS, game_tools.MAX_INDICATORS,
-                                       game_tools.max_speed_multiplier, game_tools.showFPS, game_tools.showCursor, game_tools.user_volume)
+                                       game_tools.max_speed_multiplier, game_tools.showFPS, game_tools.showCursor, game_tools.user_volume, FullscreenFlag)
             return "options"
 
     # ===== DRAGGING LOGIC =====
@@ -291,3 +315,26 @@ def options_control(scrn: pygame.Surface) -> str:
         music_slider_dragging = False
 
     return "options"
+
+
+def toggle_fullscreen():
+    global FullscreenFlag, screen, game_surface, full_width, full_height, display_info
+
+    button_press = game_tools.load_sound("assets/button_press.mp3")
+    button_press.play()
+
+    # Toggle between fullscreen and windowed mode.
+    if not FullscreenFlag:
+        FullscreenFlag = True
+        display_info = pygame.display.Info()
+        full_width, full_height = display_info.current_w, display_info.current_h
+        # Use borderless fullscreen.
+        screen = pygame.display.set_mode((full_width, full_height), pygame.FULLSCREEN | pygame.NOFRAME)
+        # Create an off-screen fixed-resolution rendering surface.
+        game_surface = pygame.Surface((1280, 720))
+    else:
+        FullscreenFlag = False
+        # Switch back to windowed mode by simply calling set_mode with default flags (no extra parameters)
+        screen = pygame.display.set_mode((1280, 720))
+        # In windowed mode, use the display surface directly.
+        game_surface = screen
