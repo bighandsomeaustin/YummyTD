@@ -550,6 +550,11 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
     for enemy in enemies:
         enemy.render(scrn)
 
+    for tower in game_tools.towers:
+        if isinstance(tower, game_tools.RatBank):
+            if tower.investment_window_open:
+                tower.investment_interface(scrn)
+
     # Determine if the segment is done.
     seg_delay = segment.get("delay", 0) / game_tools.game_speed_multiplier
     segment_done = False

@@ -1,0 +1,44 @@
+{
+    "wave_number": 5,
+    "kill_count": 291,
+    "resume_flag": true,
+    "towers": [
+        {
+            "tower_type": "RatBank",
+            "position": [
+                1014,
+                409
+            ],
+            "image_path": "assets/rat_bank_imports.png",
+            "curr_top_upgrade": 2,
+            "curr_bottom_upgrade": 0,
+            "sell_amt": 950,
+            "interest_rate": 1.07,
+            "cash_invested": 0,
+            "cash_generated": 499,
+            "loan_amount": 0,
+            "loan_payment": 0,
+            "provoloanFlag": false,
+            "briefundFlag": false,
+            "is_selected": false
+        },
+        {
+            "tower_type": "RatTent",
+            "position": [
+                599,
+                501
+            ],
+            "radius": 50,
+            "recruit_health": 1,
+            "recruit_speed": 2,
+            "recruit_damage": 1,
+            "image_path": "assets/camp_faster.png",
+            "recruit_image": "assets/rat_recruit_faster.png",
+            "spawn_interval": 1500,
+            "curr_top_upgrade": 2,
+            "curr_bottom_upgrade": 0,
+            "sell_amt": 1700
+        }
+    ],
+    "money": 12658
+}

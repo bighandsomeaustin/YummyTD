@@ -554,8 +554,11 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
 
     # check if any tower is clicked after placement
     for tower in towers:
-        if (tower.position[0] - 25) <= mouse[0] <= (tower.position[0] + 25) and (tower.position[1] - 25) <= mouse[
-            1] <= (tower.position[1] + 25):
+        # Build a rect from tower’s image on the fly
+        tower_rect = tower.image.get_rect()
+        tower_rect.center = tower.position
+
+        if tower_rect.collidepoint(mouse):
             if detect_single_click():
                 if isinstance(tower, RatBank):
                     tower.is_selected = True
@@ -639,12 +642,15 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
+                        tower.image_path = "assets/mrcheese_booksmart.png"
                         tower.image = load_image("assets/mrcheese_booksmart.png")
                         tower.original_image = load_image("assets/mrcheese_booksmart.png")
                     elif tower.curr_bottom_upgrade == 1:
+                        tower.image_path = "assets/mrcheese_booksmart+protein.png"
                         tower.image = load_image("assets/mrcheese_booksmart+protein.png")
                         tower.original_image = load_image("assets/mrcheese_booksmart+protein.png")
                     elif tower.curr_bottom_upgrade == 2:
+                        tower.image_path = "assets/mrcheese_steroids+booksmart.png"
                         tower.image = load_image("assets/mrcheese_steroids+booksmart.png")
                         tower.original_image = load_image("assets/mrcheese_steroids+booksmart.png")
                 elif money >= 1200 and tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade != 2:
@@ -656,9 +662,11 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 2
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
+                        tower.image_path = "assets/mrcheese_diploma.png"
                         tower.image = load_image("assets/mrcheese_diploma.png")
                         tower.original_image = load_image("assets/mrcheese_diploma.png")
                     elif tower.curr_bottom_upgrade == 1:
+                        tower.image_path = "assets/mrcheese_diploma+protein.png"
                         tower.image = load_image("assets/mrcheese_diploma+protein.png")
                         tower.original_image = load_image("assets/mrcheese_diploma+protein.png")
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
@@ -672,12 +680,15 @@ def handle_upgrade(scrn, tower):
                     tower.curr_bottom_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_top_upgrade == 0:
+                        tower.image_path = "assets/mrcheese_protein.png"
                         tower.image = load_image("assets/mrcheese_protein.png")
                         tower.original_image = load_image("assets/mrcheese_protein.png")
                     elif tower.curr_top_upgrade == 1:
+                        tower.image_path = "assets/mrcheese_booksmart+protein.png"
                         tower.image = load_image("assets/mrcheese_booksmart+protein.png")
                         tower.original_image = load_image("assets/mrcheese_booksmart+protein.png")
                     elif tower.curr_top_upgrade == 2:
+                        tower.image_path = "assets/mrcheese_diploma+protein.png"
                         tower.image = load_image("assets/mrcheese_diploma+protein.png")
                         tower.original_image = load_image("assets/mrcheese_diploma+protein.png")
                 elif money >= 900 and tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade != 2:
@@ -690,23 +701,33 @@ def handle_upgrade(scrn, tower):
                     UpgradeFlag = True
                     MogFlag = True
                     if tower.curr_top_upgrade == 0:
+                        tower.image_path = "assets/mrcheese_steroids.png"
                         tower.image = load_image("assets/mrcheese_steroids.png")
                         tower.original_image = load_image("assets/mrcheese_steroids.png")
                     elif tower.curr_top_upgrade == 1:
+                        tower.image_path = "assets/mrcheese_steroids+booksmart.png"
                         tower.image = load_image("assets/mrcheese_steroids+booksmart.png")
                         tower.original_image = load_image("assets/mrcheese_steroids+booksmart.png")
     if isinstance(tower, RatTent):
         img_fasterrats_upgrade = load_image("assets/upgrade_fasterrats.png")
         img_strongrats_upgrade = load_image("assets/upgrade_strongerrats.png")
+        img_freak_upgrade = load_image("assets/upgrade_freak.png")
+        img_army_upgrade = load_image("assets/upgrade_army.png")
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_fasterrats_upgrade, (883, 65))
             blit_text(scrn, "Faster Rats", "top")
+        elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
+            blit_text(scrn, "Task Force Cheese", "top")
+            scrn.blit(img_army_upgrade, (883, 65))
         else:
             scrn.blit(img_max_upgrades, top)
 
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_strongrats_upgrade, (883, 194))
             blit_text(scrn, "Stronger Rats", "bottom")
+        elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
+            scrn.blit(img_freak_upgrade, (883, 194))
+            blit_text(scrn, "Freak Release", "bottom")
         else:
             scrn.blit(img_max_upgrades, bottom)
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
@@ -721,22 +742,34 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
+                        tower.image_path = "assets/camp_faster.png"
                         tower.image = load_image("assets/camp_faster.png")
                         tower.original_image = load_image("assets/camp_faster.png")
                         tower.recruit_image = "assets/rat_recruit_faster.png"
                     elif tower.curr_bottom_upgrade == 1:
+                        tower.image_path = "assets/camp_stronger+faster.png"
                         tower.image = load_image("assets/camp_stronger+faster.png")
                         tower.original_image = load_image("assets/camp_stronger+faster.png")
                         tower.recruit_image = "assets/rat_recruit_stronger+faster.png"
                     elif tower.curr_bottom_upgrade == 2:
-                        tower.image = load_image("assets/mrcheese_steroids+booksmart.png")
-                        tower.original_image = load_image("assets/mrcheese_steroids+booksmart.png")
+                        tower.image_path = "assets/camp_stronger+faster.png"
+                        tower.image = load_image("assets/camp_stronger+faster.png")
+                        tower.original_image = load_image("assets/camp_stronger+faster.png")
+
+                elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2 and money >= 1500:
+                    purchase.play()
+                    money -= 1500
+                    tower.sell_amt += 750
+                    tower.curr_top_upgrade = 2
+                    UpgradeFlag = True
+
         if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
             if detect_single_click():
                 money += tower.sell_amt
                 towers.remove(tower)
                 UpgradeFlag = False
                 return
+
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
             scrn.blit(img_upgrade_highlighted, (883, 194))
             if detect_single_click():
@@ -748,12 +781,22 @@ def handle_upgrade(scrn, tower):
                     tower.curr_bottom_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_top_upgrade == 0:
+                        tower.image_path = "assets/camp_stronger.png"
                         tower.image = load_image("assets/camp_stronger.png")
                         tower.original_image = load_image("assets/camp_stronger.png")
                         tower.recruit_image = "assets/rat_recruit_stronger.png"
                     elif tower.curr_top_upgrade == 1:
+                        tower.image_path = "assets/camp_stronger+faster.png"
                         tower.image = load_image("assets/camp_stronger+faster.png")
                         tower.original_image = load_image("assets/camp_stronger+faster.png")
+
+                elif money >= 2200 and tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
+                    purchase.play()
+                    money -= 2200
+                    tower.sell_amt += 1100
+                    tower.curr_bottom_upgrade = 2
+                    UpgradeFlag = True
+
     if isinstance(tower, Ozbourne):
         img_amplifier_upgrade = load_image("assets/upgrade_amplifier.png")
         img_longerriffs_upgrade = load_image("assets/upgrade_longerriffs.png")
@@ -783,9 +826,11 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
+                        tower.image_path = "assets/alfredo_ozbourne_amplifier.png"
                         tower.image = load_image("assets/alfredo_ozbourne_amplifier.png")
                         tower.original_image = load_image("assets/alfredo_ozbourne_amplifier.png")
                     elif tower.curr_bottom_upgrade == 1:
+                        tower.image_path = "assets/alfredo_ozbourne_longer_riffs+amplifier.png"
                         tower.image = load_image("assets/alfredo_ozbourne_longer_riffs+amplifier.png")
                         tower.original_image = load_image("assets/alfredo_ozbourne_longer_riffs+amplifier.png")
         if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
@@ -810,28 +855,37 @@ def handle_upgrade(scrn, tower):
                     tower.curr_bottom_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_top_upgrade == 0:
+                        tower.image_path = "assets/alfredo_ozbourne_longer_riffs.png"
                         tower.image = load_image("assets/alfredo_ozbourne_longer_riffs.png")
                         tower.original_image = load_image("assets/alfredo_ozbourne_longer_riffs.png")
                     elif tower.curr_top_upgrade == 1:
+                        tower.image_path = "assets/alfredo_ozbourne_longer_riffs+amplifier.png"
                         tower.image = load_image("assets/alfredo_ozbourne_longer_riffs+amplifier.png")
                         tower.original_image = load_image("assets/alfredo_ozbourne_longer_riffs+amplifier.png")
                         tower.recruit_image = "assets/alfredo_ozbourne_longer_riffs+amplifier.png"
     if isinstance(tower, RatBank):
         img_credit_upgrade = load_image("assets/upgrade_better_credit.png")
         img_cheesefargo_upgrade = load_image("assets/upgrade_cheese_fargo.png")
-        upgrade_font = get_font("arial", 16)
-        text_credit = upgrade_font.render("715 Credit Score", True, (0, 0, 0))
-        text_fargo = upgrade_font.render("Cheese Fargo", True, (0, 0, 0))
+        img_import_upgrade = load_image("assets/upgrade_imports.png")
+        img_gouda_upgrade = load_image("assets/upgrade_gouda.png")
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_credit_upgrade, (883, 65))
-            scrn.blit(text_credit, (952, 42))
+            blit_text(scrn, "715 Credit Score", "top")
+        elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
+            scrn.blit(img_import_upgrade, top)
+            blit_text(scrn, "Cheddar Imports", "top")
         else:
             scrn.blit(img_max_upgrades, top)
+
         if tower.curr_bottom_upgrade == 0:
-            scrn.blit(img_cheesefargo_upgrade, (883, 194))
-            scrn.blit(text_fargo, (962, 172))
+            scrn.blit(img_gouda_upgrade, bottom)
+            blit_text(scrn, "Gouda Investments", "bottom")
+        elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
+            scrn.blit(img_cheesefargo_upgrade, bottom)
+            blit_text(scrn, "Cheese Fargo", "bottom")
         else:
             scrn.blit(img_max_upgrades, bottom)
+
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
             scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
@@ -842,30 +896,45 @@ def handle_upgrade(scrn, tower):
                     tower.interest_rate = 1.07
                     tower.curr_top_upgrade = 1
                     UpgradeFlag = True
-                    if tower.curr_bottom_upgrade == 0:
+                    if tower.curr_bottom_upgrade < 2:
+                        tower.image_path = "assets/rat_bank_fargo.png"
                         tower.image = load_image("assets/rat_bank_fargo.png")
                         tower.original_image = load_image("assets/rat_bank_fargo.png")
+                elif tower.curr_top_upgrade == 1 and money >= 400 and tower.curr_bottom_upgrade < 2:
+                    purchase.play()
+                    money -= 400
+                    tower.sell_amt += 200
+                    tower.curr_top_upgrade = 2
+                    UpgradeFlag = True
+                    tower.image_path = "assets/rat_bank_imports.png"
+                    tower.image = load_image("assets/rat_bank_imports.png")
+                    tower.original_image = load_image("assets/rat_bank_imports.png")
+
         if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
             if detect_single_click():
                 money += tower.sell_amt
                 towers.remove(tower)
                 UpgradeFlag = False
                 return
+
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
             scrn.blit(img_upgrade_highlighted, (883, 194))
             if detect_single_click():
-                if money >= 1200 and tower.curr_bottom_upgrade == 0:
+                if money >= 2000 and tower.curr_bottom_upgrade == 0:
+                    purchase.play()
+                    money -= 2000
+                    tower.sell_amt += 1000
+                    tower.curr_bottom_upgrade = 1
+                    UpgradeFlag = True
+                elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2 and money >= 1200:
                     purchase.play()
                     money -= 1200
                     tower.sell_amt += 600
-                    tower.curr_bottom_upgrade = 1
+                    tower.curr_bottom_upgrade = 2
                     UpgradeFlag = True
-                    if tower.curr_top_upgrade == 0:
-                        tower.image = load_image("assets/rat_bank_fargo_skyscraper.png")
-                        tower.original_image = load_image("assets/rat_bank_fargo_skyscraper.png")
-                    elif tower.curr_top_upgrade == 1:
-                        tower.image = load_image("assets/rat_bank_fargo_skyscraper.png")
-                        tower.original_image = load_image("assets/rat_bank_fargo_skyscraper.png")
+                    tower.image_path = "assets/rat_bank_fargo_skyscraper.png"
+                    tower.image = load_image("assets/rat_bank_fargo_skyscraper.png")
+                    tower.original_image = load_image("assets/rat_bank_fargo_skyscraper.png")
     if isinstance(tower, MinigunTower):
         img_fasterspool_upgrade = load_image("assets/upgrade_faster_spool.png")
         img_biggermags_upgrade = load_image("assets/upgrade_bigger_mags.png")
@@ -905,12 +974,15 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
+                        tower.image_path = "assets/minigun_faster_spool.png"
                         tower.image = load_image("assets/minigun_faster_spool.png")
                         tower.original_image = load_image("assets/minigun_faster_spool.png")
                     elif tower.curr_bottom_upgrade == 1:
+                        tower.image_path = "assets/minigun_faster_spool+flame.png"
                         tower.image = load_image("assets/minigun_faster_spool+flame.png")
                         tower.original_image = load_image("assets/minigun_faster_spool+flame.png")
                     elif tower.curr_bottom_upgrade == 2:
+                        tower.image_path = "assets/minigun_deathray+faster_spool.png"
                         tower.image = load_image("assets/minigun_deathray+faster_spool.png")
                         tower.original_image = load_image("assets/minigun_deathray+faster_spool.png")
                 # bigger mags
@@ -922,9 +994,11 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 2
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
+                        tower.image_path = "assets/minigun_bigger_mags.png"
                         tower.image = load_image("assets/minigun_bigger_mags.png")
                         tower.original_image = load_image("assets/minigun_bigger_mags.png")
                     elif tower.curr_bottom_upgrade == 1:
+                        tower.image_path = "assets/minigun_bigger_mags+flame.png"
                         tower.image = load_image("assets/minigun_bigger_mags+flame.png")
                         tower.original_image = load_image("assets/minigun_bigger_mags+flame.png")
                 # twin guns
@@ -939,9 +1013,11 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 3
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
+                        tower.image_path = "assets/minigun_twin_guns.png"
                         tower.image = load_image("assets/minigun_twin_guns.png")
                         tower.original_image = load_image("assets/minigun_twin_guns.png")
                     elif tower.curr_bottom_upgrade == 1:
+                        tower.image_path = "assets/minigun_twin_guns+flame.png"
                         tower.image = load_image("assets/minigun_twin_guns+flame.png")
                         tower.original_image = load_image("assets/minigun_twin_guns+flame.png")
         if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
@@ -963,15 +1039,19 @@ def handle_upgrade(scrn, tower):
                     tower.curr_bottom_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_top_upgrade == 0:
+                        tower.image_path = "assets/minigun_flamebullets.png"
                         tower.image = load_image("assets/minigun_flamebullets.png")
                         tower.original_image = load_image("assets/minigun_flamebullets.png")
                     elif tower.curr_top_upgrade == 1:
+                        tower.image_path = "assets/minigun_faster_spool+flame.png"
                         tower.image = load_image("assets/minigun_faster_spool+flame.png")
                         tower.original_image = load_image("assets/minigun_faster_spool+flame.png")
                     elif tower.curr_top_upgrade == 2:
+                        tower.image_path = "assets/minigun_bigger_mags+flame.png"
                         tower.image = load_image("assets/minigun_bigger_mags+flame.png")
                         tower.original_image = load_image("assets/minigun_bigger_mags+flame.png")
                     elif tower.curr_top_upgrade == 3:
+                        tower.image_path = "assets/minigun_twin_guns+flame.png"
                         tower.image = load_image("assets/minigun_twin_guns+flame.png")
                         tower.original_image = load_image("assets/minigun_twin_guns+flame.png")
                 # death ray
@@ -988,9 +1068,11 @@ def handle_upgrade(scrn, tower):
                     tower.curr_bottom_upgrade = 2
                     UpgradeFlag = True
                     if tower.curr_top_upgrade == 0:
+                        tower.image_path = "assets/minigun_deathray.png"
                         tower.image = load_image("assets/minigun_deathray.png")
                         tower.original_image = load_image("assets/minigun_deathray.png")
                     elif tower.curr_top_upgrade == 1:
+                        tower.image_path = "assets/minigun_deathray+faster_spool.png"
                         tower.image = load_image("assets/minigun_deathray+faster_spool.png")
                         tower.original_image = load_image("assets/minigun_deathray+faster_spool.png")
     if isinstance(tower, RatSniper):
@@ -1034,18 +1116,26 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
+                        tower.image_path = "assets/sniper+collateral.png"
+                        tower.image_path_shoot = "assets/sniper+collateral_shoot.png"
                         tower.image = load_image("assets/sniper+collateral.png")
                         tower.base_image = load_image("assets/sniper+collateral.png")
                         tower.shoot_image = load_image("assets/sniper+collateral_shoot.png")
                     elif tower.curr_bottom_upgrade == 1:
+                        tower.image_path = "assets/sniper+collateral+rechamber.png"
+                        tower.image_path_shoot = "assets/sniper+collateral+rechamber_shoot.png"
                         tower.image = load_image("assets/sniper+collateral+rechamber.png")
                         tower.base_image = load_image("assets/sniper+collateral+rechamber.png")
                         tower.shoot_image = load_image("assets/sniper+collateral+rechamber_shoot.png")
                     elif tower.curr_bottom_upgrade == 2:
+                        tower.image_path = "assets/sniper+collateral+semiauto.png"
+                        tower.image_path_shoot = "assets/sniper+collateral+semiauto_shoot.png"
                         tower.image = load_image("assets/sniper+collateral+semiauto.png")
                         tower.base_image = load_image("assets/sniper+collateral+semiauto.png")
                         tower.shoot_image = load_image("assets/sniper+collateral+semiauto_shoot.png")
                     elif tower.curr_bottom_upgrade == 3:
+                        tower.image_path = "assets/sniper+collateral+fmj.png"
+                        tower.image_path_shoot = "assets/sniper+collateral+fmj_shoot.png"
                         tower.image = load_image("assets/sniper+collateral+fmj.png")
                         tower.base_image = load_image("assets/sniper+collateral+fmj.png")
                         tower.shoot_image = load_image("assets/sniper+collateral+fmj_shoot.png")
@@ -1057,10 +1147,14 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 2
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
+                        tower.image_path = "assets/sniper+50cal.png"
+                        tower.image_path_shoot = "assets/sniper+50cal_shoot.png"
                         tower.image = load_image("assets/sniper+50cal.png")
                         tower.base_image = load_image("assets/sniper+50cal.png")
                         tower.shoot_image = load_image("assets/sniper+50cal_shoot.png")
                     elif tower.curr_bottom_upgrade == 1:
+                        tower.image_path = "assets/sniper+50cal+rechamber.png"
+                        tower.image_path_shoot = "assets/sniper+50cal+rechamber_shoot.png"
                         tower.image = load_image("assets/sniper+50cal+rechamber.png")
                         tower.base_image = load_image("assets/sniper+50cal+rechamber.png")
                         tower.shoot_image = load_image("assets/sniper+50cal+rechamber_shoot.png")
@@ -1072,10 +1166,14 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 3
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
+                        tower.image_path = "assets/sniper+hollowpoint.png"
+                        tower.image_path_shoot = "assets/sniper+hollowpoint_shoot.png"
                         tower.image = load_image("assets/sniper+hollowpoint.png")
                         tower.base_image = load_image("assets/sniper+hollowpoint.png")
                         tower.shoot_image = load_image("assets/sniper+hollowpoint_shoot.png")
                     elif tower.curr_bottom_upgrade == 1:
+                        tower.image_path = "assets/sniper+hollowpoint+rechamber.png"
+                        tower.image_path_shoot = "assets/sniper+hollowpoint+rechamber_shoot.png"
                         tower.image = load_image("assets/sniper+hollowpoint+rechamber.png")
                         tower.base_image = load_image("assets/sniper+hollowpoint+rechamber.png")
                         tower.shoot_image = load_image("assets/sniper+hollowpoint+rechamber_shoot.png")
@@ -1097,18 +1195,26 @@ def handle_upgrade(scrn, tower):
                     tower.curr_bottom_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_top_upgrade == 0:
+                        tower.image_path = "assets/sniper+rechamber.png"
+                        tower.image_path_shoot = "assets/sniper+rechamber_shoot.png"
                         tower.image = load_image("assets/sniper+rechamber.png")
                         tower.base_image = load_image("assets/sniper+rechamber.png")
                         tower.shoot_image = load_image("assets/sniper+rechamber_shoot.png")
                     elif tower.curr_top_upgrade == 1:
+                        tower.image_path = "assets/sniper+collateral+rechamber.png"
+                        tower.image_path_shoot = "assets/sniper+collateral+rechamber_shoot.png"
                         tower.image = load_image("assets/sniper+collateral+rechamber.png")
                         tower.base_image = load_image("assets/sniper+collateral+rechamber.png")
                         tower.shoot_image = load_image("assets/sniper+collateral+rechamber_shoot.png")
                     elif tower.curr_top_upgrade == 2:
+                        tower.image_path = "assets/sniper+50cal+rechamber.png"
+                        tower.image_path_shoot = "assets/sniper+50cal+rechamber_shoot.png"
                         tower.image = load_image("assets/sniper+50cal+rechamber.png")
                         tower.base_image = load_image("assets/sniper+50cal+rechamber.png")
                         tower.shoot_image = load_image("assets/sniper+50cal+rechamber_shoot.png")
                     elif tower.curr_top_upgrade == 3:
+                        tower.image_path = "assets/sniper+hollowpoint+rechamber.png"
+                        tower.image_path_shoot = "assets/sniper+hollowpoint+rechamber_shoot.png"
                         tower.image = load_image("assets/sniper+hollowpoint+rechamber.png")
                         tower.base_image = load_image("assets/sniper+hollowpoint+rechamber.png")
                         tower.shoot_image = load_image("assets/sniper+hollowpoint+rechamber_shoot.png")
@@ -1120,10 +1226,14 @@ def handle_upgrade(scrn, tower):
                     tower.curr_bottom_upgrade = 2
                     UpgradeFlag = True
                     if tower.curr_top_upgrade == 0:
+                        tower.image_path = "assets/sniper+semiauto.png"
+                        tower.image_path_shoot = "assets/sniper+semiauto_shoot.png"
                         tower.image = load_image("assets/sniper+semiauto.png")
                         tower.base_image = load_image("assets/sniper+semiauto.png")
                         tower.shoot_image = load_image("assets/sniper+semiauto_shoot.png")
                     elif tower.curr_top_upgrade == 1:
+                        tower.image_path = "assets/sniper+collateral+semiauto.png"
+                        tower.image_path_shoot = "assets/sniper+collateral+semiauto_shoot.png"
                         tower.image = load_image("assets/sniper+collateral+semiauto.png")
                         tower.base_image = load_image("assets/sniper+collateral+semiauto.png")
                         tower.shoot_image = load_image("assets/sniper+collateral+semiauto_shoot.png")
@@ -1135,10 +1245,14 @@ def handle_upgrade(scrn, tower):
                     tower.curr_bottom_upgrade = 3
                     UpgradeFlag = True
                     if tower.curr_top_upgrade == 0:
+                        tower.image_path = "assets/sniper+fmj.png"
+                        tower.image_path_shoot = "assets/sniper+fmj_shoot.png"
                         tower.image = load_image("assets/sniper+fmj.png")
                         tower.base_image = load_image("assets/sniper+fmj.png")
                         tower.shoot_image = load_image("assets/sniper+fmj_shoot.png")
                     elif tower.curr_top_upgrade == 1:
+                        tower.image_path = "assets/sniper+collateral+fmj.png"
+                        tower.image_path_shoot = "assets/sniper+collateral+fmj_shoot.png"
                         tower.image = load_image("assets/sniper+collateral+fmj.png")
                         tower.base_image = load_image("assets/sniper+collateral+fmj.png")
                         tower.shoot_image = load_image("assets/sniper+collateral+fmj_shoot.png")
@@ -1279,12 +1393,15 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
+                        tower.image_path = "assets/wizard+apprentice.png"
                         tower.image = load_image("assets/wizard+apprentice.png")
                         tower.original_image = load_image("assets/wizard+apprentice.png")
                     elif tower.curr_bottom_upgrade == 1:
+                        tower.image_path = "assets/wizard+lightning+apprentice.png"
                         tower.image = load_image("assets/wizard+lightning+apprentice.png")
                         tower.original_image = load_image("assets/wizard+lightning+apprentice.png")
                     elif tower.curr_bottom_upgrade == 2:
+                        tower.image_path = "assets/wizard+storm+apprentice.png"
                         tower.image = load_image("assets/wizard+storm+apprentice.png")
                         tower.original_image = load_image("assets/wizard+storm+apprentice.png")
                 # master
@@ -1296,9 +1413,11 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 2
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
+                        tower.image_path = "assets/wizard+master.png"
                         tower.image = load_image("assets/wizard+master.png")
                         tower.original_image = load_image("assets/wizard+master.png")
                     elif tower.curr_bottom_upgrade == 1:
+                        tower.image_path = "assets/wizard+lightning+master.png"
                         tower.image = load_image("assets/wizard+lightning+master.png")
                         tower.original_image = load_image("assets/wizard+lightning+master.png")
                 # explosive orbs
@@ -1309,9 +1428,11 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 3
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
+                        tower.image_path = "assets/wizard+explosiveorbs.png"
                         tower.image = load_image("assets/wizard+explosiveorbs.png")
                         tower.original_image = load_image("assets/wizard+explosiveorbs.png")
                     elif tower.curr_bottom_upgrade == 1:
+                        tower.image_path = "assets/wizard+explosiveorbs+lightning.png"
                         tower.image = load_image("assets/wizard+explosiveorbs+lightning.png")
                         tower.original_image = load_image("assets/wizard+explosiveorbs+lightning.png")
         if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
@@ -1332,15 +1453,19 @@ def handle_upgrade(scrn, tower):
                     tower.curr_bottom_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_top_upgrade == 0:
+                        tower.image_path = "assets/wizard+lightning.png"
                         tower.image = load_image("assets/wizard+lightning.png")
                         tower.original_image = load_image("assets/wizard+lightning.png")
                     elif tower.curr_top_upgrade == 1:
+                        tower.image_path = "assets/wizard+lightning+apprentice.png"
                         tower.image = load_image("assets/wizard+lightning+apprentice.png")
                         tower.original_image = load_image("assets/wizard+lightning+apprentice.png")
                     elif tower.curr_top_upgrade == 2:
+                        tower.image_path = "assets/wizard+lightning+master.png"
                         tower.image = load_image("assets/wizard+lightning+master.png")
                         tower.original_image = load_image("assets/wizard+lightning+master.png")
                     elif tower.curr_top_upgrade == 3:
+                        tower.image_path = "assets/wizard+explosiveorbs+lightning.png"
                         tower.image = load_image("assets/wizard+explosiveorbs+lightning.png")
                         tower.original_image = load_image("assets/wizard+explosiveorbs+lightning.png")
                 # storm
@@ -1352,9 +1477,11 @@ def handle_upgrade(scrn, tower):
                     tower.curr_bottom_upgrade = 2
                     UpgradeFlag = True
                     if tower.curr_top_upgrade == 0:
+                        tower.image_path = "assets/wizard+storm.png"
                         tower.image = load_image("assets/wizard+storm.png")
                         tower.original_image = load_image("assets/wizard+storm.png")
                     elif tower.curr_top_upgrade == 1:
+                        tower.image_path = "assets/wizard+storm+apprentice.png"
                         tower.image = load_image("assets/wizard+storm+apprentice.png")
                         tower.original_image = load_image("assets/wizard+storm+apprentice.png")
     if isinstance(tower, CheddarCommando):
@@ -1390,6 +1517,7 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
+                        tower.image_path = "assets/soldier_piercing.png"
                         tower.image = load_image("assets/soldier_piercing.png")
                         tower.original_image = load_image("assets/soldier_piercing.png")
                 # shotgun upgrade
@@ -1401,10 +1529,13 @@ def handle_upgrade(scrn, tower):
                         tower.reload_time = 5374
                         tower.shoot_interval = 1895
                         tower.reload_sound = load_sound("assets/shotgun_reload.mp3")
+                        tower.reload_path = "assets/shotgun_reload.mp3"
+                    tower.sound_path = "assets/shotgun_shoot.mp3"
                     tower.shoot_sound = load_sound("assets/shotgun_shoot.mp3")
                     tower.curr_top_upgrade = 2
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade <= 1:
+                        tower.image_path = "assets/soldier_shotgun.png"
                         tower.image = load_image("assets/soldier_shotgun.png")
                         tower.original_image = load_image("assets/soldier_shotgun.png")
         if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
@@ -1425,9 +1556,12 @@ def handle_upgrade(scrn, tower):
                     tower.radius = 150
                     tower.reload_time = 3500
                     if tower.curr_top_upgrade < 1:
+                        tower.image_path = "assets/soldier_rocket.png"
+                        tower.sound_path = "assets/launcher_shoot.mp3"
                         tower.shoot_sound = load_sound("assets/launcher_shoot.mp3")
                         tower.image = load_image("assets/soldier_rocket.png")
                         tower.original_image = load_image("assets/soldier_rocket.png")
+                    tower.reload_path = "assets/commando_reload.mp3"
                     tower.reload_sound = load_sound("assets/commando_reload.mp3")
                     UpgradeFlag = True
                 # grenade launcher
@@ -1439,8 +1573,10 @@ def handle_upgrade(scrn, tower):
                     tower.radius = 125
                     tower.shoot_interval = 1500
                     tower.reload_time = 7500
+                    tower.reload_path = "assets/shotgun_reload.mp3"
                     tower.reload_sound = load_sound("assets/shotgun_reload.mp3")
                     UpgradeFlag = True
+                    tower.image_path = "assets/soldier_thumper.png"
                     tower.image = load_image("assets/soldier_thumper.png")
                     tower.original_image = load_image("assets/soldier_thumper.png")
     if isinstance(tower, CheeseBeacon):
@@ -1480,10 +1616,13 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 1
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
+                        tower.image_path = "assets/beacon+damageboost.png"
                         tower.image = load_image("assets/beacon+damageboost.png")
                     elif tower.curr_bottom_upgrade == 1:
+                        tower.image_path = "assets/beacon+radius+damage.png"
                         tower.image = load_image("assets/beacon+radius+damage.png")
                     elif tower.curr_bottom_upgrade == 2:
+                        tower.image_path = "assets/beacon+speed+damage.png"
                         tower.image = load_image("assets/beacon+speed+damage.png")
                 # damage 4x
                 elif tower.curr_top_upgrade == 1 and money >= 4000:
@@ -1493,10 +1632,13 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 2
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
+                        tower.image_path = "assets/beacon_damage2.png"
                         tower.image = load_image("assets/beacon_damage2.png")
                     elif tower.curr_bottom_upgrade == 1:
+                        tower.image_path = "assets/beacon+radius+damage2.png"
                         tower.image = load_image("assets/beacon+radius+damage2.png")
                     elif tower.curr_bottom_upgrade == 2:
+                        tower.image_path = "assets/beacon+speed+damage2.png"
                         tower.image = load_image("assets/beacon+speed+damage2.png")
                 # damage 5x
                 elif tower.curr_top_upgrade == 2 and money >= 5200:
@@ -1506,10 +1648,13 @@ def handle_upgrade(scrn, tower):
                     tower.curr_top_upgrade = 3
                     UpgradeFlag = True
                     if tower.curr_bottom_upgrade == 0:
+                        tower.image_path = "assets/beacon_damage3.png"
                         tower.image = load_image("assets/beacon_damage3.png")
                     elif tower.curr_bottom_upgrade == 1:
+                        tower.image_path = "assets/beacon+radius+damage3.png"
                         tower.image = load_image("assets/beacon+radius+damage3.png")
                     elif tower.curr_bottom_upgrade == 2:
+                        tower.image_path = "assets/beacon+speed+damage3.png"
                         tower.image = load_image("assets/beacon+speed+damage3.png")
         if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
             if detect_single_click():
@@ -1528,12 +1673,16 @@ def handle_upgrade(scrn, tower):
                     tower.sell_amt += 300
                     tower.curr_bottom_upgrade = 1
                     if tower.curr_top_upgrade == 0:
+                        tower.image_path = "assets/beacon+radius.png"
                         tower.image = load_image("assets/beacon+radius.png")
                     elif tower.curr_top_upgrade == 1:
+                        tower.image_path = "assets/beacon+radius+damage.png"
                         tower.image = load_image("assets/beacon+radius+damage.png")
                     elif tower.curr_top_upgrade == 2:
+                        tower.image_path = "assets/beacon+radius+damage2.png"
                         tower.image = load_image("assets/beacon+radius+damage2.png")
                     elif tower.curr_top_upgrade == 3:
+                        tower.image_path = "assets/beacon+radius+damage3.png"
                         tower.image = load_image("assets/beacon+radius+damage3.png")
                     UpgradeFlag = True
                 # speed
@@ -1543,12 +1692,16 @@ def handle_upgrade(scrn, tower):
                     tower.sell_amt += 1100
                     tower.curr_bottom_upgrade = 2
                     if tower.curr_top_upgrade == 0:
+                        tower.image_path = "assets/beacon+speed.png"
                         tower.image = load_image("assets/beacon+speed.png")
                     elif tower.curr_top_upgrade == 1:
+                        tower.image_path = "assets/beacon+speed+damage.png"
                         tower.image = load_image("assets/beacon+speed+damage.png")
                     elif tower.curr_top_upgrade == 2:
+                        tower.image_path = "assets/beacon+speed+damage2.png"
                         tower.image = load_image("assets/beacon+speed+damage2.png")
                     elif tower.curr_top_upgrade == 3:
+                        tower.image_path = "assets/beacon+speed+damage3.png"
                         tower.image = load_image("assets/beacon+speed+damage3.png")
 
     # CLICK OUT OF UPGRADE WINDOW
@@ -1587,9 +1740,11 @@ def update_towers(scrn: pygame.surface):
             tower.shoot()
         if isinstance(tower, CheeseBeacon):
             tower.update(towers, delta)
+
     for tower in towers:
         if isinstance(tower, RatBank):
-            tower.render(scrn)
+            if tower.investment_window_open:
+                tower.investment_interface(scrn)
         if isinstance(tower, CheeseBeacon):
             tower.render_effects(scrn)
 
@@ -1935,12 +2090,21 @@ class RecruitEntity:
         self.speed = speed
         self.path = path
         self.damage = damage
+        self.frames = ["assets/freak_recruit_frames/freak0.png", "assets/freak_recruit_frames/freak1.png",
+                       "assets/freak_recruit_frames/freak2.png", "assets/freak_recruit_frames/freak3.png",
+                       "assets/freak_recruit_frames/freak4.png", "assets/freak_recruit_frames/freak5.png",
+                       "assets/freak_recruit_frames/freak6.png", "assets/freak_recruit_frames/freak7.png"]
+        self.current_frame = 0
+        self.frame_duration = 150  # milliseconds per frame
+        self.last_frame_update = pygame.time.get_ticks()
         self.image = load_image(image_path)
         self.original_image = self.image
         self.rect = self.image.get_rect(center=position)
         self.position, self.current_target = self.get_closest_point_on_path(position)
         self.is_alive = True
         self.was_alive = False
+        self.buff = False
+        self.current_angle = 0
 
     def get_closest_point_on_path(self, position):
         closest_point = None
@@ -1972,7 +2136,11 @@ class RecruitEntity:
             dx = target_x - self.position[0]
             dy = target_y - self.position[1]
             distance = (dx ** 2 + dy ** 2) ** 0.5
-            if distance == 0:
+            if distance < 0.0001:
+                # Snap to this waypoint and move on
+                self.position = (target_x, target_y)
+                self.rect.center = self.position
+                self.current_target += 1
                 return
             direction_x = dx / distance
             direction_y = dy / distance
@@ -1988,9 +2156,19 @@ class RecruitEntity:
             self.is_alive = False
 
     def update_orientation(self, direction_x, direction_y):
-        angle = math.degrees(math.atan2(-direction_y, direction_x))
-        self.image = pygame.transform.rotate(self.original_image, angle - 90)
+        angle = math.degrees(math.atan2(-direction_y, direction_x)) - 90
+        self.current_angle = angle  # Save it
+        self.image = pygame.transform.rotate(self.original_image, angle)
         self.rect = self.image.get_rect(center=self.rect.center)
+
+    def update_animation(self):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_frame_update >= self.frame_duration / game_speed_multiplier:
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+            new_frame_img = load_image(self.frames[self.current_frame])
+            self.original_image = new_frame_img
+            self.image = pygame.transform.rotate(self.original_image, self.current_angle)
+            self.last_frame_update = current_time
 
     def check_collision(self, enemies):
         for enemy in enemies:
@@ -2005,6 +2183,8 @@ class RecruitEntity:
     def update(self, enemies):
         self.move()
         self.check_collision(enemies)
+        if self.buff:
+            self.update_animation()
 
     def render(self, screen):
         if self.was_alive:
@@ -2017,21 +2197,26 @@ class RecruitEntity:
 class RatTent:
     def __init__(self, position, radius, recruit_health, recruit_speed, recruit_damage, image_path, recruit_image,
                  spawn_interval=3000):
+        self.image_path = "assets/base_camp.png"
+        self.image = load_image(self.image_path)
         self.position = position
         self.radius = radius
         self.recruit_health = recruit_health
         self.recruit_speed = recruit_speed
         self.recruit_damage = recruit_damage
         self.damage = self.recruit_damage
-        self.image = load_image("assets/base_camp.png")
         self.rect = self.image.get_rect(center=position)
         self.spawn_interval = spawn_interval
         self.last_spawn_time = 0
+        self.freak_last_spawn_time = 0
         self.recruits = []
         self.recruit_image = recruit_image
         self.curr_bottom_upgrade = 0
         self.curr_top_upgrade = 0
         self.sell_amt = 325
+        self.horn_sfx = load_sound("assets/battle_horn.mp3")
+        self.freak_sfx = load_sound("assets/freak-squeak.mp3")
+        self.freak_death = load_sound("assets/freak_death.mp3")
 
     def render(self, screen):
         screen.blit(self.image, self.rect.topleft)
@@ -2039,26 +2224,80 @@ class RatTent:
             recruit.render(screen)
 
     def update(self, enemies):
+        if self.curr_top_upgrade > 0:
+            self.spawn_interval = 1500
         scaled_interval = self.spawn_interval / game_speed_multiplier
-        if pygame.time.get_ticks() - self.last_spawn_time >= scaled_interval and RoundFlag:
-            recruit_entity = RecruitEntity(self.position, 1, 1, recruit_path, 1, self.recruit_image)
-            closest_spawn_point, _ = recruit_entity.get_closest_point_on_path(self.position)
-            distance = ((closest_spawn_point[0] - self.position[0]) ** 2 + (
-                    closest_spawn_point[1] - self.position[1]) ** 2) ** 0.5
-            if distance <= self.radius:
-                recruit = RecruitEntity(
-                    position=closest_spawn_point,
-                    health=self.recruit_health,
-                    speed=self.recruit_speed,
-                    path=recruit_path,
-                    damage=self.recruit_damage,
-                    image_path=self.recruit_image
-                )
-                self.recruits.append(recruit)
-                self.last_spawn_time = pygame.time.get_ticks()
+        # use default spawning
+        if self.curr_top_upgrade < 2:
+            if pygame.time.get_ticks() - self.last_spawn_time >= scaled_interval and RoundFlag:
+                recruit_entity = RecruitEntity(self.position, 1, 1, recruit_path, 1, self.recruit_image)
+                closest_spawn_point, _ = recruit_entity.get_closest_point_on_path(self.position)
+                distance = ((closest_spawn_point[0] - self.position[0]) ** 2 + (
+                        closest_spawn_point[1] - self.position[1]) ** 2) ** 0.5
+                if distance <= self.radius:
+                    recruit = RecruitEntity(
+                        position=closest_spawn_point,
+                        health=self.recruit_health,
+                        speed=self.recruit_speed,
+                        path=recruit_path,
+                        damage=self.recruit_damage,
+                        image_path=self.recruit_image,
+                    )
+                    if self.curr_top_upgrade > 0:
+                        recruit.speed = 2
+                    if self.curr_bottom_upgrade > 1:
+                        recruit.health = 2
+                    self.recruits.append(recruit)
+                    self.last_spawn_time = pygame.time.get_ticks()
+
+        # ARMY RELEASE!
+        if self.curr_top_upgrade == 2 and self.curr_bottom_upgrade < 2:
+            if pygame.time.get_ticks() - self.last_spawn_time >= (scaled_interval * 10) and RoundFlag:
+                self.horn_sfx.play()
+                recruit_entity = RecruitEntity(self.position, 1, 1, recruit_path, 1, self.recruit_image)
+                closest_spawn_point, _ = recruit_entity.get_closest_point_on_path(self.position)
+                distance = ((closest_spawn_point[0] - self.position[0]) ** 2 + (
+                        closest_spawn_point[1] - self.position[1]) ** 2) ** 0.5
+                if distance <= self.radius:
+                    for _ in range(60):
+                        offset_path = [(x + random.randint(-16, 16), y + random.randint(-8, 8)) for (x, y) in recruit_path]
+                        recruit = RecruitEntity(
+                            position=(closest_spawn_point[0] + random.randint(-16, 16), closest_spawn_point[1] + random.randint(-16, 16)),
+                            health=self.recruit_health / 2,
+                            speed=self.recruit_speed,
+                            path=offset_path,
+                            damage=self.recruit_damage / 2,
+                            image_path="assets/recruit_army.png"
+                        )
+                        self.recruits.append(recruit)
+                        self.last_spawn_time = pygame.time.get_ticks()
+
+        # RELEASE A FREAK!!
+        if self.curr_bottom_upgrade > 1 and self.curr_top_upgrade < 2:
+            if pygame.time.get_ticks() - self.freak_last_spawn_time >= (scaled_interval * 5) and RoundFlag:
+                self.freak_sfx.play()
+                recruit_entity = RecruitEntity(self.position, 1, 1, recruit_path, 1, self.recruit_image)
+                closest_spawn_point, _ = recruit_entity.get_closest_point_on_path(self.position)
+                distance = ((closest_spawn_point[0] - self.position[0]) ** 2 + (
+                        closest_spawn_point[1] - self.position[1]) ** 2) ** 0.5
+                if distance <= self.radius:
+                    recruit = RecruitEntity(
+                        position=closest_spawn_point,
+                        health=10,
+                        speed=.5,
+                        path=recruit_path,
+                        damage=3,
+                        image_path="assets/freak_recruit_frames/freak0.png"
+                    )
+                    recruit.buff = True
+                    self.recruits.append(recruit)
+                    self.freak_last_spawn_time = pygame.time.get_ticks()
+
         for recruit in self.recruits[:]:
             recruit.update(enemies)
             if not recruit.is_alive:
+                if recruit.buff:
+                    self.freak_death.play()
                 self.recruits.remove(recruit)
             if not RoundFlag:
                 self.recruits.remove(recruit)
@@ -2068,12 +2307,13 @@ class MrCheese:
     sfx_squeak = load_sound("assets/mouse-squeak.mp3")
 
     def __init__(self, position, radius, weapon, damage, image_path, projectile_image, shoot_interval=1500):
+        self.image_path = "assets/base_rat.png"
+        self.image = load_image(self.image_path)
         self.position = position
         self.radius = radius
         self.weapon = weapon
         self.damage = damage
-        self.image = load_image("assets/base_rat.png")
-        self.original_image = self.image
+        self.original_image = load_image(self.image_path)
         self.rect = self.image.get_rect(center=position)
         self.angle = 0
         self.target = None
@@ -2198,10 +2438,57 @@ class MrCheese:
                 self.last_shot_time = pygame.time.get_ticks()
 
 
+class ImportTruck:
+    def __init__(self, position, path, health):
+        self.position = position
+        self.speed = 0.75
+        self.health = health
+        self.path = path
+        self.original_image = load_image("assets/import_truck.png")
+        self.image = self.original_image
+        self.rect = self.image.get_rect(center=position)
+        self.size = self.rect.size
+        self.current_target = 0
+        self.is_alive = True
+
+    def move(self):
+        global user_health
+        if self.current_target < len(self.path):
+            target_x, target_y = self.path[self.current_target]
+            dx = target_x - self.position[0]
+            dy = target_y - self.position[1]
+            distance = (dx ** 2 + dy ** 2) ** 0.5
+            if distance == 0:
+                return
+            direction_x = dx / distance
+            direction_y = dy / distance
+            self.position = (
+                self.position[0] + direction_x * self.speed,
+                self.position[1] + direction_y * self.speed
+            )
+            self.rect.center = self.position
+            self.update_orientation(direction_x, direction_y)
+            if distance <= self.speed:
+                self.current_target += 1
+        if self.current_target >= len(self.path):
+            self.is_alive = False
+            user_health += self.health
+
+    def update_orientation(self, direction_x, direction_y):
+        angle = math.degrees(math.atan2(-direction_y, direction_x))
+        self.image = pygame.transform.rotate(self.original_image, angle - 90)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def render(self, screen):
+        if self.is_alive:
+            screen.blit(self.image, self.rect.topleft)
+
+
 class RatBank:
     def __init__(self, position, image_path):
         self.position = position
-        self.image = load_image("assets/rat_bank.png")
+        self.image_path = "assets/rat_bank.png"
+        self.image = load_image(self.image_path)
         self.rect = self.image.get_rect(center=position)
         self.radius = 0
         # Investment properties
@@ -2222,6 +2509,11 @@ class RatBank:
         self.briefund = 10000
         self.briefund_payment = 720
         self.briefundFlag = False
+        # cheese imports flags
+        self.dutch = True
+        self.polish = True
+        self.french = True
+        self.sfx_horn = load_sound("assets/truck_honk.mp3")
         # Upgrade flags
         self.curr_top_upgrade = 0  # For interest rate improvement (Cheese Fargo upgrade)
         self.curr_bottom_upgrade = 0  # For loan functionality (Cheese Fargo HQ upgrade)
@@ -2232,6 +2524,7 @@ class RatBank:
         self.user_text = ""
         # NEW: Instance-level flag for selection (used for showing the invest button)
         self.is_selected = False
+        self.trucks = []
 
     def update_user_text(self, event):
         # Only process input if this bank's investment window is open.
@@ -2262,12 +2555,20 @@ class RatBank:
           - Stock Value (10% of total towers' sell_amt)
           - Buttons for deposit/withdraw actions and loan handling.
         """
-        global money
+        global money, UpgradeFlag
         investment_bg = load_image("assets/investment_window.png")
         investment_bg_no_loans = load_image("assets/investment_window_no_loans.png")
         investment_no_prov = load_image("assets/investment_window_provoloan_unavail.png")
         investment_no_brie = load_image("assets/investment_window_briefund_unavail.png")
         investment_both_unavail = load_image("assets/investment_window_both_unavail.png")
+        investment_imports = load_image("assets/investment_window_imports.png")
+        french = load_image("assets/french_avail.png")
+        french_unavail = load_image("assets/french_unavail.png")
+        polish = load_image("assets/polish_avail.png")
+        polish_unavail = load_image("assets/polish_unavail.png")
+        dutch = load_image("assets/dutch_avail.png")
+        dutch_unavail = load_image("assets/dutch_unavail.png")
+        import_select = load_image("assets/import_select.png")
         add_investment = load_image("assets/enter_investment_window.png")
         withdraw_window = load_image("assets/withdraw_window.png")
         select_loan = load_image("assets/loan_highlight.png")
@@ -2277,7 +2578,11 @@ class RatBank:
         sell_sum = 0
         for tower in towers:
             sell_sum += tower.sell_amt
-        self.stock_value = int(sell_sum * 0.01)
+
+        if self.curr_bottom_upgrade < 1:
+            self.stock_value = int(sell_sum * 0.01)
+        elif self.curr_bottom_upgrade >= 1:
+            self.stock_value = (int(sell_sum * 0.01)) * 2
 
         font = pygame.font.SysFont("arial", 20)
         text_invested = font.render(f"${self.cash_invested}", True, (255, 255, 255))
@@ -2287,18 +2592,34 @@ class RatBank:
         font_invest = pygame.font.SysFont("arial", 16)
 
         # Choose the appropriate background based on loan upgrade state
-        if self.curr_bottom_upgrade < 1:
+        if self.curr_bottom_upgrade < 2 and self.curr_top_upgrade < 2:
             scrn.blit(investment_bg_no_loans, (0, 0))
-        elif self.briefundFlag and self.provoloanFlag:
-            scrn.blit(investment_both_unavail, (0, 0))
-        elif self.provoloanFlag:
-            scrn.blit(investment_no_prov, (0, 0))
-        elif self.briefundFlag:
-            scrn.blit(investment_no_brie, (0, 0))
-        else:
-            scrn.blit(investment_bg, (0, 0))
+        elif self.curr_bottom_upgrade > 1:
+            if self.briefundFlag and self.provoloanFlag:
+                scrn.blit(investment_both_unavail, (0, 0))
+            elif self.provoloanFlag:
+                scrn.blit(investment_no_prov, (0, 0))
+            elif self.briefundFlag:
+                scrn.blit(investment_no_brie, (0, 0))
+            else:
+                scrn.blit(investment_bg, (0, 0))
 
-        if self.curr_bottom_upgrade >= 1:
+        elif self.curr_top_upgrade > 1:
+            scrn.blit(investment_imports, (0, 0))
+            if self.french:
+                scrn.blit(french, (483, 406))
+            else:
+                scrn.blit(french_unavail, (483, 406))
+            if self.polish:
+                scrn.blit(polish, (592, 406))
+            else:
+                scrn.blit(polish_unavail, (592, 406))
+            if self.dutch:
+                scrn.blit(dutch, (704, 406))
+            else:
+                scrn.blit(dutch_unavail, (704, 406))
+
+        if self.curr_bottom_upgrade > 1:
             scrn.blit(text_payment, (662, 413))
 
         scrn.blit(text_invested, (644, 264))
@@ -2352,8 +2673,35 @@ class RatBank:
                     self.cash_invested = 0
                     self.open_withdraw_window = False
 
+        # Import handling
+        if self.curr_top_upgrade > 1:
+            # France
+            if 484 <= mouse[0] <= 484 + 90 and 407 <= mouse[1] <= 407 + 62 and self.french:
+                scrn.blit(import_select, (484, 407))
+                if detect_single_click():
+                    if money >= 200:
+                        self.french = False
+                        money -= 200
+                        self.send_import(10)
+            # Poland
+            if 595 <= mouse[0] <= 595 + 90 and 407 <= mouse[1] <= 407 + 62 and self.polish:
+                scrn.blit(import_select, (593, 407))
+                if detect_single_click():
+                    if money >= 1000:
+                        self.polish = False
+                        money -= 1000
+                        self.send_import(60)
+            # Netherlands
+            if 707 <= mouse[0] <= 707 + 90 and 407 <= mouse[1] <= 407 + 62 and self.dutch:
+                scrn.blit(import_select, (705, 407))
+                if detect_single_click():
+                    if money >= 2000:
+                        self.dutch = False
+                        money -= 2000
+                        self.send_import(150)
+
         # Loan handling (Cheese Fargo upgrades)
-        if self.curr_bottom_upgrade >= 1:
+        if self.curr_bottom_upgrade > 1:
             if 507 <= mouse[0] <= 507 + 133 and 441 <= mouse[1] <= 441 + 64 and not self.provoloanFlag:
                 scrn.blit(select_loan, (507, 441))
                 if detect_single_click():
@@ -2369,6 +2717,20 @@ class RatBank:
                     self.loan_amount += (self.briefund * 1.07)
                     self.briefundFlag = True
 
+    def send_import(self, health_amt):
+        spawn_pos = (238 + random.randint(-16, 16), 500)
+        offset_path = [(x + random.randint(-8, 8), y) for (x, y) in house_path]
+        self.sfx_horn.play()
+        self.trucks.append(ImportTruck(spawn_pos, offset_path, health_amt))
+
+    def update_trucks(self, scrn):
+        for truck in self.trucks:
+            if truck.is_alive:
+                truck.move()
+                truck.render(scrn)
+            else:
+                self.trucks.remove(truck)
+
     def process_interest(self):
         global money
         """
@@ -2379,7 +2741,16 @@ class RatBank:
         round_diff = self.curr_round - self.invested_round
         self.cash_generated += int((self.cash_invested + self.cash_generated) *
                                    (self.interest_rate - 1))
-        money += 100
+
+        if self.curr_bottom_upgrade < 1:
+            self.cash_generated += (100 + self.stock_value)
+        elif self.curr_bottom_upgrade >= 1:
+            self.cash_generated += (200 + self.stock_value)
+
+    def reset_imports(self):
+        self.polish = True
+        self.french = True
+        self.dutch = True
 
     def process_loan_payment(self):
         """
@@ -2424,7 +2795,7 @@ class RatBank:
 
         # If this bank is selected and its investment window is not open, show its invest button.
         if self.is_selected and not self.investment_window_open:
-            if self.curr_bottom_upgrade < 1:
+            if self.curr_bottom_upgrade < 2:
                 scrn.blit(invest_btn, (self.position[0] - 22, self.position[1] + 45))
                 if (self.position[0] - 22 <= mouse[0] <= self.position[0] - 22 + 46 and
                         self.position[1] + 45 <= mouse[1] <= self.position[1] + 45 + 14):
@@ -2457,6 +2828,9 @@ class RatBank:
         if self.investment_window_open:
             self.investment_interface(scrn)
 
+        if self.curr_top_upgrade > 1:
+            self.update_trucks(scrn)
+
         # self.process_interest()
 
 
@@ -2469,16 +2843,32 @@ class CommandoProjectile:
         self.damage = damage
         self.radius = 3  # bullet radius for drawing
         self.penetration = 5  # Add penetration counter
+        self.target = None
         self.hit = False
         self.piercing = piercing
         self.explosive = False
         self.armor_break = False
+        self.homing = False
 
         # Calculate velocity based on angle
         rad = math.radians(angle)
         self.velocity = [speed * math.cos(rad), -speed * math.sin(rad)]
 
+    def update_velocity(self):
+        if self.target is not None:
+            dx = self.target.position[0] - self.position[0]
+            dy = self.target.position[1] - self.position[1]
+            dist = math.hypot(dx, dy)
+            if dist > 0:
+                self.velocity = [dx / dist * self.speed, dy / dist * self.speed]
+            else:
+                self.velocity = [0, 0]
+        else:
+            self.velocity = [0, 0]
+
     def move(self):
+        if self.homing:
+            self.update_velocity()
         """Update projectile movement."""
         self.position[0] += self.velocity[0]
         self.position[1] += self.velocity[1]
@@ -2494,12 +2884,13 @@ class CommandoProjectile:
 
 class CheddarCommando:
     def __init__(self, position, radius=75, damage=1, shoot_interval=800, reload_time=4000):
+        self.image_path = "assets/base_soldier.png"
+        self.image = load_image(self.image_path)
         self.position = position
         self.radius = radius
         self.damage = damage
-        self.image = load_image("assets/base_soldier.png")
         self.explosion_sfx = load_sound("assets/explosion_sfx.mp3")
-        self.original_image = self.image
+        self.original_image = load_image(self.image_path)
         self.rect = self.image.get_rect(center=position)
         self.target = None
         self.projectiles = []
@@ -2528,8 +2919,10 @@ class CheddarCommando:
         self.sell_amt = 125
 
         # Load sounds
-        self.shoot_sound = load_sound("assets/pistol_shoot.mp3")
-        self.reload_sound = load_sound("assets/commando_reload.mp3")
+        self.sound_path = "assets/pistol_shoot.mp3"
+        self.shoot_sound = load_sound(self.sound_path)
+        self.reload_path = "assets/commando_reload.mp3"
+        self.reload_sound = load_sound(self.reload_path)
 
     def update(self, enemies):
         """Update targeting, projectiles, explosion animation, and reload state."""
@@ -2989,7 +3382,7 @@ class FrostProjectile:
 
 
 class RatSniper:
-    def __init__(self, position, shoot_interval=4000, damage=6):
+    def __init__(self, position, shoot_interval=5000, damage=6):
         self.position = position
         self.damage = damage
         self.shoot_interval = shoot_interval  # default milliseconds between shots
@@ -2997,10 +3390,11 @@ class RatSniper:
         self.projectiles = []
         self.target = None
         self.radius = 0
-
+        self.image_path = "assets/sniper_base.png"
+        self.image_path_shoot = "assets/sniper_base_shoot.png"
         # Load both the base turret image and the firing image.
-        self.base_image = load_image("assets/sniper_base.png")
-        self.shoot_image = load_image("assets/sniper_base_shoot.png")
+        self.base_image = load_image(self.image_path)
+        self.shoot_image = load_image(self.image_path_shoot)
         # Start with the base image.
         self.image = self.base_image
         self.original_image = self.base_image
@@ -3071,6 +3465,9 @@ class RatSniper:
 
         # Process projectile movement and collision.
         for projectile in self.projectiles[:]:
+            if projectile.target is not None and not projectile.target.is_alive:
+                self.projectiles.remove(projectile)
+                continue
             projectile.move()
 
             if not (0 <= projectile.position[0] <= 1280 and 0 <= projectile.position[1] <= 720):
@@ -3121,9 +3518,11 @@ class RatSniper:
         # Create a projectile with a speed of 150.
         proj = CommandoProjectile(self.position, self.angle, speed=50, damage=self.damage)
         proj.radius = 5
+        proj.target = self.target
         # If curr_bottom_upgrade equals 3, add the armor_break attribute.
         if self.curr_bottom_upgrade == 3:
             proj.armor_break = True
+        proj.homing = True
 
         self.projectiles.append(proj)
         self.last_shot_time = current_time
@@ -3187,8 +3586,9 @@ class WizardTower:
     sfx_explosion = load_sound("assets/explosion_sfx.mp3")
 
     def __init__(self, position):
+        self.image_path = "assets/wizard_base.png"
         self.position = position
-        self.base_image = load_image("assets/wizard_base.png")
+        self.base_image = load_image(self.image_path)
         self.original_image = self.base_image
         self.image = self.original_image.copy()
         self.rect = self.image.get_rect(center=position)
@@ -3641,8 +4041,9 @@ class WizardTower:
 class MinigunTower:
     def __init__(self, position):
         self.position = position
-        self.image = load_image("assets/base_minigun.png")
-        self.original_image = self.image
+        self.image_path = "assets/base_minigun.png"
+        self.image = load_image(self.image_path)
+        self.original_image = load_image(self.image_path)
         self.rect = self.image.get_rect(center=position)
         self.radius = 150  # attack range
         self.damage = 0.5
@@ -3919,8 +4320,9 @@ class Ozbourne:
         self.radius = radius
         self.weapon = weapon
         self.damage = damage
-        self.image = load_image("assets/alfredo_ozbourne_base.png")
-        self.original_image = self.image
+        self.image_path = "assets/alfredo_ozbourne_base.png"
+        self.image = load_image(self.image_path)
+        self.original_image = load_image(self.image_path)
         self.rect = self.image.get_rect(center=position)
         self.riff_interval = riff_interval
         self.riff_blast_radius = riff_blast_radius
@@ -4035,7 +4437,8 @@ class CheeseBeacon:
 
     def __init__(self, position):
         self.position = position
-        self.image = load_image("assets/beacon_base.png")
+        self.image_path = "assets/beacon_base.png"
+        self.image = load_image(self.image_path)
         self.radius = 100
         self.last_signal = 0
         self.signal_interval = 5000
@@ -4141,6 +4544,7 @@ class CheeseBeacon:
 
         return boosts
 
+
     def _apply_tower_boosts(self, tower, beacons):
         if tower not in towers:  # towers should be passed from update()
             return
@@ -4157,7 +4561,8 @@ class CheeseBeacon:
             tower._base_damage = getattr(tower, 'damage', 1)
         total_dmg = tower._base_damage
         for boost in beacons.values():
-            total_dmg *= boost.get('damage', 1)
+            if total_dmg is not None:
+                total_dmg *= boost.get('damage', 1)
         if hasattr(tower, 'damage'):
             tower.damage = total_dmg
 
@@ -4178,7 +4583,8 @@ class CheeseBeacon:
                 tower._base_shoot_interval = tower.shoot_interval
             total_speed = tower._base_shoot_interval
             for boost in beacons.values():
-                total_speed /= boost.get('speed', 1)
+                if total_speed is not None:
+                    total_speed /= boost.get('speed', 1)
             tower.shoot_interval = total_speed
 
         # Specialized attribute handling

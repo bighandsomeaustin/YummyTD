@@ -72,6 +72,7 @@ TOWER_CONSTRUCTOR_ATTRIBUTES = {
 ###############################################################################
 TOWER_SAVE_ATTRIBUTES = {
     "MrCheese": [
+        "image_path",
         "curr_top_upgrade",
         "curr_bottom_upgrade",
         "penetration",
@@ -84,6 +85,7 @@ TOWER_SAVE_ATTRIBUTES = {
         "projectile_image",
     ],
     "RatTent": [
+        "image_path",
         "curr_top_upgrade",
         "curr_bottom_upgrade",
         "sell_amt",
@@ -95,6 +97,7 @@ TOWER_SAVE_ATTRIBUTES = {
         "recruit_image",
     ],
     "Ozbourne": [
+        "image_path",
         "curr_top_upgrade",
         "curr_bottom_upgrade",
         "sell_amt",
@@ -102,7 +105,6 @@ TOWER_SAVE_ATTRIBUTES = {
         "blast_duration",
         "riff_blast_radius",
         "max_blast_radius",
-        "riff_sfx",
         "damage",
         "radius",
         "weapon",
@@ -110,6 +112,7 @@ TOWER_SAVE_ATTRIBUTES = {
         "projectile_image",
     ],
     "RatBank": [
+        "image_path",
         "curr_top_upgrade",
         "curr_bottom_upgrade",
         "sell_amt",
@@ -123,6 +126,7 @@ TOWER_SAVE_ATTRIBUTES = {
         "is_selected",
     ],
     "MinigunTower": [
+        "image_path",
         "curr_top_upgrade",
         "curr_bottom_upgrade",
         "sell_amt",
@@ -133,6 +137,8 @@ TOWER_SAVE_ATTRIBUTES = {
         "reload_time",
     ],
     "RatSniper": [
+        "image_path",
+        "image_path_shoot"
         "curr_top_upgrade",
         "curr_bottom_upgrade",
         "sell_amt",
@@ -149,6 +155,7 @@ TOWER_SAVE_ATTRIBUTES = {
         "slow_effect",
     ],
     "WizardTower": [
+        "image_path",
         "curr_top_upgrade",
         "curr_bottom_upgrade",
         "sell_amt",
@@ -156,12 +163,16 @@ TOWER_SAVE_ATTRIBUTES = {
         "radius",
     ],
     "CheeseBeacon": [
+        "image_path",
         "curr_top_upgrade",
         "curr_bottom_upgrade",
         "sell_amt",
         "buff_radius",
     ],
     "CheddarCommando": [
+        "image_path",
+        "sound_path",
+        "reload_path"
         "curr_top_upgrade",
         "curr_bottom_upgrade",
         "sell_amt",
