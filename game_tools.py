@@ -914,26 +914,28 @@ def handle_upgrade(scrn, tower):
                     tower.original_image = load_image("assets/rat_bank_imports.png")
 
         if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
-            if detect_single_click():
-                money += tower.sell_amt
-                towers.remove(tower)
-                UpgradeFlag = False
-                return
+            if not tower.briefundFlag and not tower.provoloanFlag:
+                # TODO: add text "cannot sell! loans still unpaid
+                if detect_single_click():
+                    money += tower.sell_amt
+                    towers.remove(tower)
+                    UpgradeFlag = False
+                    return
 
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
             scrn.blit(img_upgrade_highlighted, (883, 194))
             if detect_single_click():
-                if money >= 1200 and tower.curr_bottom_upgrade == 0:
+                if money >= 1600 and tower.curr_bottom_upgrade == 0:
                     purchase.play()
-                    money -= 1200
-                    tower.sell_amt += 600
+                    money -= 1600
+                    tower.sell_amt += 800
                     tower.curr_bottom_upgrade = 1
                     UpgradeFlag = True
 
-                elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2 and money >= 2000:
+                elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2 and money >= 1200:
                     purchase.play()
-                    money -= 2000
-                    tower.sell_amt += 1000
+                    money -= 1200
+                    tower.sell_amt += 600
                     tower.curr_bottom_upgrade = 2
                     UpgradeFlag = True
                     tower.image_path = "assets/rat_bank_fargo_skyscraper.png"
@@ -3489,7 +3491,7 @@ class RatSniper:
                 if dist < enemy.rect.width / 2:
                     # Determine primary damage.
                     if self.curr_top_upgrade == 2:
-                        primary_damage = 10
+                        primary_damage = 15
                     else:
                         primary_damage = projectile.damage
                     enemy.take_damage(primary_damage, projectile=projectile)
