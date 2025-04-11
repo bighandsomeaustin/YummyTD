@@ -48,6 +48,7 @@ RoundFlag = False
 UpgradeFlag = False
 SettingsFlag = False
 TowerFlag = False
+BankruptFlag = False
 curr_upgrade_tower = None
 MogFlag = False
 Autoplay = False
@@ -310,7 +311,8 @@ def fade_into_image(scrn: pygame.Surface, image_path: str, duration: int = 200):
 
 def check_game_menu_elements(scrn: pygame.surface) -> str:
     global RoundFlag, money, UpgradeFlag, curr_upgrade_tower, SettingsFlag, music_volume, slider_dragging, user_volume \
-        , gameoverFlag, enemies, current_wave, user_health, game_speed_multiplier, Autoplay, max_speed_multiplier, TowerFlag
+        , gameoverFlag, enemies, current_wave, user_health, game_speed_multiplier, Autoplay, max_speed_multiplier, TowerFlag, \
+        BankruptFlag
     purchase = load_sound("assets/purchase_sound.mp3")
     invalid = load_sound("assets/invalid.mp3")
     img_tower_select = load_image("assets/tower_select.png")
@@ -331,6 +333,8 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     img_settings_window = load_image("assets/ingame_settings.png")
     img_music_slider = load_image("assets/music_slider.png")
     autoplay_check = load_image("assets/autoplay_checked.png")
+    img_bankrupt = load_image("assets/bankrupt_window.png")
+
     mouse = pygame.mouse.get_pos()
     mouse_pressed = pygame.mouse.get_pressed()[0]
 
@@ -344,6 +348,13 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     slider_x = slider_min + user_volume * (slider_max - slider_min)
 
     TowerFlag = False
+
+    # bankruptcy window
+    if BankruptFlag:
+        scrn.blit(img_bankrupt, (0, 0))
+        if 964 <= mouse[0] <= 964 + 34 and 100 <= mouse[1] <= 100 + 57:
+            if detect_single_click():
+                BankruptFlag = False
 
     if user_health <= 0 and not gameoverFlag:
         pygame.mixer.stop()
@@ -538,7 +549,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
         scrn.blit(img_beacon_text, (1113, 53))
         scrn.blit(img_tower_select, (1195, 475))
         if detect_single_click():
-            if money >= 900:
+            if money >= 1400:
                 purchase.play()
                 return "beacon"
             else:
@@ -586,7 +597,7 @@ def blit_text(scrn, text, choice):
 
 
 def handle_upgrade(scrn, tower):
-    global UpgradeFlag, money, MogFlag, TowerFlag
+    global UpgradeFlag, money, MogFlag, TowerFlag, BankruptFlag
     TowerFlag = False
     mouse = pygame.mouse.get_pos()
     purchase = load_sound("assets/purchase_sound.mp3")
@@ -594,14 +605,23 @@ def handle_upgrade(scrn, tower):
     img_upgrade_highlighted = load_image("assets/upgrade_window_highlighted.png")
     img_max_upgrades = load_image("assets/upgrade_max.png")
     img_sell_button = load_image("assets/sell_button.png")
+    img_bankrupt_button = load_image("assets/bunkrupt_button.png")
     upgrade_font = get_font("arial", 16)
     # cleaner bounds
     top = (883, 65)
     bottom = (883, 194)
     scrn.blit(img_upgrade_window, (882, 0))
-    scrn.blit(img_sell_button, (997, 298))
-    text_sell = upgrade_font.render(f"SELL: ${tower.sell_amt}", True, (255, 255, 255))
-    scrn.blit(text_sell, (1015, 306))
+    if isinstance(tower, RatBank):
+        if tower.briefundFlag or tower.provoloanFlag:
+            scrn.blit(img_bankrupt_button, (947, 298))
+        else:
+            scrn.blit(img_sell_button, (997, 298))
+            text_sell = upgrade_font.render(f"SELL: ${tower.sell_amt}", True, (255, 255, 255))
+            scrn.blit(text_sell, (1015, 306))
+    else:
+        scrn.blit(img_sell_button, (997, 298))
+        text_sell = upgrade_font.render(f"SELL: ${tower.sell_amt}", True, (255, 255, 255))
+        scrn.blit(text_sell, (1015, 306))
     if isinstance(tower, MrCheese):
         img_booksmart_upgrade = load_image("assets/upgrade_booksmart.png")
         img_protein_upgrade = load_image("assets/upgrade_protein.png")
@@ -913,11 +933,27 @@ def handle_upgrade(scrn, tower):
                     tower.image = load_image("assets/rat_bank_imports.png")
                     tower.original_image = load_image("assets/rat_bank_imports.png")
 
+        # bankruptcy handling
+        if 947 <= mouse[0] <= 947 + 150 and 298 <= mouse[1] <= 298 + 35:
+            if tower.briefundFlag or tower.provoloanFlag:
+                if detect_single_click():
+                    # pull all money out of bank
+                    money += tower.sell_amt
+                    money += tower.cash_generated
+                    money += tower.cash_invested
+                    money -= int(tower.loan_amount)
+                    # make bankrupt window appear
+                    towers.remove(tower)
+                    UpgradeFlag = False
+                    BankruptFlag = True
+                    return
+
         if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
             if not tower.briefundFlag and not tower.provoloanFlag:
-                # TODO: add text "cannot sell! loans still unpaid
                 if detect_single_click():
                     money += tower.sell_amt
+                    money += tower.cash_generated
+                    money += tower.cash_invested
                     towers.remove(tower)
                     UpgradeFlag = False
                     return
@@ -1978,7 +2014,7 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             towers.append(tower_beacon)
             tower_click.play()
             play_splash_animation(scrn, (mouse[0], mouse[1]))
-            money -= 900
+            money -= 1400
             TowerFlag = False
             return True
     elif tower == "rattent":
@@ -4450,7 +4486,7 @@ class CheeseBeacon:
         self.signal_interval = 5000
         self.curr_top_upgrade = 0
         self.curr_bottom_upgrade = 0
-        self.sell_amt = 450
+        self.sell_amt = 700
         self.active = True
         self.boost_timer = 0
         self._effects = []
@@ -4532,12 +4568,20 @@ class CheeseBeacon:
         boosts = {}
         # Damage boost
         if self.curr_top_upgrade == 0:
-            dmg_mult = 1.5
-            dmg_boost = 2
+            dmg_boost = 1.5
+            boosts['damage'] = dmg_boost
+        elif self.curr_top_upgrade == 1:
+            dmg_boost = 2.25
+            boosts['damage'] = dmg_boost
+        elif self.curr_top_upgrade == 2:
+            dmg_boost = 3.33
+            boosts['damage'] = dmg_boost
+        elif self.curr_top_upgrade == 3:
+            dmg_boost = 4.5
             boosts['damage'] = dmg_boost
         else:
-            dmg_mult = 1.5 + .5 * self.curr_top_upgrade
-            dmg_boost = 2 + self.curr_top_upgrade
+            dmg_boost = 1.5
+
         boosts['damage'] = dmg_boost
 
         # Radius boost
@@ -4859,7 +4903,7 @@ class CheeseBeacon:
             icons = []
             for beacon in beacons.values():
                 if 'damage' in beacon:
-                    icons.extend(['damage'] * (beacon['damage'] - 1))
+                    icons.extend(['damage'] * (int(beacon['damage'] - .5)))
                 if 'radius' in beacon:
                     icons.append('radius')
                 if 'speed' in beacon:
@@ -6681,6 +6725,401 @@ class CentipedeEnemy:
 
         for seg in self.segments:
             if seg.alive:
+                rotated_image = pygame.transform.rotate(seg.image, seg.angle)
+                rotated_image = pygame.transform.flip(rotated_image, True, False)
+                rect = rotated_image.get_rect(center=seg.position)
+                screen.blit(rotated_image, rect.topleft)
+            elif seg.death_time and current_time - seg.death_time <= SPLATTER_DURATION:
+                rotated_splatter = pygame.transform.rotate(self.img_death, seg.angle)
+                rotated_splatter = pygame.transform.flip(rotated_splatter, True, False)
+                rect = rotated_splatter.get_rect(center=seg.position)
+                screen.blit(rotated_splatter, rect.topleft)
+        # self.update_shards(screen)
+
+
+class MillipedeBoss:
+    """
+    A composite enemy consisting of:
+      - Head (health=6)
+      - Several Link segments (each with health=2)
+      - Tail (health=3)
+    Movement is fluid: each segment follows the one ahead with a smoothing delay.
+    Damage is applied to any non-head segment (links or tail) when hit – the head is only damaged after all
+    other segments are destroyed. Additionally, when a link is destroyed, a burst of particle shards is spawned,
+    similar to the beetle enemy’s armor-break effect. When segments are removed, the remaining segments are
+    repositioned so that they remain in contact (i.e. no gaps appear).
+    """
+    sfx_splat = load_sound("assets/splat_sfx.mp3")
+    img_death = load_image("assets/splatter.png")
+
+    class Segment:
+        def __init__(self, role, health, image, position):
+            self.role = role  # "head", "link", or "tail"
+            self.health = health
+            self.image = image
+            self.frames_head = ["assets/centipede_boss/head0.png", "assets/centipede_boss/head1.png",
+                                "assets/centipede_boss/head2.png", "assets/centipede_boss/head3.png",]
+            self.frames_link = ["assets/centipede_boss/link0.png", "assets/centipede_boss/link1.png",
+                                "assets/centipede_boss/link2.png", "assets/centipede_boss/link3.png", ]
+            self.frames_tail = ["assets/centipede_boss/tail0.png", "assets/centipede_boss/tail1.png",
+                                "assets/centipede_boss/tail2.png", "assets/centipede_boss/tail3.png", ]
+            self.current_frame = 0
+            self.frame_duration = 50  # milliseconds per frame
+            self.last_frame_update = pygame.time.get_ticks()
+            self.position = position  # (x, y)
+            self.angle = 0  # in degrees; 0 means "facing up"
+            self.alive = True
+            self.death_time = None  # time when the segment died
+            self.rect = self.image.get_rect(center=position)
+
+        def update_rect(self):
+            self.rect = self.image.get_rect(center=self.position)
+
+        def update_animation(self, segment):
+            current_time = pygame.time.get_ticks()
+            if current_time - self.last_frame_update >= self.frame_duration / game_speed_multiplier:
+                self.current_frame = (self.current_frame + 1) % len(segment)
+                self.image = load_image(segment[self.current_frame])
+                self.last_frame_update = current_time
+
+    def __init__(self, position, path, links=6):
+        """
+        :param position: Starting position (tuple)
+        :param path: List of points (tuples) for the centipede head to follow.
+        :param links: Number of link segments between the head and tail.
+        """
+        self.path = path
+        self.current_target = 0  # Index in the path for head movement
+        self.base_speed = 0.5
+        self.speed = self.base_speed
+        self.links = links
+        self.health = 30
+        self.sfx_channel = pygame.mixer.Channel(3)
+        self.millipede_sfx = load_sound("assets/centipede_crawl.mp3")
+        self.sfx_playing = False
+
+        # Load images
+        head_img = load_image("assets/centipede_boss/head0.png")
+        link_img = load_image("assets/centipede_boss/link0.png")
+        tail_img = load_image("assets/centipede_boss/tail0.png")
+
+        # Calculate desired gap distances for smooth connectivity between segments.
+        self.gap_distances = []
+        gap_head_link = (head_img.get_height() / 4) + (link_img.get_height() / 4)
+        self.gap_distances.append(gap_head_link)
+        for _ in range(self.links - 1):
+            gap_link_link = link_img.get_height() / 4
+            self.gap_distances.append(gap_link_link)
+        gap_link_tail = (link_img.get_height() / 4) + (tail_img.get_height() / 4)
+        self.gap_distances.append(gap_link_tail)
+
+        # Create segments: head, links, and tail.
+        self.segments = []
+        self.segments.append(self.Segment("head", 30, head_img, position))
+        for _ in range(self.links):
+            self.segments.append(self.Segment("link", 14, link_img, position))
+        self.segments.append(self.Segment("tail", 30, tail_img, position))
+
+        # Initialize shard particles list.
+        # global_impact_particles = []
+
+    def spawn_shards(self, count=10):
+        global global_impact_particles
+        """
+        Spawn a burst of shard particles to simulate a link breaking.
+        """
+        for _ in range(count):
+            spawn_shard(self.position, count=5)
+
+    def update_shards(self, screen):
+        """
+        Update and render shard particles.
+        """
+        current_time = pygame.time.get_ticks()
+        for shard in global_impact_particles[:]:
+            elapsed = current_time - shard['start_time']
+            if elapsed > shard['lifetime']:
+                global_impact_particles.remove(shard)
+            else:
+                shard['pos'][0] += shard['vel'][0]
+                shard['pos'][1] += shard['vel'][1]
+                alpha = max(0, 255 - int((elapsed / shard['lifetime']) * 255))
+                color = (255, 255, 255, alpha)
+                shard_surface = pygame.Surface((shard['radius'] * 2, shard['radius'] * 2), pygame.SRCALPHA)
+                pygame.draw.circle(shard_surface, color, (shard['radius'], shard['radius']), shard['radius'])
+                screen.blit(shard_surface, (shard['pos'][0], shard['pos'][1]))
+
+    def update(self):
+        """
+        Update the centipede:
+          - Move the head along its path.
+          - Smoothly update each following segment to trail its predecessor.
+          - Adjust speed based on remaining non-head segments.
+          - If the centipede reaches the end of its path, subtract health from the user.
+        """
+        global user_health
+        if not self.sfx_playing:
+            self.sfx_channel.play(self.millipede_sfx, loops=-1)
+            self.sfx_playing = True
+        # Adjust speed based on number of alive non-head segments.
+        non_head_alive = sum(1 for seg in self.segments[1:] if seg.alive)
+        if non_head_alive >= 8:
+            self.speed = .75
+        elif non_head_alive > 6:
+            self.speed = 1
+        elif non_head_alive > 3:
+            self.speed = 1.5
+        else:
+            self.speed = 1.75
+
+        # Move the head along the path.
+        head = self.segments[0]
+        if self.current_target < len(self.path):
+            target_point = self.path[self.current_target]
+            dx = target_point[0] - head.position[0]
+            dy = target_point[1] - head.position[1]
+            distance = math.hypot(dx, dy)
+            if distance:
+                dir_x = dx / distance
+                dir_y = dy / distance
+                move_dist = self.speed
+                new_x = head.position[0] + dir_x * move_dist
+                new_y = head.position[1] + dir_y * move_dist
+                head.position = (new_x, new_y)
+                head.angle = math.degrees(math.atan2(dir_x, -dir_y))
+                head.update_rect()
+                if distance <= move_dist:
+                    self.current_target += 1
+        else:
+            # If the head reaches the end of the path, subtract remaining health from the user.
+            tot_health = sum(1 for seg in self.segments[1:] if seg.alive)
+            user_health -= 99
+            self.segments.clear()
+            self.sfx_channel.stop()
+            self.sfx_playing = False
+            return
+
+        # Smoothly update each following segment.
+        alpha = 0.2  # smoothing factor
+        for i in range(1, len(self.segments)):
+            prev_seg = self.segments[i - 1]
+            seg = self.segments[i]
+            desired_gap = self.gap_distances[i - 1]
+            vec_x = prev_seg.position[0] - seg.position[0]
+            vec_y = prev_seg.position[1] - seg.position[1]
+            dist = math.hypot(vec_x, vec_y)
+            if dist:
+                dir_x = vec_x / dist
+                dir_y = vec_y / dist
+                target_x = prev_seg.position[0] - desired_gap * dir_x
+                target_y = prev_seg.position[1] - desired_gap * dir_y
+                new_x = seg.position[0] + alpha * (target_x - seg.position[0])
+                new_y = seg.position[1] + alpha * (target_y - seg.position[1])
+                seg.position = (new_x, new_y)
+                desired_angle = math.degrees(math.atan2(dir_x, -dir_y))
+                seg.angle += alpha * (((desired_angle - seg.angle + 180) % 360) - 180)
+                seg.update_rect()
+
+    def move(self):
+        """
+        Alias for update, allowing external calls to move the enemy.
+        """
+        self.update()
+
+    def show_damage_indicator(self, damage):
+        # Create a damage text surface using a shared font.
+        font = pygame.font.SysFont("impact", 20, bold=False)
+        text_surface = font.render(f"{damage:.1f}", True, (255, 0, 0))
+        text_surface.set_alpha(128)
+
+        angle_deg = random.uniform(-45, 45)
+        angle_rad = math.radians(angle_deg)
+
+        # Speed magnitude
+        speed = random.uniform(.5, 2)
+
+        # Convert polar to cartesian velocity
+        vel_x = math.sin(angle_rad) * speed
+        vel_y = -math.cos(angle_rad) * speed  # negative because up is -y in Pygame
+
+        # Set up the indicator's properties.
+        indicator = {
+            'surface': text_surface,
+            'pos': list(self.rect.center) + [0, -20],  # starting at the enemy's center
+            'vel': [vel_x, vel_y],
+            'lifetime': random.randint(100, 250),  # milliseconds
+            'start_time': pygame.time.get_ticks()
+        }
+        if len(global_damage_indicators) < MAX_INDICATORS:
+            global_damage_indicators.append(indicator)
+
+    def take_damage(self, damage, hit_position=None, projectile=None, area_center=None, area_radius=0):
+        global money
+        """
+        Apply incoming damage:
+          - If a projectile is provided and its explosive flag is True, then set default explosion parameters.
+          - If area_center and area_radius (or those set via an explosive projectile) are provided,
+            apply damage to every non-head segment whose center is within the explosion radius.
+          - Else if hit_position is provided, apply damage to the non-head segment closest to that point.
+          - Otherwise, when no extra parameters are provided, assume a radial (area) damage effect
+            and apply damage to every non-head segment.
+          - Damage to the head is applied only once all non-head segments are destroyed.
+        """
+        # Check for explosive projectile.
+        if projectile is not None and getattr(projectile, "explosive", False):
+            if area_center is None:
+                area_center = projectile.position
+            if area_radius == 0:
+                area_radius = getattr(projectile, "explosion_radius", 0)
+
+        # Radial (area) damage branch.
+        if area_center is not None and area_radius > 0:
+            any_hit = False
+            for seg in self.segments[1:][:]:
+                if seg.alive:
+                    seg_center = seg.rect.center
+                    tolerance = seg.rect.width * 0.5
+                    if math.hypot(seg_center[0] - area_center[0],
+                                  seg_center[1] - area_center[1]) <= area_radius + tolerance:
+                        seg.health -= damage / 2
+                        self.show_damage_indicator(damage)
+                        any_hit = True
+                        if seg.health <= 0:
+                            seg.alive = False
+                            seg.death_time = pygame.time.get_ticks()
+                            self.spawn_shards(count=10)
+                            self.remove_segment(seg)
+            if any_hit:
+                return
+            # If no non-head segments were hit, apply damage to the head.
+            head = self.segments[0]
+            head.health -= damage
+            self.show_damage_indicator(damage)
+            if head.health <= 0:
+                head.alive = False
+                money += 200
+                game_stats.global_kill_total["count"] += 1
+                head.death_time = pygame.time.get_ticks()
+                self.sfx_channel.stop()
+                self.sfx_playing = False
+            return
+
+        # Damage by hit position branch.
+        if hit_position is not None:
+            try:
+                hp = (float(hit_position[0]), float(hit_position[1]))
+            except (TypeError, ValueError):
+                return
+            candidates = [seg for seg in self.segments[1:] if seg.alive and seg.rect.collidepoint(hp)]
+            if candidates:
+                seg = min(candidates, key=lambda s: math.hypot(s.rect.centerx - hp[0], s.rect.centery - hp[1]))
+                seg.health -= damage
+                self.show_damage_indicator(damage)
+                if seg.health <= 0:
+                    seg.alive = False
+                    seg.death_time = pygame.time.get_ticks()
+                    self.spawn_shards(count=10)
+                    self.remove_segment(seg)
+                return
+            return
+
+        # Fallback: if no parameters, apply damage to furthest alive non-head segment
+        for seg in reversed(self.segments[1:]):
+            if seg.alive:
+                seg.health -= damage
+                self.show_damage_indicator(damage)
+                if seg.health <= 0:
+                    seg.alive = False
+                    seg.death_time = pygame.time.get_ticks()
+                    self.spawn_shards(count=10)
+                    self.remove_segment(seg)
+                return  # Exit after damaging one segment
+
+        # If no non-head segments are alive, apply damage to the head.
+        head = self.segments[0]
+        head.health -= damage
+        self.show_damage_indicator(damage)
+        if head.health <= 0:
+            head.alive = False
+            money += 10
+            game_stats.global_kill_total["count"] += 1
+            head.death_time = pygame.time.get_ticks()
+            self.sfx_channel.stop()
+            self.sfx_playing = False
+
+    def remove_segment(self, seg):
+        """
+        Remove a destroyed segment and recalculate gap distances so that the remaining segments remain connected.
+        """
+        if seg in self.segments:
+            self.segments.remove(seg)
+            head_img = load_image("assets/centipede_boss/head0.png")
+            link_img = load_image("assets/centipede_boss/link0.png")
+            tail_img = load_image("assets/centipede_boss/tail0.png")
+            new_gaps = []
+            if len(self.segments) > 1:
+                new_gaps.append((head_img.get_height() / 4) + (link_img.get_height() / 4))
+                for _ in range(len(self.segments) - 2):
+                    new_gaps.append(link_img.get_height() / 4)
+                new_gaps.append((link_img.get_height() / 4) + (tail_img.get_height() / 4))
+            self.gap_distances = new_gaps
+
+    @property
+    def rect(self):
+        """
+        Returns the union of the hitboxes for all alive non-head segments,
+        or the head's rect if no non-head segments are alive.
+        """
+        if not self.segments:
+            return pygame.Rect(0, 0, 0, 0)
+        alive_rects = [seg.rect for seg in self.segments[1:] if seg.alive]
+        if alive_rects:
+            union_rect = alive_rects[0].copy()
+            for r in alive_rects[1:]:
+                union_rect.union_ip(r)
+            return union_rect
+        return self.segments[0].rect
+
+    @property
+    def position(self):
+        """
+        Returns the center of the union of all alive non-head segments,
+        or the head's position if no non-head segments are alive.
+        This allows towers to target any part of the centipede body.
+        """
+        alive_rects = [seg.rect for seg in self.segments[1:] if seg.alive]
+        if not self.segments:
+            return 0, 0  # or self.last_known_position, or something safe
+        if alive_rects:
+            union_rect = alive_rects[0].copy()
+            for r in alive_rects[1:]:
+                union_rect.union_ip(r)
+            return union_rect.center
+        return self.segments[0].position
+
+    @property
+    def is_alive(self):
+        """
+        Returns True if any segment is still alive.
+        """
+        return any(seg.alive for seg in self.segments)
+
+    def render(self, screen: pygame.Surface):
+        """
+        Render each segment (applying rotation and flipping as needed).
+        Also, render a splatter effect for segments that have recently died and update shard particles.
+        """
+        current_time = pygame.time.get_ticks()
+        SPLATTER_DURATION = 100  # Duration in milliseconds to show splatter effect
+
+        for seg in self.segments:
+            if seg.alive:
+                if seg.role == "head":
+                    seg.update_animation(seg.frames_head)
+                elif seg.role == "link":
+                    seg.update_animation(seg.frames_link)
+                elif seg.role == "tail":
+                    seg.update_animation(seg.frames_tail)
                 rotated_image = pygame.transform.rotate(seg.image, seg.angle)
                 rotated_image = pygame.transform.flip(rotated_image, True, False)
                 rect = rotated_image.get_rect(center=seg.position)

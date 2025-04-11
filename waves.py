@@ -340,6 +340,12 @@ for r in range(19, 101):
                          "spawn_interval": 5,
                          "delay": 0})
 
+    elif r == 38:
+
+        segments.append({"enemies": ["MILLIPEDE"],
+                         "spawn_interval": 5,
+                         "delay": 0})
+
     else:
 
         segments.append({
@@ -518,6 +524,8 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
                 new_enemy = (game_tools.FireflyEnemy(spawn_pos, offset_path))
             elif enemy_type == "DUNG_BEETLE":
                 new_enemy = (game_tools.DungBeetleBoss(spawn_pos, offset_path))
+            elif enemy_type == "MILLIPEDE":
+                new_enemy = (game_tools.MillipedeBoss(spawn_pos, offset_path, links=16))
 
             # apply damage multiplier
             if new_enemy is not None:

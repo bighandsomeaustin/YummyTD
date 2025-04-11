@@ -114,8 +114,8 @@ while running:
         mixer.music.load("assets/map_music.mp3")
         mixer.music.play(-1)
         game_tools.user_health = 100
-        game_tools.money = 250
-        round_number = 1
+        game_tools.money = 25000
+        round_number = 38
         game_tools.towers.clear()
         game_tools.enemies.clear()
         start_new_wave(round_number)
