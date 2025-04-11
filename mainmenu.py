@@ -11,20 +11,27 @@ shard_slider_dragging = False
 indicator_slider_dragging = False
 music_slider_dragging = False
 FullscreenFlag = False
+
 screen = None
 game_surface = None
-
 display_info = pygame.display.Info()
 full_width, full_height = display_info.current_w, display_info.current_h
 
-if FullscreenFlag:
-    # Create borderless fullscreen using FULLSCREEN|NOFRAME
-    screen = pygame.display.set_mode((full_width, full_height), pygame.FULLSCREEN | pygame.NOFRAME)
-    # Create a fixed-resolution off-screen surface for game rendering
-    game_surface = pygame.Surface((1280, 720))
-else:
-    screen = pygame.display.set_mode((1280, 720))
-    game_surface = screen
+
+def set_window():
+    global full_width, full_height, FullscreenFlag
+
+    pygame.init()
+    if FullscreenFlag:
+        # Create borderless fullscreen using FULLSCREEN | NOFRAME
+        snart = pygame.display.set_mode((full_width, full_height), pygame.FULLSCREEN | pygame.NOFRAME)
+        # Create a fixed-resolution off-screen surface for game rendering
+        sneef = pygame.Surface((1280, 720))
+    else:
+        snart = pygame.display.set_mode((1280, 720))
+        sneef = snart
+
+    return snart, sneef
 
 
 def render_mainmenu(screen: pygame.Surface):
@@ -199,17 +206,17 @@ def options_control() -> str:
     checked = load_image("assets/autoplay_checked.png")
     button_press = game_tools.load_sound("assets/button_press.mp3")
 
-    screen.blit(options_window, (0, 0))
+    game_surface.blit(options_window, (0, 0))
     if game_tools.showFPS:
-        screen.blit(checked, (970, 346))
+        game_surface.blit(checked, (970, 346))
     if game_tools.showCursor:
-        screen.blit(checked, (970, 392))
+        game_surface.blit(checked, (970, 392))
     if FullscreenFlag:
-        screen.blit(checked, (970, 438))
+        game_surface.blit(checked, (970, 438))
 
     speed_font = game_tools.get_font("arial", 24)
     text_speed = speed_font.render(f"{game_tools.max_speed_multiplier}", True, (0, 0, 0))
-    screen.blit(text_speed, (976, 300))
+    game_surface.blit(text_speed, (976, 300))
 
     if 1004 <= mouse[0] <= 1004 + 21 and 301 <= mouse[1] <= 301 + 25:
         if game_tools.detect_single_click():
@@ -254,21 +261,21 @@ def options_control() -> str:
     shard_slider_y = 347
     shard_slider_range = shard_slider_max - shard_slider_min
     shard_slider_x = shard_slider_min + (game_tools.MAX_SHARDS / 1000) * shard_slider_range
-    screen.blit(option_slider, (shard_slider_x - 8, shard_slider_y))  # -8 to center handle
+    game_surface.blit(option_slider, (shard_slider_x - 8, shard_slider_y))  # -8 to center handle
 
     # ===== INDICATOR SLIDER =====
     indicator_slider_min = 243
     indicator_slider_max = 243 + 227
     indicator_slider_y = 419
     indicator_slider_x = indicator_slider_min + (game_tools.MAX_INDICATORS / 1000) * (indicator_slider_max - indicator_slider_min)
-    screen.blit(option_slider, (indicator_slider_x - 8, indicator_slider_y))  # -8 to center handle
+    game_surface.blit(option_slider, (indicator_slider_x - 8, indicator_slider_y))  # -8 to center handle
 
     # ===== MUSIC SLIDER =====
     music_slider_min = 439
     music_slider_max = 439 + 583
     music_slider_y = 522
     music_slider_x = music_slider_min + game_tools.user_volume * (music_slider_max - music_slider_min)
-    screen.blit(music_slider_img, (music_slider_x - 15, music_slider_y))  # -15 to center handle
+    game_surface.blit(music_slider_img, (music_slider_x - 15, music_slider_y))  # -15 to center handle
 
 
 
@@ -338,3 +345,7 @@ def toggle_fullscreen():
         screen = pygame.display.set_mode((1280, 720))
         # In windowed mode, use the display surface directly.
         game_surface = screen
+
+    save_manager.save_settings("settings.json", game_tools.MAX_SHARDS, game_tools.MAX_INDICATORS,
+                               game_tools.max_speed_multiplier, game_tools.showFPS, game_tools.showCursor,
+                               game_tools.user_volume, FullscreenFlag)

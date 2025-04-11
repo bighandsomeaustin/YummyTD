@@ -313,7 +313,7 @@ for r in range(19, 101):
     elif r == 35:
 
         segments.append({"enemies": ["ROACH"] * 30,
-                         "spawn_interval": 50,
+                         "spawn_interval": 20,
                          "delay": 6000})
 
         segments.append({"enemies": (["FIREFLY"] + ["ROACH_QUEEN"] * 3 + ["CENTIPEDE"] * 2) * 10,
@@ -325,7 +325,7 @@ for r in range(19, 101):
 
         # lets be silly for a second
         for i in range(5):
-            segments.append({"enemies": ["ANT"] * 10,
+            segments.append({"enemies": ["ANT"] * 40,
                              "spawn_interval": 5,
                              "delay": 1500})
 
@@ -336,7 +336,7 @@ for r in range(19, 101):
     # stupid amount of beetles, will probably break game
     elif r == 37:
 
-        segments.append({"enemies": ["BEETLE"] * 30,
+        segments.append({"enemies": ["BEETLE"] * 40,
                          "spawn_interval": 5,
                          "delay": 0})
 
@@ -443,13 +443,13 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
     if round_number > 30:
         health_mult = 1.5
     elif round_number > 50:
-        health_mult = 2
-    elif round_number > 70:
         health_mult = 2.5
+    elif round_number > 70:
+        health_mult = 4
     elif round_number > 80:
-        health_mult = 2.75
+        health_mult = 5
     elif round_number > 90:
-        health_mult = 3
+        health_mult = 6
     elif round_number > 100:
         health_mult = ((round_number % 10) / 2) - 1
     else:

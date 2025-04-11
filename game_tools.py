@@ -4,6 +4,7 @@ import math
 import time
 import random
 import game_stats
+import mainmenu
 
 import save_manager
 
@@ -346,7 +347,9 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
 
     if user_health <= 0 and not gameoverFlag:
         pygame.mixer.stop()
+        SettingsFlag = False
         save_manager.wipe_save("my_save.json")
+        game_stats.global_kill_total["count"] = 0
         user_health = 0
         gameoverFlag = True
         mixer.music.load("assets/song_gameover.mp3")
@@ -408,13 +411,13 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
                 SettingsFlag = False
                 save_manager.save_settings("settings.json", MAX_SHARDS, MAX_INDICATORS,
                                            max_speed_multiplier, showFPS, showCursor,
-                                           user_volume)
+                                           user_volume, mainmenu.FullscreenFlag)
         if 306 <= mouse[0] <= 306 + 199 and 286 <= mouse[1] <= 286 + 114:
             if detect_single_click():
                 SettingsFlag = False
                 save_manager.save_settings("settings.json", MAX_SHARDS, MAX_INDICATORS,
                                            max_speed_multiplier, showFPS, showCursor,
-                                           user_volume)
+                                           user_volume, mainmenu.FullscreenFlag)
                 return "saveandquit"
         if 387 <= mouse[0] <= 387 + 30 and 247 <= mouse[1] <= 247 + 30:
             if detect_single_click():
@@ -427,7 +430,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
                 SettingsFlag = False
                 save_manager.save_settings("settings.json", MAX_SHARDS, MAX_INDICATORS,
                                            max_speed_multiplier, showFPS, showCursor,
-                                           user_volume)
+                                           user_volume, mainmenu.FullscreenFlag)
                 return "quit"
         # If left mouse button is pressed, check for dragging
         if mouse_pressed:
@@ -920,16 +923,17 @@ def handle_upgrade(scrn, tower):
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
             scrn.blit(img_upgrade_highlighted, (883, 194))
             if detect_single_click():
-                if money >= 2000 and tower.curr_bottom_upgrade == 0:
-                    purchase.play()
-                    money -= 2000
-                    tower.sell_amt += 1000
-                    tower.curr_bottom_upgrade = 1
-                    UpgradeFlag = True
-                elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2 and money >= 1200:
+                if money >= 1200 and tower.curr_bottom_upgrade == 0:
                     purchase.play()
                     money -= 1200
                     tower.sell_amt += 600
+                    tower.curr_bottom_upgrade = 1
+                    UpgradeFlag = True
+
+                elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2 and money >= 2000:
+                    purchase.play()
+                    money -= 2000
+                    tower.sell_amt += 1000
                     tower.curr_bottom_upgrade = 2
                     UpgradeFlag = True
                     tower.image_path = "assets/rat_bank_fargo_skyscraper.png"
@@ -956,7 +960,7 @@ def handle_upgrade(scrn, tower):
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_flamebullets_upgrade, (883, 194))
             blit_text(scrn, "Flaming Fromage", "bottom")
-        elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 3:
+        elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
             scrn.blit(img_deathray_upgrade, (883, 194))
             blit_text(scrn, "Death Ray", "bottom")
         else:

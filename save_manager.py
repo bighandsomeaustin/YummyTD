@@ -42,25 +42,25 @@ TOWER_CONSTRUCTOR_ATTRIBUTES = {
     ],
     "MinigunTower": [
         "position",
-        "image_path",
+        #"image_path",
     ],
     "RatSniper": [
         "position",
         "shoot_interval",
         "damage",
-        "image_path",
+        #"image_path",
     ],
     "RatFrost": [
         "position",
-        "image_path",
+        #"image_path",
     ],
     "WizardTower": [
         "position",
-        "image_path",
+        #"image_path",
     ],
     "CheeseBeacon": [
         "position",
-        "image_path",
+        #"image_path",
     ],
     "CheddarCommando": [
         "position",
@@ -68,7 +68,7 @@ TOWER_CONSTRUCTOR_ATTRIBUTES = {
         "damage",
         "shoot_interval",
         "reload_time",
-        "image_path",
+        #"image_path",
     ],
 }
 

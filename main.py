@@ -7,13 +7,18 @@ from waves import send_wave, start_new_wave
 from game_tools import music_volume, load_image
 from save_manager import save_game, load_game
 import game_stats
-from mainmenu import full_width, full_height, screen, game_surface
+
+# Load settings
+(game_tools.MAX_SHARDS, game_tools.MAX_INDICATORS,
+ game_tools.max_speed_multiplier, game_tools.showFPS,
+ game_tools.showCursor, game_tools.user_volume, mainmenu.FullscreenFlag) = save_manager.load_settings("settings.json")
+
+mainmenu.screen, mainmenu.game_surface = mainmenu.set_window()
 
 # Setup window title and icon
 pygame.display.set_caption('YummyTD')
 Icon = pygame.image.load('assets/icon.png')
 pygame.display.set_icon(Icon)
-pygame.init()
 mixer.init()
 mixer.music.set_volume(music_volume)
 
@@ -24,11 +29,6 @@ resumeFlag = False
 curr_wave = False
 round_number = 1  # For debugging
 PlayFlag = True
-
-# Load settings
-(game_tools.MAX_SHARDS, game_tools.MAX_INDICATORS,
- game_tools.max_speed_multiplier, game_tools.showFPS,
- game_tools.showCursor, game_tools.user_volume, mainmenu.FullscreenFlag) = save_manager.load_settings("settings.json")
 
 # Preload map image for the game background
 image_map = pygame.image.load("assets/house_map_baselayer.png").convert_alpha()
@@ -51,24 +51,24 @@ while running:
             if event.type == pygame.QUIT:
                 running = False
         # Draw menu background and UI on game_surface
-        game_surface.fill("purple")
-        mainmenu.render_mainmenu(game_surface)
-        playFlag = mainmenu.mainmenu_control(game_surface)
+        mainmenu.game_surface.fill("purple")
+        mainmenu.render_mainmenu(mainmenu.game_surface)
+        playFlag = mainmenu.mainmenu_control(mainmenu.game_surface)
         if playFlag:
             state = "Play"
         # Upscale the off-screen surface (if in fullscreen) or draw normally
         if mainmenu.FullscreenFlag:
-            scaled_surface = pygame.transform.scale(game_surface, (full_width, full_height))
-            screen.blit(scaled_surface, (0, 0))
+            scaled_surface = pygame.transform.scale(mainmenu.game_surface, (mainmenu.full_width, mainmenu.full_height))
+            mainmenu.screen.blit(scaled_surface, (0, 0))
         else:
-            screen.blit(game_surface, (0, 0))
+            mainmenu.screen.blit(mainmenu.game_surface, (0, 0))
         pygame.display.flip()
         clock.tick(60)
 
     # GAME SELECT state
     if state == "Play":
         img_play_screen = pygame.image.load("assets/play_screen.png").convert_alpha()
-        game_surface.blit(img_play_screen, (0, 0))
+        mainmenu.game_surface.blit(img_play_screen, (0, 0))
         tower = "NULL"
         exit_new_tower = True
         state = "Play"  # Remains in Play state until an option is chosen
@@ -78,10 +78,10 @@ while running:
             if event.type == pygame.QUIT:
                 running = False
         if not mainmenu.optionFlag:
-            mainmenu.render_mainmenu(game_surface)
+            mainmenu.render_mainmenu(mainmenu.game_surface)
             img_play_screen = pygame.image.load("assets/play_screen.png").convert_alpha()
-            game_surface.blit(img_play_screen, (0, 0))
-            option = mainmenu.playscreen_control(game_surface, resumeFlag)
+            mainmenu.game_surface.blit(img_play_screen, (0, 0))
+            option = mainmenu.playscreen_control(mainmenu.game_surface, resumeFlag)
             if option == "close":
                 state = "Menu"
             elif option == "New":
@@ -93,21 +93,22 @@ while running:
         if mainmenu.optionFlag:
             mainmenu.options_control()
         if mainmenu.FullscreenFlag:
-            scaled_surface = pygame.transform.scale(game_surface, (full_width, full_height))
-            screen.blit(scaled_surface, (0, 0))
+            scaled_surface = pygame.transform.scale(mainmenu.game_surface, (mainmenu.full_width, mainmenu.full_height))
+            mainmenu.screen.blit(scaled_surface, (0, 0))
         else:
-            screen.blit(game_surface, (0, 0))
+            mainmenu.screen.blit(mainmenu.game_surface, (0, 0))
         pygame.display.flip()
         clock.tick(60)
 
     if state == "New Game":
         resumeFlag = False
         save_manager.wipe_save("my_save.json")
+        game_stats.global_kill_total["count"] = 0
         # Fade into the background image using the final display surface when in fullscreen
         if mainmenu.FullscreenFlag:
-            game_tools.fade_into_image(screen, "assets/house_map_baselayer.png", 500)
+            game_tools.fade_into_image(mainmenu.screen, "assets/house_map_baselayer.png", 500)
         else:
-            game_tools.fade_into_image(game_surface, "assets/house_map_baselayer.png", 500)
+            game_tools.fade_into_image(mainmenu.game_surface, "assets/house_map_baselayer.png", 500)
         image_map = pygame.image.load("assets/house_map_baselayer.png").convert_alpha()
         mixer.music.fadeout(1000)
         mixer.music.load("assets/map_music.mp3")
@@ -122,9 +123,9 @@ while running:
 
     if state == "Resume":
         if mainmenu.FullscreenFlag:
-            game_tools.fade_into_image(screen, "assets/house_map_baselayer.png", 500)
+            game_tools.fade_into_image(mainmenu.screen, "assets/house_map_baselayer.png", 500)
         else:
-            game_tools.fade_into_image(game_surface, "assets/house_map_baselayer.png", 500)
+            game_tools.fade_into_image(mainmenu.game_surface, "assets/house_map_baselayer.png", 500)
         image_map = pygame.image.load("assets/house_map_baselayer.png").convert_alpha()
         mixer.music.fadeout(1000)
         mixer.music.load("assets/map_music.mp3")
@@ -149,13 +150,13 @@ while running:
                     exit_new_tower = True
 
         # First, draw the background map onto game_surface
-        game_surface.blit(image_map, (0, 0))
+        mainmenu.game_surface.blit(image_map, (0, 0))
         # Update game elements onto game_surface
-        game_tools.update_towers(game_surface)
-        game_tools.update_stats(game_surface, game_tools.user_health, game_tools.money, round_number, clock)
+        game_tools.update_towers(mainmenu.game_surface)
+        game_tools.update_stats(mainmenu.game_surface, game_tools.user_health, game_tools.money, round_number, clock)
         game_tools.current_wave = round_number
-        game_tools.update_shards(game_surface)
-        cursor_select = game_tools.check_game_menu_elements(game_surface)
+        game_tools.update_shards(mainmenu.game_surface)
+        cursor_select = game_tools.check_game_menu_elements(mainmenu.game_surface)
 
         if cursor_select == "saveandquit":
             game_tools.TowerFlag = False
@@ -178,10 +179,10 @@ while running:
             exit_new_tower = False
 
         if not exit_new_tower:
-            exit_new_tower = game_tools.handle_newtower(game_surface, tower)
+            exit_new_tower = game_tools.handle_newtower(mainmenu.game_surface, tower)
 
         if game_tools.RoundFlag:
-            curr_wave = send_wave(game_surface, round_number)
+            curr_wave = send_wave(mainmenu.game_surface, round_number)
             if curr_wave:
                 for tower in game_tools.towers:
                     if isinstance(tower, game_tools.RatBank):
@@ -201,18 +202,18 @@ while running:
 
         if game_tools.MogFlag:
             if mainmenu.FullscreenFlag:
-                game_tools.play_mog_animation(screen)
+                game_tools.play_mog_animation(mainmenu.screen)
             else:
-                game_tools.play_mog_animation(game_surface)
+                game_tools.play_mog_animation(mainmenu.game_surface)
             game_tools.MogFlag = False
             mixer.music.unpause()
 
         # Upscale rendering: draw game_surface to screen
         if mainmenu.FullscreenFlag:
-            scaled_surface = pygame.transform.scale(game_surface, (full_width, full_height))
-            screen.blit(scaled_surface, (0, 0))
+            scaled_surface = pygame.transform.scale(mainmenu.game_surface, (mainmenu.full_width, mainmenu.full_height))
+            mainmenu.screen.blit(scaled_surface, (0, 0))
         else:
-            screen.blit(game_surface, (0, 0))
+            mainmenu.screen.blit(mainmenu.game_surface, (0, 0))
 
         pygame.display.flip()
         clock.tick(60 * game_tools.game_speed_multiplier)

@@ -1,25 +1,40 @@
 {
     "wave_number": 2,
-    "kill_count": 10,
+    "kill_count": 11,
     "resume_flag": true,
     "towers": [
         {
-            "tower_type": "MrCheese",
+            "tower_type": "MinigunTower",
             "position": [
-                340,
-                336
+                221,
+                400
             ],
-            "radius": 100,
-            "weapon": "Cheese",
-            "damage": 1,
-            "image_path": "assets/base_rat.png",
-            "projectile_image": "assets/projectile_cheese.png",
-            "shoot_interval": 1500,
-            "curr_top_upgrade": 0,
-            "curr_bottom_upgrade": 0,
-            "penetration": false,
-            "sell_amt": 75
+            "image_path": "assets/minigun_bigger_mags+flame.png",
+            "curr_top_upgrade": 2,
+            "curr_bottom_upgrade": 1,
+            "sell_amt": 950,
+            "damage": 1.5,
+            "radius": 150,
+            "magazine_size": 113,
+            "base_magazine": 120,
+            "reload_time": 2.0
+        },
+        {
+            "tower_type": "MinigunTower",
+            "position": [
+                183,
+                457
+            ],
+            "image_path": "assets/minigun_deathray+faster_spool.png",
+            "curr_top_upgrade": 1,
+            "curr_bottom_upgrade": 2,
+            "sell_amt": 2025,
+            "damage": 0.2,
+            "radius": 175,
+            "magazine_size": 100,
+            "base_magazine": 65,
+            "reload_time": 0.1
         }
     ],
-    "money": 25045
+    "money": 19247
 }
