@@ -144,9 +144,6 @@ def playscreen_control(screen: pygame.Surface, resume_flag: bool) -> str:
     click = False
 
     for ev in pygame.event.get():
-        if ev.type == pygame.QUIT:
-            pygame.quit()
-            exit()
         if ev.type == pygame.MOUSEBUTTONUP:
             if ev.button == 1:
                 click = True

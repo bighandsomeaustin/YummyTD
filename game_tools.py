@@ -5,7 +5,7 @@ import time
 import random
 import game_stats
 import mainmenu
-
+import merit_system
 import save_manager
 
 pygame.init()
@@ -55,6 +55,8 @@ Autoplay = False
 showFPS = False
 showCursor = False
 gameoverFlag = False
+contFlag = False
+winFlag = False
 last_time_sfx = pygame.time.get_ticks()
 money = 250  # change for debugging
 user_health = 100
@@ -312,7 +314,8 @@ def fade_into_image(scrn: pygame.Surface, image_path: str, duration: int = 200):
 def check_game_menu_elements(scrn: pygame.surface) -> str:
     global RoundFlag, money, UpgradeFlag, curr_upgrade_tower, SettingsFlag, music_volume, slider_dragging, user_volume \
         , gameoverFlag, enemies, current_wave, user_health, game_speed_multiplier, Autoplay, max_speed_multiplier, TowerFlag, \
-        BankruptFlag
+        BankruptFlag, winFlag, contFlag
+
     purchase = load_sound("assets/purchase_sound.mp3")
     invalid = load_sound("assets/invalid.mp3")
     img_tower_select = load_image("assets/tower_select.png")
@@ -334,6 +337,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     img_music_slider = load_image("assets/music_slider.png")
     autoplay_check = load_image("assets/autoplay_checked.png")
     img_bankrupt = load_image("assets/bankrupt_window.png")
+    img_win = load_image("assets/win_window.png")
 
     mouse = pygame.mouse.get_pos()
     mouse_pressed = pygame.mouse.get_pressed()[0]
@@ -359,6 +363,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     if user_health <= 0 and not gameoverFlag:
         pygame.mixer.stop()
         SettingsFlag = False
+        contFlag = False
         save_manager.wipe_save("my_save.json")
         game_stats.global_kill_total["count"] = 0
         user_health = 0
@@ -379,6 +384,21 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
         if 664 <= mouse[0] <= 664 + 298 and 372 <= mouse[1] <= 372 + 153:
             if detect_single_click():
                 gameoverFlag = False
+                return "menu"
+
+    if current_wave == 100 and not winFlag and not contFlag:
+        winFlag = True
+
+    if winFlag:
+        scrn.blit(img_win, (0, 0))
+        if 392 <= mouse[0] <= 392 + 194 and 367 <= mouse[1] <= 367 + 113:
+            if detect_single_click():
+                winFlag = False
+                contFlag = True
+        if 693 <= mouse[0] <= 693 + 194 and 367 <= mouse[1] <= 367 + 113:
+            if detect_single_click():
+                winFlag = False
+                contFlag = False
                 return "menu"
 
     if RoundFlag:
@@ -1814,6 +1834,38 @@ def update_and_render_damage_indicators(screen):
             screen.blit(faded_surface, indicator['pos'])
 
 
+def update_stars(scrn, round_number):
+    img_stars = load_image("assets/stars_UI/stars0.png")
+    img_trophy = None
+    pos = (988, 135)
+    if 10 <= round_number < 20:
+        img_stars = load_image("assets/stars_UI/stars1.png")
+    elif 20 <= round_number < 30:
+        img_stars = load_image("assets/stars_UI/stars2.png")
+    elif 30 <= round_number < 40:
+        img_stars = load_image("assets/stars_UI/stars3.png")
+        img_trophy = load_image("assets/stars_UI/bronze_trophy.png")
+    elif 40 <= round_number < 50:
+        img_stars = load_image("assets/stars_UI/stars4.png")
+        img_trophy = load_image("assets/stars_UI/bronze_trophy.png")
+    elif 50 <= round_number < 65:
+        img_stars = load_image("assets/stars_UI/stars5.png")
+        img_trophy = load_image("assets/stars_UI/silver_trophy.png")
+    elif 65 <= round_number < 85:
+        img_stars = load_image("assets/stars_UI/stars6.png")
+        img_trophy = load_image("assets/stars_UI/gold_trophy.png")
+    elif 85 <= round_number < 100:
+        img_stars = load_image("assets/stars_UI/stars7.png")
+        img_trophy = load_image("assets/stars_UI/gold_trophy.png")
+    elif 100 <= round_number:
+        img_stars = load_image("assets/stars_UI/stars8.png")
+        img_trophy = load_image("assets/stars_UI/diamond_trophy.png")
+
+    scrn.blit(img_stars, (970, 5))
+    if img_trophy is not None:
+        scrn.blit(img_trophy, pos)
+
+
 def update_stats(scrn: pygame.surface, health: int, money: int, round_number: int, clock: pygame.time.Clock()):
     health_font = get_font("arial", 28)
     money_font = get_font("arial", 28)
@@ -1839,6 +1891,8 @@ def update_stats(scrn: pygame.surface, health: int, money: int, round_number: in
 
     # update all damage indicators!
     update_and_render_damage_indicators(scrn)
+    # display star count
+    update_stars(scrn, round_number)
 
     # total kills icon
     kill_font = get_font("arial", 16)
@@ -3193,12 +3247,12 @@ class RatFrost:
         self.attack_range = self.radius
 
     def _get_enemy_classes(self):
-        from game_tools import (CentipedeEnemy, DungBeetleBoss, BeetleEnemy,
-                                RoachMinionEnemy, RoachQueenEnemy, HornetEnemy,
+        from game_tools import (AntEnemy, CentipedeEnemy, DungBeetleBoss, BeetleEnemy, RoachMinionEnemy,
+                                RoachQueenEnemy, HornetEnemy,
                                 FireflyEnemy, DragonflyEnemy)
-        immune = (CentipedeEnemy, DungBeetleBoss, BeetleEnemy,
-                  RoachQueenEnemy, RoachMinionEnemy)
-        vulnerable = (HornetEnemy, FireflyEnemy, DragonflyEnemy)
+        immune = (CentipedeEnemy, DungBeetleBoss,
+                  RoachQueenEnemy)
+        vulnerable = (HornetEnemy, FireflyEnemy, DragonflyEnemy, AntEnemy, DragonflyEnemy, RoachMinionEnemy, BeetleEnemy)
         return immune, vulnerable
 
     def _create_aura_texture(self):
@@ -3234,7 +3288,7 @@ class RatFrost:
             self.rect = self.image.get_rect(center=self.position)
 
         current_time = pygame.time.get_ticks()
-        tower_slow = 0.65 if self.curr_bottom_upgrade >= 2 else 0.85
+        tower_slow = 0.65 if self.curr_bottom_upgrade >= 2 else 0.8
 
         self.active_enemies.clear()
         vulnerable_hit = False
@@ -4568,7 +4622,7 @@ class CheeseBeacon:
         boosts = {}
         # Damage boost
         if self.curr_top_upgrade == 0:
-            dmg_boost = 1.5
+            dmg_boost = 1.25
             boosts['damage'] = dmg_boost
         elif self.curr_top_upgrade == 1:
             dmg_boost = 2.25
@@ -5363,13 +5417,13 @@ class SpiderEnemy:
     def __init__(self, position, path):
         self.position = position
         self.health = 5
-        self.speed = 1
+        self.speed = 1.5
         self.path = house_path
         self.frames = ["assets/spider_frames/spider0.png", "assets/spider_frames/spider1.png",
                        "assets/spider_frames/spider2.png", "assets/spider_frames/spider3.png",
                        "assets/spider_frames/spider4.png"]
         self.current_frame = 0
-        self.frame_duration = 75  # milliseconds per frame
+        self.frame_duration = 175  # milliseconds per frame
         self.last_frame_update = pygame.time.get_ticks()
         self.original_image = load_image("assets/spider_frames/spider0.png")
         self.image = self.original_image
@@ -5778,8 +5832,8 @@ class DragonflyEnemy:
 
     def __init__(self, position, path):
         self.position = position
-        self.health = 8
-        self.speed = 3.25
+        self.health = 6
+        self.speed = 3
         self.path = house_path
         self.frames = ["assets/dragonfly_frames/dragonfly0.png", "assets/dragonfly_frames/dragonfly1.png",
                        "assets/dragonfly_frames/dragonfly2.png", "assets/dragonfly_frames/dragonfly3.png"]

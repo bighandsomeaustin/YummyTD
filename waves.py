@@ -3,6 +3,7 @@ import pygame
 import game_tools
 import random
 import game_stats
+import merit_system
 
 # -----------------------------
 # Global Variables and Initialization
@@ -196,17 +197,14 @@ for r in range(19, 101):
         segments.append({"enemies": ["DUNG_BEETLE"],
                          "spawn_interval": 2000,
                          "delay": 7000})
-        segments.append({"enemies": (["FIREFLY"] + ["BEETLE"] * 2 + ["FIREFLY"] + ["BEETLE"] * 2) * 8,
+        segments.append({"enemies": (["FIREFLY"] + ["BEETLE"] + ["FIREFLY"] + ["BEETLE"]) * 4,
                          "spawn_interval": 500,
                          "delay": 2000})
+
         # dragonfly rush
-        segments.append({"enemies": ["DRAGONFLY"] * 25,
+        segments.append({"enemies": ["DRAGONFLY"] * 10,
                          "spawn_interval": 50,
                          "delay": 7000})
-        # dung beetle
-        segments.append({"enemies": ["DUNG_BEETLE"],
-                         "spawn_interval": 2000,
-                         "delay": 0})
 
     # huge centipede + fireflies + roach queen finale
     elif r == 27:
@@ -231,11 +229,11 @@ for r in range(19, 101):
 
     # 3 dung beetle bosses stacked, followed by 10 roach queens
     elif r == 29:
-        segments.append({"enemies": (["HORNET"] + ["DRAGONFLY"]) * 60,
+        segments.append({"enemies": (["HORNET"] + ["DRAGONFLY"]) * 20,
                          "spawn_interval": 150,
                          "delay": 1000})
-        segments.append({"enemies": ["DUNG_BEETLE"] * 3,
-                         "spawn_interval": 500,
+        segments.append({"enemies": ["DUNG_BEETLE"] * 2,
+                         "spawn_interval": 2500,
                          "delay": 6000})
         segments.append({"enemies": (["ROACH_QUEEN"] + ["ROACH"] * 4) * 10,
                          "spawn_interval": 150,
@@ -342,22 +340,42 @@ for r in range(19, 101):
 
     elif r == 38:
 
+        segments.append({"enemies": ["BEETLE"] * 40,
+                         "spawn_interval": 5,
+                         "delay": 2500})
+
+        segments.append({"enemies": ["DRAGONFLY"] * 40,
+                         "spawn_interval": 5,
+                         "delay": 2500})
+
+        segments.append({"enemies": (["FIREFLY"] * 10 + ["DUNG_BEETLE"] * 2) * 2,
+                         "spawn_interval": 15,
+                         "delay": 2500})
+
+    elif r == 39:
+        segments.append({"enemies": (["FIREFLY"] * 5 + ["CENTIPEDE_BOSS"] * 4) * 20,
+                         "spawn_interval": 5,
+                         "delay": 3500})
+
         segments.append({"enemies": ["MILLIPEDE"],
                          "spawn_interval": 5,
-                         "delay": 0})
+                         "delay": 3500})
+
+        segments.append({"enemies": ["MILLIPEDE"],
+                         "spawn_interval": 5,
+                         "delay": 3500})
 
     else:
 
         segments.append({
-            "enemies": ["SPIDER", "HORNET"] * (r // 5),
+            "enemies": ["SPIDER", "HORNET"],
             "spawn_interval": 150,
             "delay": 500
         })
-        segments.append({"enemies": ["CENTIPEDE_BOSS"] * 2 * (r % 10),
+        segments.append({"enemies": ["CENTIPEDE_BOSS"],
                          "spawn_interval": 1500,
                          "delay": 1000})
-        ant_swarm = 100 + r * 2
-        segments.append({"enemies": ["ANT"] * ant_swarm,
+        segments.append({"enemies": ["ANT"],
                          "spawn_interval": max(20, 100 - r),
                          "delay": 1000})
 
@@ -446,15 +464,15 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
     global current_round_config, current_segment_index, segment_enemy_spawned, segment_start_time, segment_completion_time
     global rush_active, rush_info, rush_spawned, original_spawn_interval, enemies, new_enemy
 
-    if round_number > 30:
+    if 30 <= round_number < 40:
         health_mult = 1.5
-    elif round_number > 50:
+    elif 50 <= round_number < 70:
         health_mult = 2.5
-    elif round_number > 70:
+    elif 70 <= round_number < 80:
         health_mult = 4
-    elif round_number > 80:
+    elif 80 <= round_number < 90:
         health_mult = 5
-    elif round_number > 90:
+    elif 90 <= round_number < 100:
         health_mult = 6
     elif round_number > 100:
         health_mult = ((round_number % 10) / 2) - 1

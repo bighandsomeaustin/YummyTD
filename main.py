@@ -7,6 +7,7 @@ from waves import send_wave, start_new_wave
 from game_tools import music_volume, load_image
 from save_manager import save_game, load_game
 import game_stats
+import merit_system
 
 # Load settings
 (game_tools.MAX_SHARDS, game_tools.MAX_INDICATORS,
@@ -42,6 +43,7 @@ while running:
         mixer.music.load("assets/menu_music.mp3")
         mixer.music.play(loops=-1)
         loaded_round, loaded_kills, resumeFlag, game_tools.money = load_game("my_save.json")
+        merit_system.load_merit_data()
         round_number = loaded_round
         game_stats.global_kill_total["count"] = loaded_kills
 
@@ -113,9 +115,12 @@ while running:
         mixer.music.fadeout(1000)
         mixer.music.load("assets/map_music.mp3")
         mixer.music.play(-1)
+
+        # CHANGE THESE 3 FOR DEBUGGING
         game_tools.user_health = 100
-        game_tools.money = 25000
-        round_number = 38
+        game_tools.money = 250
+        round_number = 1
+
         game_tools.towers.clear()
         game_tools.enemies.clear()
         start_new_wave(round_number)
@@ -161,9 +166,11 @@ while running:
         if cursor_select == "saveandquit":
             game_tools.TowerFlag = False
             resumeFlag = True
+            game_tools.RoundFlag = False
             save_game("my_save.json", round_number, game_stats.global_kill_total["count"], resumeFlag, game_tools.money)
             state = "Menu"
         if cursor_select == 'quit':
+            game_tools.RoundFlag = False
             game_tools.TowerFlag = False
             state = "Menu"
         if cursor_select == "newgame":
@@ -195,6 +202,27 @@ while running:
                     game_tools.RoundFlag = False
                 round_number += 1
                 resumeFlag = True
+                mainmenu.game_surface.blit(image_map, (0, 0))
+                game_tools.update_towers(mainmenu.game_surface)
+                game_tools.update_stats(mainmenu.game_surface, game_tools.user_health, game_tools.money, round_number,
+                                        clock)
+                pygame.display.flip()
+                if round_number == 10:
+                    merit_system.award_stars_for_round(1, mainmenu.game_surface)
+                elif round_number == 20:
+                    merit_system.award_stars_for_round(2, mainmenu.game_surface)
+                elif round_number == 30:
+                    merit_system.award_stars_for_round(3, mainmenu.game_surface)
+                elif round_number == 40:
+                    merit_system.award_stars_for_round(4, mainmenu.game_surface)
+                elif round_number == 50:
+                    merit_system.award_stars_for_round(5, mainmenu.game_surface)
+                elif round_number == 65:
+                    merit_system.award_stars_for_round(6, mainmenu.game_surface)
+                elif round_number == 85:
+                    merit_system.award_stars_for_round(7, mainmenu.game_surface)
+                elif round_number == 100:
+                    merit_system.award_stars_for_round(8, mainmenu.game_surface)
                 if round_number > 1:
                     save_game("my_save.json", round_number, game_stats.global_kill_total["count"], resumeFlag, game_tools.money)
                 start_new_wave(round_number)
