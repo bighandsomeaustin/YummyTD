@@ -9,11 +9,11 @@ import game_stats
 ###############################################################################
 TOWER_CONSTRUCTOR_ATTRIBUTES = {
     "MrCheese": [
+        "image_path",
         "position",
         "radius",
         "weapon",
         "damage",
-        "image_path",
         "projectile_image",
         "shoot_interval",
     ],

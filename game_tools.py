@@ -2403,7 +2403,7 @@ class MrCheese:
     sfx_squeak = load_sound("assets/mouse-squeak.mp3")
 
     def __init__(self, position, radius, weapon, damage, image_path, projectile_image, shoot_interval=1500):
-        self.image_path = "assets/base_rat.png"
+        self.image_path = image_path
         self.image = load_image(self.image_path)
         self.position = position
         self.radius = radius
@@ -3478,7 +3478,7 @@ class FrostProjectile:
 
 
 class RatSniper:
-    def __init__(self, position, shoot_interval=5000, damage=6):
+    def __init__(self, position, shoot_interval=6500, damage=6):
         self.position = position
         self.damage = damage
         self.shoot_interval = shoot_interval  # default milliseconds between shots
@@ -4634,17 +4634,17 @@ class CheeseBeacon:
             dmg_boost = 4.5
             boosts['damage'] = dmg_boost
         else:
-            dmg_boost = 1.5
+            dmg_boost = 1.25
 
         boosts['damage'] = dmg_boost
 
         # Radius boost
         if self.curr_bottom_upgrade >= 1:
-            boosts['radius'] = 1.5
+            boosts['radius'] = 1.25
 
         # Speed boost
         if self.curr_bottom_upgrade >= 2:
-            boosts['speed'] = 1.5
+            boosts['speed'] = 1.25
 
         return boosts
 
@@ -6167,8 +6167,8 @@ class DungBeetleBoss:
 class RoachQueenEnemy:
     def __init__(self, position, path):
         self.position = position
-        self.health = 25
-        self.speed = 0.5
+        self.health = 45
+        self.speed = 1
         self.path = path
         self.original_image = load_image("assets/roach_queen.png")
         self.image = self.original_image

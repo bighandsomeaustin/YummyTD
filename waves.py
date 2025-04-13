@@ -125,262 +125,307 @@ round_configs[18] = [  # Heavy mix – ants, hornets, beetles, and centipedes\n
      "rush": {"trigger": 5, "num": 3, "speed": 500}}
 ]
 
-for r in range(19, 101):
+for r in range(1, 101):
     segments = []
 
-    if r == 19:
-
-        segments.append({"enemies": ["ANT"] * (r * 2) + ["HORNET"] * (r // 2),
-                         "spawn_interval": max(300, 500 - r * 10),
-                         "delay": 1000})
-        segments.append({"enemies": ["ANT"] * (r * 3),
-                         "spawn_interval": 50,
-                         "delay": 1000})
-        segments.append({"enemies": ["CENTIPEDE"] * 5,
-                         "spawn_interval": 50,
-                         "delay": 0})
-    elif r == 20:
-        # Spider round: all spiders with a mid-round rush\n
-        segments.append({"enemies": ["ROACH_QUEEN"] * 2,
-                         "spawn_interval": 3500,
-                         "delay": 5000})
-        segments.append({"enemies": ["DRAGONFLY"] * 6,
-                         "spawn_interval": 750,
-                         "delay": 0})
-    elif r == 21:
-        # Beetle round: tougher enemies in moderate numbers\n
-        segments.append({"enemies": ["BEETLE"] * 3 + ["FIREFLY"] * 4 + ["BEETLE"] * 3,
-                         "spawn_interval": 100,
-                         "delay": 4500,
-                         "rush": {"trigger": 7, "num": 3, "speed": 50}})
-        segments.append({"enemies": ["BEETLE"] * (r // 2) + ["ANT"] * (2 * r),
+    if r == 1:
+        segments.append({"enemies": ["ANT"] * 10,
                          "spawn_interval": 1000,
-                         "delay": 500,
-                         "rush": {"trigger": int((r // 2 + r) * 0.4), "num": 3, "speed": 200}})
-    elif r == 22:
-        # Centipede rush: mix of centipedes and ants\n
-        segments.append({"enemies": ["DRAGONFLY"] * 4 + ["CENTIPEDE"] * (r // 3) + ["HORNET"] * (10),
-                         "spawn_interval": 900,
-                         "delay": 3500,
-                         "rush": {"trigger": int((r // 3 + r) * 0.6), "num": 5, "speed": 350}})
-        segments.append({"enemies": ["ROACH_QUEEN"] * 2,
-                         "spawn_interval": 3500,
                          "delay": 0})
-    elif r == 23:
-        # Mixed forces with a delayed second phase\n
-        segments.append({"enemies": ["ANT"] * (r * 4),
-                         "spawn_interval": 50,
+
+    elif r == 2:
+        segments.append({"enemies": ["ANT"] * 15,
+                         "spawn_interval": 1000,
+                         "delay": 0})
+
+    elif r == 3:
+        segments.append({"enemies": ["ANT"] * 10,
+                         "spawn_interval": 1250,
                          "delay": 1500})
-        segments.append({"enemies": ["HORNET"] * (r * 2),
-                         "spawn_interval": 200,
-                         "delay": 0,
-                         "rush": {"trigger": int(r * 0.5), "num": 3, "speed": 400}})
-    elif r == 24:
-        # Mixed forces with a delayed second phase\n
-        segments.append({"enemies": ["ANT"] * 10 + ["FIREFLY"] * 3,
-                         "spawn_interval": 0,
-                         "delay": 3500})
-        segments.append({"enemies": ["HORNET"] * 5 + ["FIREFLY"] * 3,
-                         "spawn_interval": 50,
-                         "delay": 3500})
-        segments.append({"enemies": ["DRAGONFLY"] * 4 + ["FIREFLY"] * 3,
-                         "spawn_interval": 50,
-                         "delay": 3500})
-    elif r == 25:
-        # DUNG BEETLE BOSS!!!
-        segments.append({"enemies": ["DUNG_BEETLE"],
-                         "spawn_interval": 3000,
+        segments.append({"enemies": (["ANT"] + ["HORNET"]) * 2,
+                         "spawn_interval": 1250,
                          "delay": 0})
 
-    # another dung beetle, with some more enemies
-    elif r == 26:
-        segments.append({"enemies": ["DUNG_BEETLE"],
-                         "spawn_interval": 2000,
-                         "delay": 7000})
-        segments.append({"enemies": (["FIREFLY"] + ["BEETLE"] + ["FIREFLY"] + ["BEETLE"]) * 4,
-                         "spawn_interval": 500,
-                         "delay": 2000})
-
-        # dragonfly rush
-        segments.append({"enemies": ["DRAGONFLY"] * 10,
-                         "spawn_interval": 50,
-                         "delay": 7000})
-
-    # huge centipede + fireflies + roach queen finale
-    elif r == 27:
-        segments.append({"enemies": ["CENTIPEDE_BOSS"] * 4,
-                         "spawn_interval": 1000,
-                         "delay": 3000})
-        segments.append({"enemies": (["CENTIPEDE"] * 2 + ["FIREFLY"] + ["CENTIPEDE"] * 2) * 9,
-                         "spawn_interval": 750,
-                         "delay": 3000})
-        segments.append({"enemies": (["FIREFLY"] * 2 + ["ROACH_QUEEN"] * 4 + ["FIREFLY"] * 2) * 4,
-                         "spawn_interval": 50,
+    elif r == 4:
+        segments.append({"enemies": ["ANT"] * 10,
+                         "spawn_interval": 1250,
+                         "delay": 2500})
+        segments.append({"enemies": ["ANT"] * 5 + ["HORNET"] * 5,
+                         "spawn_interval": 1250,
                          "delay": 0})
-
-    # insane barrage of dragonflies, beetles, spiders
-    elif r == 28:
-        segments.append({"enemies": (["BEETLE"] + ["SPIDER"] + ["DRAGONFLY"] * 5) * 15,
-                         "spawn_interval": 150,
-                         "delay": 3000})
-        segments.append({"enemies": (["FIREFLY"] + ["ROACH_QUEEN"] + ["ROACH"] * 3) * 5,
-                         "spawn_interval": 250,
-                         "delay": 3000})
-
-    # 3 dung beetle bosses stacked, followed by 10 roach queens
-    elif r == 29:
-        segments.append({"enemies": (["HORNET"] + ["DRAGONFLY"]) * 20,
-                         "spawn_interval": 150,
+    elif r == 5:
+        segments.append({"enemies": ["HORNET"] * 10,
+                         "spawn_interval": 1750,
                          "delay": 1000})
-        segments.append({"enemies": ["DUNG_BEETLE"] * 2,
-                         "spawn_interval": 2500,
-                         "delay": 6000})
-        segments.append({"enemies": (["ROACH_QUEEN"] + ["ROACH"] * 4) * 10,
-                         "spawn_interval": 150,
+        segments.append({"enemies": ["ANT"] * 10,
+                         "spawn_interval": 500,
                          "delay": 0})
 
-    # free money, before health multiplier increase
-    elif r == 30:
-        segments.append({"enemies": ["SPIDER"] * 60,
+    elif r == 6:
+        segments.append({"enemies": ["ANT"] * 20,
+                         "spawn_interval": 500,
+                         "delay": 1500})
+        segments.append({"enemies": ["HORNET"] * 10,
+                         "spawn_interval": 1250,
+                         "delay": 0})
+
+    elif r == 7:
+        segments.append({"enemies": (["ANT"] + ["HORNET"]) * 12,
+                         "spawn_interval": 1000,
+                         "delay": 0})
+
+    elif r == 8:
+        segments.append({"enemies": ["HORNET"] * 20,
+                         "spawn_interval": 1500,
+                         "delay": 0})
+
+    elif r == 9:
+        segments.append({"enemies": ["ANT"] * 10,
                          "spawn_interval": 250,
-                         "delay": 3000})
-        segments.append({"enemies": ["CENTIPEDE"] * 30,
-                         "spawn_interval": 350,
-                         "delay": 5000})
-        segments.append({"enemies": ["ANT"] * 100,
+                         "delay": 3500})
+        segments.append({"enemies": ["SPIDER"] * 2,
+                         "spawn_interval": 1750,
+                         "delay": 0})
+
+    elif r == 10:
+        segments.append({"enemies": (["HORNET"] * 2 + ["ANT"]) * 10,
+                         "spawn_interval": 1000,
+                         "delay": 5500})
+        segments.append({"enemies": ["HORNET"] * 10,
+                         "spawn_interval": 250,
+                         "delay": 0})
+
+    elif r == 11:
+        segments.append({"enemies": ((["ANT"] * 2 + ["HORNET"] * 2) * 4 + ["SPIDER"]) * 3,
+                         "spawn_interval": 1250,
+                         "delay": 0})
+
+    elif r == 12:
+        segments.append({"enemies": ["HORNET"] * 10,
+                         "spawn_interval": 5,
+                         "delay": 5500})
+        segments.append({"enemies": ["ANT"] * 20,
+                         "spawn_interval": 5,
+                         "delay": 5500})
+        segments.append({"enemies": ["SPIDER"] * 3,
                          "spawn_interval": 5,
                          "delay": 0})
 
-    # start off with some basic enemies
-    elif r == 31:
-        segments.append({"enemies": ["ANT"] * 30,
-                         "spawn_interval": 200,
-                         "delay": 3000})
-        segments.append({"enemies": ["HORNET"] * 20,
-                         "spawn_interval": 400,
-                         "delay": 3000})
-        segments.append({"enemies": ["BEETLE"] * 5,
+    elif r == 13:
+        segments.append({"enemies": ["ANT"] * 25,
+                         "spawn_interval": 5,
+                         "delay": 3500})
+        segments.append({"enemies": ["ANT"] * 25,
+                         "spawn_interval": 5,
+                         "delay": 8500})
+        segments.append({"enemies": ["DRAGONFLY"],
+                         "spawn_interval": 5,
+                         "delay": 0})
+
+    elif r == 14:
+        segments.append({"enemies": ["SPIDER"] * 25,
+                         "spawn_interval": 1500,
+                         "delay": 0})
+
+    elif r == 15:
+        segments.append({"enemies": (["ANT"] * 10 + ["HORNET"] * 5 + ["DRAGONFLY"]) * 8,
+                         "spawn_interval": 750,
+                         "delay": 0})
+
+    elif r == 16:
+        segments.append({"enemies": (["SPIDER"] * 4 + ["DRAGONFLY"]) * 5,
                          "spawn_interval": 500,
-                         "delay": 3000})
-        # THEN BOOM!!!
-        segments.append({"enemies": ["DUNG_BEETLE"] * 2,
-                         "spawn_interval": 1000,
                          "delay": 0})
 
-    # dragonflies, fireflies, dung beetle, repeat
-    elif r == 32:
-
-        for i in range(2):
-            for _ in range(6):
-                segments.append({"enemies": (["BEETLE"] * 4 + ["FIREFLY"] * 2),
-                                 "spawn_interval": 100,
-                                 "delay": 500})
-
-            segments.append({"enemies": ["DRAGONFLY"] * 4,
-                             "spawn_interval": 100,
-                             "delay": 0})
-            segments.append({"enemies": ["DUNG_BEETLE"],
-                             "spawn_interval": 200,
-                             "delay": 2500})
-
-    # huge ant masses, broken up by roach queens, centipede bosses
-    elif r == 33:
-
-        for i in range(5):
-            for _ in range(2):
-                segments.append({"enemies": ["ANT"] * 40,
-                                 "spawn_interval": 5,
-                                 "delay": 1000})
-
-                segments.append({"enemies": ["ANT"] * 40,
-                                 "spawn_interval": 5,
-                                 "delay": 1000})
-
-            segments.append({"enemies": (["ROACH_QUEEN"] * 5 + ["CENTIPEDE_BOSS"] * 3),
-                             "spawn_interval": 200,
-                             "delay": 500})
-
-    # get shit on
-    elif r == 34:
-
-        segments.append({"enemies": ["DUNG_BEETLE"] * 3,
-                         "spawn_interval": 1000,
-                         "delay": 0})
-
-    # just spamming roach queens
-    elif r == 35:
-
-        segments.append({"enemies": ["ROACH"] * 30,
-                         "spawn_interval": 20,
-                         "delay": 6000})
-
-        segments.append({"enemies": (["FIREFLY"] + ["ROACH_QUEEN"] * 3 + ["CENTIPEDE"] * 2) * 10,
+    elif r == 17:
+        for i in range(4):
+            segments.append({"enemies": ["FIREFLY"] + ["ANT"] * 20,
+                             "spawn_interval": 10,
+                             "delay": 1500})
+            segments.append({"enemies": ["HORNET"] * 10,
+                             "spawn_interval": 10,
+                             "delay": 1500})
+        segments.append({"enemies": ["DRAGONFLY"] * 2,
                          "spawn_interval": 10,
                          "delay": 0})
 
-    # what happens if I send 50 dragonflies
-    elif r == 36:
-
-        # lets be silly for a second
+    elif r == 18:
         for i in range(5):
-            segments.append({"enemies": ["ANT"] * 40,
+            segments.append({"enemies": ["ANT"] * 30,
+                             "spawn_interval": 50,
+                             "delay": 2500})
+            segments.append({"enemies": ["SPIDER"] * 10,
+                             "spawn_interval": 500,
+                             "delay": 4500})
+
+    elif r == 19:
+        segments.append({"enemies": ["DRAGONFLY"] * 8,
+                         "spawn_interval": 10,
+                         "delay": 4000})
+        segments.append({"enemies": ["FIREFLY"],
+                         "spawn_interval": 10,
+                         "delay": 0})
+        segments.append({"enemies": ["BEETLE"],
+                         "spawn_interval": 10,
+                         "delay": 0})
+
+    elif r == 20:
+        segments.append({"enemies": ["BEETLE"] * 8,
+                         "spawn_interval": 3500,
+                         "delay": 0})
+
+    elif r == 21:
+        for i in range(5):
+            segments.append({"enemies": ["FIREFLY"] * 2 + ["ANT"] * 20,
+                             "spawn_interval": 10,
+                             "delay": 3500})
+            segments.append({"enemies": ["SPIDER"] * 4 + ["DRAGONFLY"] * 4,
+                             "spawn_interval": 10,
+                             "delay": 2500})
+
+    elif r == 22:
+        for i in range(4):
+            segments.append({"enemies": ["HORNET"] * 5,
+                             "spawn_interval": 200,
+                             "delay": 0})
+            segments.append({"enemies": ["CENTIPEDE"] * 2,
+                             "spawn_interval": 1000,
+                             "delay": 2000})
+
+    elif r == 23:
+        segments.append({"enemies": ["CENTIPEDE"] * 8,
+                         "spawn_interval": 500,
+                         "delay": 2000})
+        segments.append({"enemies": ["CENTIPEDE_BOSS"] * 4,
+                         "spawn_interval": 3000,
+                         "delay": 0})
+
+    elif r == 24:
+        for i in range(5):
+            segments.append({"enemies": ["FIREFLY"],
+                             "spawn_interval": 1000,
+                             "delay": 0})
+            segments.append({"enemies": ["CENTIPEDE"] * 2,
+                             "spawn_interval": 500,
+                             "delay": 2000})
+            segments.append({"enemies": ["FIREFLY"],
+                             "spawn_interval": 1000,
+                             "delay": 0})
+            segments.append({"enemies": ["BEETLE"] * 2,
+                             "spawn_interval": 1000,
+                             "delay": 4000})
+            segments.append({"enemies": ["ROACH"] * 10,
+                             "spawn_interval": 50,
+                             "delay": 0})
+
+    elif r == 25:
+        segments.append({"enemies": ["FIREFLY"] * 4,
+                         "spawn_interval": 500,
+                         "delay": 0})
+        segments.append({"enemies": ["DRAGONFLY"] * 8,
+                         "spawn_interval": 100,
+                         "delay": 4500})
+        segments.append({"enemies": ["FIREFLY"] * 4,
+                         "spawn_interval": 500,
+                         "delay": 0})
+        segments.append({"enemies": ["BEETLE"] * 8,
+                         "spawn_interval": 5,
+                         "delay": 0})
+        segments.append({"enemies": ["FIREFLY"] * 8,
+                         "spawn_interval": 25,
+                         "delay": 0})
+        segments.append({"enemies": ["ROACH_QUEEN"] * 2,
+                         "spawn_interval": 2000,
+                         "delay": 0})
+    elif r == 26:
+        for i in range(5):
+            segments.append({"enemies": ["FIREFLY"] * 4,
+                             "spawn_interval": 500,
+                             "delay": 0})
+            segments.append({"enemies": ["ROACH"] * 5,
+                             "spawn_interval": 10,
+                             "delay": 0})
+            segments.append({"enemies": ["ROACH_QUEEN"],
+                             "spawn_interval": 500,
+                             "delay": 3000})
+            segments.append({"enemies": ["HORNET"] * 20,
                              "spawn_interval": 5,
-                             "delay": 1500})
+                             "delay": 0})
+    elif r == 27:
+        for i in range(5):
+            segments.append({"enemies": ["ROACH"] * 5,
+                             "spawn_interval": 5,
+                             "delay": 3000})
+            segments.append({"enemies": ["ROACH_QUEEN"] * 2,
+                             "spawn_interval": 500,
+                             "delay": 4000})
 
-        segments.append({"enemies": ["DRAGONFLY"] * 50,
-                         "spawn_interval": 50,
+    elif r == 28:
+        for i in range(5):
+            segments.append({"enemies": ["FIREFLY"] * 4,
+                             "spawn_interval": 5,
+                             "delay": 0})
+            segments.append({"enemies": ["ANT"] * 50,
+                             "spawn_interval": 5,
+                             "delay": 4000})
+
+    elif r == 29:
+        segments.append({"enemies": (["FIREFLY"] + ["BEETLE"] * 4) * 4,
+                         "spawn_interval": 500,
+                         "delay": 8000})
+        segments.append({"enemies": ["FIREFLY"] * 10 + ["DUNG_BEETLE"],
+                         "spawn_interval": 500,
                          "delay": 0})
 
-    # stupid amount of beetles, will probably break game
-    elif r == 37:
-
-        segments.append({"enemies": ["BEETLE"] * 40,
+    elif r == 30:
+        segments.append({"enemies": (["FIREFLY"] + ["ANT"] * 40),
                          "spawn_interval": 5,
                          "delay": 0})
 
-    elif r == 38:
-
-        segments.append({"enemies": ["BEETLE"] * 40,
-                         "spawn_interval": 5,
-                         "delay": 2500})
-
-        segments.append({"enemies": ["DRAGONFLY"] * 40,
-                         "spawn_interval": 5,
-                         "delay": 2500})
-
-        segments.append({"enemies": (["FIREFLY"] * 10 + ["DUNG_BEETLE"] * 2) * 2,
-                         "spawn_interval": 15,
-                         "delay": 2500})
-
-    elif r == 39:
-        segments.append({"enemies": (["FIREFLY"] * 5 + ["CENTIPEDE_BOSS"] * 4) * 20,
-                         "spawn_interval": 5,
-                         "delay": 3500})
-
-        segments.append({"enemies": ["MILLIPEDE"],
-                         "spawn_interval": 5,
-                         "delay": 3500})
-
-        segments.append({"enemies": ["MILLIPEDE"],
-                         "spawn_interval": 5,
-                         "delay": 3500})
+    elif r == 31:
+        for i in range(10):
+            segments.append({"enemies": ["HORNET"] * 5,
+                             "spawn_interval": 150,
+                             "delay": 1000})
+            segments.append({"enemies": ["SPIDER"],
+                             "spawn_interval": 150,
+                             "delay": 1000})
 
     else:
+        segments.append({"enemies": ["MILLIPEDE"],
+                         "spawn_interval": 150,
+                         "delay": 4000})
+        for i in range(int(r / 10) + 2):
+            segments.append({"enemies": ["FIREFLY"] * 2,
+                             "spawn_interval": 25,
+                             "delay": 0})
+            segments.append({"enemies": ["ANT"] * r,
+                             "spawn_interval": 5,
+                             "delay": 2000})
+            segments.append({"enemies": ["HORNET"] * (int(r / 10) + 5),
+                             "spawn_interval": 150,
+                             "delay": 2000})
+            segments.append({"enemies": ["CENTIPEDE"] * int(r / 10),
+                             "spawn_interval": 150,
+                             "delay": 4000})
+            segments.append({"enemies": ["FIREFLY"] * 2,
+                             "spawn_interval": 25,
+                             "delay": 0})
+            segments.append({"enemies": ["ROACH_QUEEN"],
+                             "spawn_interval": 5,
+                             "delay": 3000})
+            segments.append({"enemies": ["DRAGONFLY"] * 2,
+                             "spawn_interval": 25,
+                             "delay": 0})
+            segments.append({"enemies": ["SPIDER"] * 2,
+                             "spawn_interval": 25,
+                             "delay": 2000})
+        segments.append({"enemies": ["DUNG_BEETLE"],
+                         "spawn_interval": 25,
+                         "delay": 0})
 
-        segments.append({
-            "enemies": ["SPIDER", "HORNET"],
-            "spawn_interval": 150,
-            "delay": 500
-        })
-        segments.append({"enemies": ["CENTIPEDE_BOSS"],
-                         "spawn_interval": 1500,
-                         "delay": 1000})
-        segments.append({"enemies": ["ANT"],
-                         "spawn_interval": max(20, 100 - r),
-                         "delay": 1000})
 
-    if r > 18:
-        round_configs[r] = segments
+    round_configs[r] = segments
 
 # -----------------------------
 # Wave State Variables
@@ -465,17 +510,17 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
     global rush_active, rush_info, rush_spawned, original_spawn_interval, enemies, new_enemy
 
     if 30 <= round_number < 40:
-        health_mult = 1.5
-    elif 50 <= round_number < 70:
-        health_mult = 2.5
-    elif 70 <= round_number < 80:
-        health_mult = 4
-    elif 80 <= round_number < 90:
         health_mult = 5
+    elif 50 <= round_number < 70:
+        health_mult = 10
+    elif 70 <= round_number < 80:
+        health_mult = 15
+    elif 80 <= round_number < 90:
+        health_mult = 20
     elif 90 <= round_number < 100:
-        health_mult = 6
+        health_mult = 25
     elif round_number > 100:
-        health_mult = ((round_number % 10) / 2) - 1
+        health_mult = ((round_number % 10) * 4) - 5
     else:
         health_mult = 1
 
@@ -487,7 +532,7 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
     if current_segment_index >= len(current_round_config):
         if not enemies:
             print(f"Wave {round_number} completed.")
-            base_reward = 150
+            base_reward = 25
             bonus = math.floor(math.log(round_number + 1, 2))
             game_tools.money += base_reward + (25 * bonus)
             return True

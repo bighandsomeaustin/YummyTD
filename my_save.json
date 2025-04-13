@@ -1,81 +1,46 @@
 {
-    "wave_number": 40,
-    "kill_count": 4623,
+    "wave_number": 32,
+    "kill_count": 2568,
     "resume_flag": true,
     "towers": [
         {
             "tower_type": "MrCheese",
+            "image_path": "assets/base_rat.png",
             "position": [
-                225,
-                360
+                213,
+                395
             ],
-            "radius": 759.375,
+            "radius": 244.140625,
             "weapon": "Cheese",
-            "damage": 11.390625,
-            "image_path": "assets/mrcheese_steroids+booksmart.png",
+            "damage": 22.247314453125,
             "projectile_image": "assets/projectile_cheese.png",
-            "shoot_interval": 555.5555555555555,
-            "curr_top_upgrade": 1,
-            "curr_bottom_upgrade": 2,
-            "penetration": true,
-            "sell_amt": 950
+            "shoot_interval": 1500.0,
+            "curr_top_upgrade": 0,
+            "curr_bottom_upgrade": 0,
+            "penetration": false,
+            "sell_amt": 75
         },
         {
             "tower_type": "RatFrost",
             "position": [
-                179,
-                383
+                162,
+                386
             ],
-            "curr_top_upgrade": 1,
-            "curr_bottom_upgrade": 3,
-            "sell_amt": 800,
+            "curr_top_upgrade": 0,
+            "curr_bottom_upgrade": 0,
+            "sell_amt": 100,
             "damage": null,
-            "radius": 100,
+            "radius": 75,
             "shoot_interval": null,
             "slow_effect": null
         },
         {
-            "tower_type": "CheddarCommando",
-            "position": [
-                313,
-                343
-            ],
-            "radius": 759.375,
-            "damage": 11.390625,
-            "shoot_interval": 355.5555555555556,
-            "reload_time": 1500.0,
-            "image_path": "assets/soldier_shotgun.png",
-            "sound_path": "assets/shotgun_shoot.mp3",
-            "reload_pathcurr_top_upgrade": null,
-            "curr_bottom_upgrade": 1,
-            "sell_amt": 1075
-        },
-        {
-            "tower_type": "RatBank",
-            "position": [
-                1044,
-                599
-            ],
-            "image_path": "assets/rat_bank_imports.png",
-            "curr_top_upgrade": 2,
-            "curr_bottom_upgrade": 1,
-            "sell_amt": 1750,
-            "interest_rate": 1.07,
-            "cash_invested": 0,
-            "cash_generated": 3250,
-            "loan_amount": 0,
-            "loan_payment": 0,
-            "provoloanFlag": false,
-            "briefundFlag": false,
-            "is_selected": false
-        },
-        {
             "tower_type": "RatSniper",
             "position": [
-                1048,
-                389
+                1041,
+                391
             ],
-            "shoot_interval": 5000,
+            "shoot_interval": 6500,
             "damage": 6,
             "image_path": "assets/sniper_base.png",
             "image_path_shootcurr_top_upgrade": null,
@@ -83,108 +48,88 @@
             "sell_amt": 175
         },
         {
-            "tower_type": "CheeseBeacon",
+            "tower_type": "RatBank",
             "position": [
-                255,
-                395
+                1016,
+                607
             ],
-            "image_path": "assets/beacon+speed.png",
+            "image_path": "assets/rat_bank.png",
             "curr_top_upgrade": 0,
-            "curr_bottom_upgrade": 2,
-            "sell_amt": 2100,
-            "buff_radius": null
+            "curr_bottom_upgrade": 0,
+            "sell_amt": 350,
+            "interest_rate": 1.03,
+            "cash_invested": 0,
+            "cash_generated": 2732,
+            "loan_amount": 0,
+            "loan_payment": 0,
+            "provoloanFlag": false,
+            "briefundFlag": false,
+            "is_selected": false
         },
         {
-            "tower_type": "WizardTower",
+            "tower_type": "RatTent",
             "position": [
-                291,
-                385
+                595,
+                501
             ],
-            "image_path": "assets/wizard+lightning+apprentice.png",
+            "radius": 50,
+            "recruit_health": 1,
+            "recruit_speed": 1,
+            "recruit_damage": 1,
+            "image_path": "assets/base_camp.png",
+            "recruit_image": "assets/rat_recruit.png",
+            "spawn_interval": 2000,
+            "curr_top_upgrade": 0,
+            "curr_bottom_upgrade": 0,
+            "sell_amt": 325
+        },
+        {
+            "tower_type": "Ozbourne",
+            "position": [
+                135,
+                378
+            ],
+            "radius": 100,
+            "weapon": "guitar",
+            "damage": 1,
+            "image_path": "assets/alfredo_ozbourne_longer_riffs+amplifier.png",
+            "riff_blast_radius": 100,
+            "riff_interval": 2330,
             "curr_top_upgrade": 1,
             "curr_bottom_upgrade": 1,
-            "sell_amt": 1325,
-            "damage": 22.78125,
-            "radius": 506.25
+            "sell_amt": 562,
+            "blast_duration": 2330,
+            "max_blast_radius": 100,
+            "projectile_image": null
+        },
+        {
+            "tower_type": "CheeseBeacon",
+            "position": [
+                282,
+                396
+            ],
+            "image_path": "assets/beacon+radius+damage.png",
+            "curr_top_upgrade": 1,
+            "curr_bottom_upgrade": 1,
+            "sell_amt": 2250,
+            "buff_radius": null
         },
         {
             "tower_type": "CheddarCommando",
             "position": [
-                310,
-                382
+                300,
+                350
             ],
-            "radius": 379.6875,
+            "radius": 146.484375,
             "damage": 11.390625,
-            "shoot_interval": 355.5555555555556,
-            "reload_time": 1500.0,
+            "shoot_interval": 800.0,
+            "reload_time": 1000.0,
             "image_path": "assets/soldier_shotgun.png",
             "sound_path": "assets/shotgun_shoot.mp3",
             "reload_pathcurr_top_upgrade": null,
             "curr_bottom_upgrade": 1,
-            "sell_amt": 1075
-        },
-        {
-            "tower_type": "CheeseBeacon",
-            "position": [
-                270,
-                356
-            ],
-            "image_path": "assets/beacon+radius.png",
-            "curr_top_upgrade": 0,
-            "curr_bottom_upgrade": 1,
-            "sell_amt": 1000,
-            "buff_radius": null
-        },
-        {
-            "tower_type": "CheeseBeacon",
-            "position": [
-                252,
-                315
-            ],
-            "image_path": "assets/beacon_base.png",
-            "curr_top_upgrade": 0,
-            "curr_bottom_upgrade": 0,
-            "sell_amt": 700,
-            "buff_radius": null
-        },
-        {
-            "tower_type": "RatBank",
-            "position": [
-                995,
-                591
-            ],
-            "image_path": "assets/rat_bank_fargo.png",
-            "curr_top_upgrade": 1,
-            "curr_bottom_upgrade": 1,
-            "sell_amt": 1550,
-            "interest_rate": 1.07,
-            "cash_invested": 0,
-            "cash_generated": 1727,
-            "loan_amount": 0,
-            "loan_payment": 0,
-            "provoloanFlag": false,
-            "briefundFlag": false,
-            "is_selected": false
-        },
-        {
-            "tower_type": "RatBank",
-            "position": [
-                945,
-                583
-            ],
-            "image_path": "assets/rat_bank_fargo.png",
-            "curr_top_upgrade": 1,
-            "curr_bottom_upgrade": 1,
-            "sell_amt": 1550,
-            "interest_rate": 1.07,
-            "cash_invested": 0,
-            "cash_generated": 1727,
-            "loan_amount": 0,
-            "loan_payment": 0,
-            "provoloanFlag": false,
-            "briefundFlag": false,
-            "is_selected": false
+            "sell_amt": 1675
         }
     ],
-    "money": 9922
+    "money": 718
 }
