@@ -107,7 +107,7 @@ def mainmenu_control(screen: pygame.Surface) -> bool:
         if click:
             button_press.play()
             pygame.quit()
-            exit()
+            #exit()
     else:
         screen.blit(img_quit, (502, 635))
 

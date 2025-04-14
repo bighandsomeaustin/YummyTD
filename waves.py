@@ -378,7 +378,10 @@ for r in range(1, 101):
                          "delay": 0})
 
     elif r == 30:
-        segments.append({"enemies": (["FIREFLY"] + ["ANT"] * 40),
+        segments.append({"enemies": (["FIREFLY"] + ["ANT"] * 20),
+                         "spawn_interval": 5,
+                         "delay": 0})
+        segments.append({"enemies": (["FIREFLY_ALT1"] + ["ROACH_ALT1"] * 5 + ["ROACH_QUEEN_ALT1"]),
                          "spawn_interval": 5,
                          "delay": 0})
 
@@ -510,17 +513,17 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
     global rush_active, rush_info, rush_spawned, original_spawn_interval, enemies, new_enemy
 
     if 30 <= round_number < 40:
-        health_mult = 5
+        health_mult = 2
     elif 50 <= round_number < 70:
-        health_mult = 10
+        health_mult = 3
     elif 70 <= round_number < 80:
-        health_mult = 15
+        health_mult = 4
     elif 80 <= round_number < 90:
-        health_mult = 20
+        health_mult = 5
     elif 90 <= round_number < 100:
-        health_mult = 25
+        health_mult = 6
     elif round_number > 100:
-        health_mult = ((round_number % 10) * 4) - 5
+        health_mult = int(round_number / 10) - 3
     else:
         health_mult = 1
 
@@ -561,9 +564,16 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
     if segment_enemy_spawned < len(segment["enemies"]):
         if pygame.time.get_ticks() - segment_start_time >= effective_interval:
             enemy_type = segment["enemies"][segment_enemy_spawned]
+
             spawn_pos = (238 + random.randint(-16, 16), 500)
             # Create a slightly varied path.
             offset_path = [(x + random.randint(-8, 8), y) for (x, y) in game_tools.house_path]
+
+            spawn_pos_alt1 = (155 + random.randint(-16, 16), 168)
+            # Create a slightly varied path.
+            offset_path_alt1 = [(x + random.randint(-8, 8), y) for (x, y) in game_tools.house_path_alternate]
+
+            # REGULAR PATH
             if enemy_type == "ANT":
                 new_enemy = (game_tools.AntEnemy(spawn_pos, 1, 1, offset_path, "assets/ant_base.png"))
             elif enemy_type == "HORNET":
@@ -589,6 +599,32 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
                 new_enemy = (game_tools.DungBeetleBoss(spawn_pos, offset_path))
             elif enemy_type == "MILLIPEDE":
                 new_enemy = (game_tools.MillipedeBoss(spawn_pos, offset_path, links=16))
+            # ALTERNATE PATH 1
+            elif enemy_type == "ANT_ALT1":
+                new_enemy = (game_tools.AntEnemy(spawn_pos_alt1, 1, 1, offset_path_alt1, "assets/ant_base.png"))
+            elif enemy_type == "HORNET_ALT1":
+                new_enemy = (game_tools.HornetEnemy(spawn_pos_alt1, 2, 2, offset_path_alt1, "assets/hornet_base.png"))
+            elif enemy_type == "BEETLE_ALT1":
+                new_enemy = (game_tools.BeetleEnemy(spawn_pos_alt1, offset_path_alt1))
+            elif enemy_type == "SPIDER_ALT1":
+                new_enemy = (game_tools.SpiderEnemy(spawn_pos_alt1, offset_path_alt1))
+            elif enemy_type == "CENTIPEDE_ALT1":
+                new_enemy = (game_tools.CentipedeEnemy(spawn_pos_alt1, offset_path_alt1))
+            elif enemy_type == "CENTIPEDE_BOSS_ALT1":
+                new_enemy = (game_tools.CentipedeEnemy(spawn_pos_alt1, offset_path_alt1, links=24))
+            elif enemy_type == "DRAGONFLY_ALT1":
+                new_enemy = (game_tools.DragonflyEnemy(spawn_pos_alt1, offset_path_alt1))
+            elif enemy_type == "ROACH_QUEEN_ALT1":
+                new_enemy = (game_tools.RoachQueenEnemy(spawn_pos_alt1, offset_path_alt1))
+            elif enemy_type == "ROACH_ALT1":
+                new_enemy = (game_tools.RoachMinionEnemy(position=spawn_pos_alt1, path=offset_path_alt1,
+                                                           speed=random.randint(1, 4), health=3))
+            elif enemy_type == "FIREFLY_ALT1":
+                new_enemy = (game_tools.FireflyEnemy(spawn_pos_alt1, offset_path_alt1))
+            elif enemy_type == "DUNG_BEETLE_ALT1":
+                new_enemy = (game_tools.DungBeetleBoss(spawn_pos_alt1, offset_path_alt1))
+            elif enemy_type == "MILLIPEDE_ALT1":
+                new_enemy = (game_tools.MillipedeBoss(spawn_pos_alt1, offset_path_alt1, links=16))
 
             # apply damage multiplier
             if new_enemy is not None:
@@ -621,6 +657,8 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
         # Then render (order matters less here)
     for enemy in enemies:
         enemy.render(scrn)
+
+    game_tools.update_stunned_enemies(enemies)
 
     for tower in game_tools.towers:
         if isinstance(tower, game_tools.RatBank):

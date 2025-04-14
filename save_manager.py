@@ -42,7 +42,8 @@ TOWER_CONSTRUCTOR_ATTRIBUTES = {
     ],
     "MinigunTower": [
         "position",
-        #"image_path",
+        "image_path",
+
     ],
     "RatSniper": [
         "position",
@@ -144,7 +145,7 @@ TOWER_SAVE_ATTRIBUTES = {
     ],
     "RatSniper": [
         "image_path",
-        "image_path_shoot"
+        "image_path_shoot",
         "curr_top_upgrade",
         "curr_bottom_upgrade",
         "sell_amt",
@@ -178,7 +179,7 @@ TOWER_SAVE_ATTRIBUTES = {
     "CheddarCommando": [
         "image_path",
         "sound_path",
-        "reload_path"
+        "reload_path",
         "curr_top_upgrade",
         "curr_bottom_upgrade",
         "sell_amt",

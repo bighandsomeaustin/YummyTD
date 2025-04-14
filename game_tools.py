@@ -164,6 +164,11 @@ house_path = [(237, 502), (221, 447), (186, 417), (136, 408), (113, 385), (113, 
               (137, 335), (297, 329), (322, 306), (339, 257), (297, 228), (460, 164),
               (680, 174), (687, 294), (703, 340), (884, 344), (897, 476), (826, 515),
               (727, 504), (580, 524)]
+
+
+house_path_alternate = [(155, 168), (460, 172), (680, 174), (687, 294), (703, 340), (884, 344), (897, 476), (826, 515),
+                        (727, 504), (580, 524)]
+
 recruit_path = [(580, 524), (727, 504), (826, 515), (897, 476), (884, 344), (703, 340),
                 (687, 294), (680, 174), (460, 164), (297, 228), (339, 257), (322, 306),
                 (297, 329), (137, 335), (113, 352), (113, 385), (136, 408), (186, 417),
@@ -843,19 +848,29 @@ def handle_upgrade(scrn, tower):
     if isinstance(tower, Ozbourne):
         img_amplifier_upgrade = load_image("assets/upgrade_amplifier.png")
         img_longerriffs_upgrade = load_image("assets/upgrade_longerriffs.png")
+        img_watts_upgrade = load_image("assets/upgrade_watts.png")
+        img_solo_upgrade = load_image("assets/upgrade_solo.png")
         upgrade_font = get_font("arial", 16)
         text_faster = upgrade_font.render("Amplifier", True, (0, 0, 0))
         text_stronger = upgrade_font.render("Longer Riffs", True, (0, 0, 0))
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_amplifier_upgrade, (883, 65))
             scrn.blit(text_faster, (962, 42))
+        elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
+            scrn.blit(img_watts_upgrade, (883, 65))
+            blit_text(scrn, "One Million Wats", "top")
         else:
             scrn.blit(img_max_upgrades, top)
+
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_longerriffs_upgrade, (883, 194))
             scrn.blit(text_stronger, (962, 172))
+        elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
+            scrn.blit(img_solo_upgrade, (883, 194))
+            blit_text(scrn, "Guitar Solo", "bottom")
         else:
             scrn.blit(img_max_upgrades, bottom)
+
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
             scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
@@ -876,6 +891,15 @@ def handle_upgrade(scrn, tower):
                         tower.image_path = "assets/alfredo_ozbourne_longer_riffs+amplifier.png"
                         tower.image = load_image("assets/alfredo_ozbourne_longer_riffs+amplifier.png")
                         tower.original_image = load_image("assets/alfredo_ozbourne_longer_riffs+amplifier.png")
+                elif tower.curr_top_upgrade == 1 and money >= 850 and tower.curr_bottom_upgrade < 2:
+                    purchase.play()
+                    money -= 850
+                    tower.sell_amt += 425
+                    tower.riff_blast_radius = 150
+                    tower.radius = 150
+                    tower.max_blast_radius = 150
+                    tower.curr_top_upgrade = 2
+                    UpgradeFlag = True
         if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
             if detect_single_click():
                 money += tower.sell_amt
@@ -906,6 +930,12 @@ def handle_upgrade(scrn, tower):
                         tower.image = load_image("assets/alfredo_ozbourne_longer_riffs+amplifier.png")
                         tower.original_image = load_image("assets/alfredo_ozbourne_longer_riffs+amplifier.png")
                         tower.recruit_image = "assets/alfredo_ozbourne_longer_riffs+amplifier.png"
+                elif money >= 1850 and tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
+                    purchase.play()
+                    money -= 1850
+                    tower.sell_amt += 925
+                    tower.curr_bottom_upgrade = 2
+                    UpgradeFlag = True
     if isinstance(tower, RatBank):
         img_credit_upgrade = load_image("assets/upgrade_better_credit.png")
         img_cheesefargo_upgrade = load_image("assets/upgrade_cheese_fargo.png")
@@ -1432,7 +1462,7 @@ def handle_upgrade(scrn, tower):
             scrn.blit(img_explosive_orbs_upgrade, (883, 65))
             blit_text(scrn, "Explosive Orbs", "top")
         else:
-            scrn.blit(img_max_upgrades, bottom)
+            scrn.blit(img_max_upgrades, top)
 
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_lightning_upgrade, (883, 194))
@@ -1596,7 +1626,7 @@ def handle_upgrade(scrn, tower):
                     tower.shoot_sound = load_sound("assets/shotgun_shoot.mp3")
                     tower.curr_top_upgrade = 2
                     UpgradeFlag = True
-                    if tower.curr_bottom_upgrade <= 1:
+                    if tower.curr_bottom_upgrade < 1:
                         tower.image_path = "assets/soldier_shotgun.png"
                         tower.image = load_image("assets/soldier_shotgun.png")
                         tower.original_image = load_image("assets/soldier_shotgun.png")
@@ -1864,6 +1894,18 @@ def update_stars(scrn, round_number):
     scrn.blit(img_stars, (970, 5))
     if img_trophy is not None:
         scrn.blit(img_trophy, pos)
+
+
+def update_stunned_enemies(enemies):
+    current_time = pygame.time.get_ticks()
+    for enemy in enemies:
+        if hasattr(enemy, "stun_end_time") and current_time >= enemy.stun_end_time:
+            # Restore enemy speed using the saved original speed
+            enemy.speed = getattr(enemy, "original_speed", enemy.speed)
+            # Remove the temporary stun attributes
+            del enemy.stun_end_time
+            if hasattr(enemy, "original_speed"):
+                del enemy.original_speed
 
 
 def update_stats(scrn: pygame.surface, health: int, money: int, round_number: int, clock: pygame.time.Clock()):
@@ -2320,9 +2362,9 @@ class RatTent:
             recruit.render(screen)
 
     def update(self, enemies):
+        scaled_interval = self.spawn_interval / game_speed_multiplier
         if self.curr_top_upgrade > 0:
             self.spawn_interval = 1500
-        scaled_interval = self.spawn_interval / game_speed_multiplier
         # use default spawning
         if self.curr_top_upgrade < 2:
             if pygame.time.get_ticks() - self.last_spawn_time >= scaled_interval and RoundFlag:
@@ -3160,10 +3202,11 @@ class CheddarCommando:
                     angle = math.degrees(math.atan2(-dy, dx))
                     proj = CommandoProjectile(self.position, angle + offset, speed=20, damage=self.damage)
                     if self.curr_bottom_upgrade >= 1:
+                        scaled_interval /= 2
                         proj.explosive = True
                         proj.armor_break = True
-                        proj.penetration = 2
-                        proj.damage = self.damage / 2
+                        proj.penetration = 1
+                        proj.damage = self.damage / 4
                     if self.curr_top_upgrade >= 1:
                         proj.piercing = True
                     self.projectiles.append(proj)
@@ -4135,7 +4178,7 @@ class WizardTower:
 
 
 class MinigunTower:
-    def __init__(self, position):
+    def __init__(self, position, image_path = None):
         self.position = position
         self.image_path = "assets/base_minigun.png"
         self.image = load_image(self.image_path)
@@ -4437,6 +4480,78 @@ class Ozbourne:
         self.riff_channel = pygame.mixer.Channel(4)
         # Flag to track if riff_longer is currently playing
         self.riff_playing = False
+        self.stun_sfx = load_sound("assets/dungbeetle_shield.mp3")
+        # Solo upgrade variables:
+        self.solo_icon_visible = True  # will be true at the start of each round if bottom upgrade == 2
+        self.solo_active = False
+        self.solo_timer = None
+        self.lightning_end_time = None
+        self.original_riff_interval = riff_interval
+        self.original_blast_radius = riff_blast_radius
+        self.original_radius = radius
+        self.solo_channel = pygame.mixer.Channel(0)
+        self.solo_sound = load_sound("assets/solo.mp3")
+
+    def reset_solo(self):
+        # Call this at the beginning of each round to re-enable the rock icon if applicable.
+        if self.curr_bottom_upgrade == 2:
+            self.solo_channel.stop()
+            mixer.music.unpause()
+            self.solo_icon_visible = True
+            self.solo_active = False
+            self.solo_timer = None
+            self.lightning_end_time = None
+            self.riff_blast_radius = self.original_blast_radius
+            self.max_blast_radius = self.original_blast_radius
+            self.radius = self.original_radius
+            self.riff_interval = self.original_riff_interval
+            print("Solo icon reset for Ozbourne at position", self.position)
+
+    def trigger_solo(self, screen):
+        if self.solo_active:
+            return  # already triggered, do nothing
+        # Stop any ongoing music (e.g. riff_longer effects and background music)
+        pygame.mixer.music.pause()
+        self.solo_channel.play(self.solo_sound, loops=0)
+        # Activate the solo effect:
+        self.solo_active = True
+        self.solo_timer = pygame.time.get_ticks()
+        self.lightning_end_time = self.solo_timer + 2000  # lightning effect lasts 2 seconds
+        # Increase blast radius for 20 seconds:
+        self.original_blast_radius = self.riff_blast_radius  # store current value
+        self.riff_blast_radius = 500
+        self.max_blast_radius = self.riff_blast_radius
+        self.radius = 500
+        self.original_riff_interval = self.riff_interval  # store current value
+        self.riff_interval = 2000
+        # Hide the rock icon so it can only be triggered once per round:
+        self.solo_icon_visible = False
+
+    def draw_lightning_effects(self, screen):
+        current_time = pygame.time.get_ticks()
+        if self.solo_active:
+            screen_height = screen.get_height()
+            # Spawn lightning every 220 pixels from x=0 to 1100:
+            for x in range(0, 1101, 220):
+                points = []
+                y = 0
+                # Create a polyline from the top to the bottom with random horizontal offsets:
+                while y < screen_height:
+                    offset = random.randint(-20, 20)
+                    points.append((x + offset, y))
+                    y += random.randint(30, 60)
+                pygame.draw.lines(screen, (255, 255, 0), False, points, 2)
+                # Optional: add a branch effect
+                if points:
+                    branch_index = random.randint(0, len(points) - 1)
+                    branch_start = points[branch_index]
+                    branch_points = [branch_start]
+                    bx, by = branch_start
+                    for i in range(3):
+                        bx += random.randint(-30, 30)
+                        by += random.randint(30, 60)
+                        branch_points.append((bx, by))
+                    pygame.draw.lines(screen, (255, 255, 0), False, branch_points, 2)
 
     def update(self, enemies):
         scaled_interval = self.riff_interval / game_speed_multiplier
@@ -4451,10 +4566,24 @@ class Ozbourne:
                 enemy_in_range = True
                 break
 
+        current_time = pygame.time.get_ticks()
+        # If solo effect is active and 20 seconds have passed, revert changes.
+        if self.solo_active and self.solo_timer and current_time >= self.solo_timer + (20000 / game_speed_multiplier):
+            self.riff_blast_radius = self.original_blast_radius
+            self.max_blast_radius = self.original_blast_radius
+            self.riff_interval = self.original_riff_interval
+            self.radius = self.original_radius
+            self.solo_active = False
+            self.solo_channel.stop()
+            # Resume background music (adjust track as appropriate)
+            pygame.mixer.music.unpause()
+
         # If upgraded and an enemy is in range, ensure riff_longer is playing
-        if self.curr_bottom_upgrade == 1 and enemy_in_range:
-            if not self.riff_playing:
+        if self.curr_bottom_upgrade >= 1 and enemy_in_range:
+            self.riff_sfx = load_sound("assets/riff_longer.mp3")
+            if not self.riff_playing and not self.solo_active:
                 mixer.music.pause()
+                self.riff_channel.set_volume(0.5 + self.riff_count * 0.01)
                 self.riff_channel.play(self.riff_sfx, loops=-1)
                 self.riff_playing = True
             # Trigger blast at the specified interval
@@ -4463,7 +4592,7 @@ class Ozbourne:
                 self.last_blast_time = pygame.time.get_ticks()
         else:
             # If no enemy is in range (or not upgraded), switch back to main music if needed
-            if self.riff_playing:
+            if self.riff_playing and not self.solo_active:
                 self.riff_channel.stop()
                 mixer.music.unpause()
                 self.riff_playing = False
@@ -4474,12 +4603,18 @@ class Ozbourne:
 
         # Handle blast animation timing
         if self.blast_active:
+            # Calculate dt and cap it (e.g., 50 ms)
             dt = pygame.time.get_ticks() - self.last_blast_time
+            dt = min(dt, 50)
+
             self.blast_animation_timer += dt
             self.blast_radius += (self.max_blast_radius / scaled_duration) * dt
+            # Cap the blast radius to prevent runaway growth:
+            self.blast_radius = min(self.blast_radius, self.max_blast_radius)
             if self.blast_animation_timer >= scaled_duration:
                 self.blast_active = False
                 self.blast_radius = 0
+                # Optionally, reset blast_start_time here if using a separate timestamp.
 
         if not RoundFlag:
             self.damage = 1
@@ -4493,10 +4628,10 @@ class Ozbourne:
     def blast(self, enemies):
         if self.curr_bottom_upgrade < 1:
             self.riff_sfx.play()
-        elif self.curr_bottom_upgrade == 1:
+        elif self.curr_bottom_upgrade >= 1:
             self.riff_count += 1
             # Increase damage gradually based on how many times the blast has occurred
-            self.damage = 1 + (self.riff_count * 0.1)
+            self.damage = self.damage + (self.riff_count * 0.1)
             if self.riff_count >= 88:
                 self.riff_count = 0
         self.last_blast_time = pygame.time.get_ticks()
@@ -4509,9 +4644,38 @@ class Ozbourne:
                                   enemy.position[1] - self.position[1])
             if distance <= self.riff_blast_radius:
                 enemy.take_damage(self.damage)
+                if self.curr_top_upgrade == 2:
+                    if isinstance(enemy, DungBeetleBoss) or isinstance(enemy, BeetleEnemy) or isinstance(enemy, RoachQueenEnemy):
+                        return
+                    current_time = pygame.time.get_ticks()
+                    spawn_shard(enemy.position, count=3)
+                    self.stun_sfx.play()
+                    # Save the enemy's current speed if not already stunned
+                    if not hasattr(enemy, "stun_end_time") or current_time >= enemy.stun_end_time:
+                        enemy.original_speed = enemy.speed
+                    enemy.speed = 0
+                    enemy.stun_end_time = current_time + 1000 / game_speed_multiplier
 
     def render(self, screen):
-        screen.blit(self.image, self.rect.topleft)
+        tower_rect = self.image.get_rect(center=self.position)
+        screen.blit(self.image, tower_rect)
+        # Draw the rock icon if this Ozbourne has the solo upgrade.
+        if self.curr_bottom_upgrade == 2 and self.solo_icon_visible:
+            rock_icon = load_image("assets/rock_icon.png")
+            icon_rect = rock_icon.get_rect()
+            # Position: centered horizontally over tower, 20 pixels above the top.
+            icon_rect.centerx = self.position[0]
+            icon_rect.bottom = self.position[1] - 30
+            screen.blit(rock_icon, icon_rect)
+            mouse_pos = pygame.mouse.get_pos()
+            # If the icon is clicked, trigger the solo.
+            if icon_rect.collidepoint(mouse_pos) and pygame.mouse.get_pressed()[0] and RoundFlag:
+                self.trigger_solo(screen)
+
+        # If the solo effect is active, draw the lightning effects.
+        if self.solo_active and self.lightning_end_time:
+            self.draw_lightning_effects(screen)
+
         if self.blast_active:
             normalized_damage = (self.damage - 1) / (9.8 - 1)
             normalized_damage = max(0, min(1, normalized_damage))
@@ -4577,11 +4741,21 @@ class CheeseBeacon:
             if tower not in towers:  # Tower was sold/removed
                 # Restore original values before removal
                 if hasattr(tower, '_base_damage'):
-                    tower.damage = tower._base_damage
-                    del tower._base_damage
+                    if isinstance(tower, Ozbourne):
+                        if not tower.solo_active:
+                            tower.damage = tower._base_damage
+                            del tower._base_damage
+                    else:
+                        tower.damage = tower._base_damage
+                        del tower._base_damage
                 if hasattr(tower, '_base_radius'):
-                    tower.radius = tower._base_radius
-                    del tower._base_radius
+                    if isinstance(tower, Ozbourne):
+                        if not tower.solo_active:
+                            tower.radius = tower._base_radius
+                            del tower._base_radius
+                    else:
+                        tower.radius = tower._base_radius
+                        del tower._base_radius
                 if hasattr(tower, '_base_shoot_interval'):
                     tower.shoot_interval = tower._base_shoot_interval
                     del tower._base_shoot_interval
@@ -4659,6 +4833,10 @@ class CheeseBeacon:
             print(f"Original Radius: {getattr(tower, 'radius', 'N/A')}px")
             print(f"Original Speed: {getattr(tower, 'shoot_interval', 'N/A')}ms")
 
+        if isinstance(tower, Ozbourne):
+            if tower.solo_active:
+                return
+
         # Damage
         base_dmg = getattr(tower, '_base_damage', None)
         if base_dmg is None:
@@ -4693,23 +4871,24 @@ class CheeseBeacon:
 
         # Specialized attribute handling
         if isinstance(tower, Ozbourne):
-            # Radius boost affects blast parameters
-            if hasattr(tower, 'max_blast_radius'):
-                for boost in beacons.values():
-                    total_radius *= boost.get('radius', 1)
-                tower.max_blast_radius = total_radius
+            if not tower.solo_active:
+                # Radius boost affects blast parameters
+                if hasattr(tower, 'max_blast_radius'):
+                    for boost in beacons.values():
+                        total_radius *= boost.get('radius', 1)
+                    tower.max_blast_radius = total_radius
 
-            # Speed boost affects riff interval
-            if hasattr(tower, 'riff_interval'):
-                base_speed = getattr(tower, '_base_riff_interval', None)
-                if base_speed is None:
-                    tower._base_riff_interval = tower.riff_interval
-                total_speed = tower._base_riff_interval
-                for boost in beacons.values():
-                    total_speed /= boost.get('speed', 1)
-                if not hasattr(tower, '_base_riff_interval'):
-                    tower._base_riff_interval = tower.riff_interval
-                tower.riff_interval = total_speed
+                # Speed boost affects riff interval
+                if hasattr(tower, 'riff_interval'):
+                    base_speed = getattr(tower, '_base_riff_interval', None)
+                    if base_speed is None:
+                        tower._base_riff_interval = tower.riff_interval
+                    total_speed = tower._base_riff_interval
+                    for boost in beacons.values():
+                        total_speed /= boost.get('speed', 1)
+                    if not hasattr(tower, '_base_riff_interval'):
+                        tower._base_riff_interval = tower.riff_interval
+                    tower.riff_interval = total_speed
 
         elif isinstance(tower, CheddarCommando):
             # Speed boost affects reload time
@@ -5548,7 +5727,7 @@ class FireflyEnemy:
         self.position = position
         self.health = 20
         self.speed = 1
-        self.path = house_path
+        self.path = path
         self.frames = ["assets/firefly_frames/firefly0.png", "assets/firefly_frames/firefly1.png",
                        "assets/firefly_frames/firefly2.png", "assets/firefly_frames/firefly3.png",
                        "assets/firefly_frames/firefly4.png", "assets/firefly_frames/firefly5.png",
@@ -6248,7 +6427,7 @@ class RoachQueenEnemy:
         for _ in range(self.total_spawned):
             x_offset = random.randint(-16, 16)
             y_offset = random.randint(-16, 16)
-            offset_path = [(x + x_offset, y + y_offset) for (x, y) in house_path]
+            offset_path = [(x + x_offset, y + y_offset) for (x, y) in self.path]
             spawn_x = base_spawn_x + x_offset
             spawn_y = base_spawn_y + y_offset  # For simplicity; adjust if desired.
             new_speed = random.uniform(1.5, 3.0)
@@ -6869,10 +7048,10 @@ class MillipedeBoss:
 
         # Create segments: head, links, and tail.
         self.segments = []
-        self.segments.append(self.Segment("head", 30, head_img, position))
+        self.segments.append(self.Segment("head", 20, head_img, position))
         for _ in range(self.links):
-            self.segments.append(self.Segment("link", 14, link_img, position))
-        self.segments.append(self.Segment("tail", 30, tail_img, position))
+            self.segments.append(self.Segment("link", 10, link_img, position))
+        self.segments.append(self.Segment("tail", 20, tail_img, position))
 
         # Initialize shard particles list.
         # global_impact_particles = []

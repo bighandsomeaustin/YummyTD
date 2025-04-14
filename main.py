@@ -118,8 +118,8 @@ while running:
 
         # CHANGE THESE 3 FOR DEBUGGING
         game_tools.user_health = 100
-        game_tools.money = 8000
-        round_number = 26
+        game_tools.money = 35000
+        round_number = 1
 
         game_tools.towers.clear()
         game_tools.enemies.clear()
@@ -148,7 +148,8 @@ while running:
                     tower_bank.update_user_text(events)
                     pygame.event.clear()
             if events.type == pygame.QUIT:
-                running = False
+                pygame.quit()
+                exit()
             if events.type == pygame.KEYDOWN:
                 if events.key == pygame.K_ESCAPE:
                     game_tools.TowerFlag = False
@@ -196,6 +197,8 @@ while running:
                         tower.process_loan_payment()
                         tower.process_interest()
                         tower.reset_imports()
+                    if isinstance(tower, game_tools.Ozbourne):
+                        tower.reset_solo()
                 if game_tools.Autoplay:
                     game_tools.RoundFlag = True
                 else:
