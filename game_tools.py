@@ -58,7 +58,8 @@ gameoverFlag = False
 contFlag = False
 winFlag = False
 last_time_sfx = pygame.time.get_ticks()
-money = 250  # change for debugging
+# defaults
+money = 350
 user_health = 100
 music_volume = 1.0
 user_volume = 1.0
@@ -2433,11 +2434,11 @@ class RatTent:
 
         for recruit in self.recruits[:]:
             recruit.update(enemies)
-            if not recruit.is_alive:
+            if not recruit.is_alive and recruit is not None:
                 if recruit.buff:
                     self.freak_death.play()
                 self.recruits.remove(recruit)
-            if not RoundFlag:
+            if not RoundFlag and recruit is not None:
                 self.recruits.remove(recruit)
 
 
@@ -2571,7 +2572,7 @@ class MrCheese:
                     image_path=self.projectile_image
                 )
                 if self.penetration:
-                    projectile.penetration = self.damage - round((self.damage / 2))
+                    projectile.penetration = 4
                 self.projectiles.append(projectile)
                 self.last_shot_time = pygame.time.get_ticks()
 
@@ -3205,8 +3206,8 @@ class CheddarCommando:
                         scaled_interval /= 2
                         proj.explosive = True
                         proj.armor_break = True
-                        proj.penetration = 1
-                        proj.damage = self.damage / 4
+                        proj.penetration = 3
+                        proj.damage = self.damage
                     if self.curr_top_upgrade >= 1:
                         proj.piercing = True
                     self.projectiles.append(proj)
@@ -4260,7 +4261,7 @@ class MinigunTower:
 
         if self.magazine_size > 0:
             # Spool up when firing
-            self.current_spool = min(self.max_spool, self.current_spool + self.spool_rate * dt)
+            self.current_spool = min(self.max_spool, self.current_spool + (self.spool_rate / game_speed_multiplier) * dt)
             # Calculate fire delay: if fully spooled, shots per second = max_spool, so delay = 1/max_spool.
             # Otherwise, fire_delay = 1 / current_spool.
             fire_delay = 1.0 / self.current_spool if self.current_spool > 0 else float('inf')
@@ -4491,6 +4492,7 @@ class Ozbourne:
         self.original_radius = radius
         self.solo_channel = pygame.mixer.Channel(0)
         self.solo_sound = load_sound("assets/solo.mp3")
+        self.last_riff_time = 0
 
     def reset_solo(self):
         # Call this at the beginning of each round to re-enable the rock icon if applicable.
@@ -4505,7 +4507,6 @@ class Ozbourne:
             self.max_blast_radius = self.original_blast_radius
             self.radius = self.original_radius
             self.riff_interval = self.original_riff_interval
-            print("Solo icon reset for Ozbourne at position", self.position)
 
     def trigger_solo(self, screen):
         if self.solo_active:
@@ -4582,14 +4583,19 @@ class Ozbourne:
         if self.curr_bottom_upgrade >= 1 and enemy_in_range:
             self.riff_sfx = load_sound("assets/riff_longer.mp3")
             if not self.riff_playing and not self.solo_active:
-                mixer.music.pause()
-                self.riff_channel.set_volume(0.5 + self.riff_count * 0.01)
-                self.riff_channel.play(self.riff_sfx, loops=-1)
+                if not self.riff_channel.get_busy():
+                    if pygame.time.get_ticks() - self.last_riff_time >= 1500:
+                        mixer.music.pause()
+                        self.riff_channel.set_volume(min(1.0, 0.5 + self.riff_count * 0.01))
+                        self.riff_channel.play(self.riff_sfx, loops=-1)
+                        self.last_riff_time = pygame.time.get_ticks()
                 self.riff_playing = True
             # Trigger blast at the specified interval
             if pygame.time.get_ticks() - self.last_blast_time >= scaled_interval:
                 self.blast(enemies)
                 self.last_blast_time = pygame.time.get_ticks()
+        elif (pygame.time.get_ticks() - self.last_blast_time >= scaled_interval) and enemy_in_range:
+            self.blast(enemies)
         else:
             # If no enemy is in range (or not upgraded), switch back to main music if needed
             if self.riff_playing and not self.solo_active:
@@ -4630,10 +4636,10 @@ class Ozbourne:
             self.riff_sfx.play()
         elif self.curr_bottom_upgrade >= 1:
             self.riff_count += 1
-            # Increase damage gradually based on how many times the blast has occurred
-            self.damage = self.damage + (self.riff_count * 0.1)
+            self.damage = self.damage_default + (self.riff_count * 0.1)
             if self.riff_count >= 88:
                 self.riff_count = 0
+                self.damage = self.damage_default
         self.last_blast_time = pygame.time.get_ticks()
         self.blast_active = True
         self.blast_animation_timer = 0
@@ -6344,10 +6350,10 @@ class DungBeetleBoss:
 
 
 class RoachQueenEnemy:
-    def __init__(self, position, path):
+    def __init__(self, position, path, health=30, speed=0.5):
         self.position = position
-        self.health = 45
-        self.speed = 1
+        self.health = health
+        self.speed = speed
         self.path = path
         self.original_image = load_image("assets/roach_queen.png")
         self.image = self.original_image
@@ -6358,7 +6364,7 @@ class RoachQueenEnemy:
         # Multiplication timing
         self.spawn_time = pygame.time.get_ticks()
         self.last_multiply_time = self.spawn_time + 500  # First multiply after 500ms
-        self.multiply_interval = 4000  # Starts at 4000ms, decreases by 500ms down to 500ms
+        self.multiply_interval = 12000  # Starts at 4000ms, decreases by 500ms down to 500ms
         self.has_multiplied_initially = False
         self.total_spawned = 2
         # For spawn animation particles
@@ -6389,14 +6395,14 @@ class RoachQueenEnemy:
 
         # Multiplication logic
         current_time = pygame.time.get_ticks()
-        if not self.has_multiplied_initially and current_time - self.spawn_time >= 500:
+        if not self.has_multiplied_initially and current_time - self.spawn_time >= 500 / game_speed_multiplier:
             self.multiply()
             self.has_multiplied_initially = True
             self.last_multiply_time = current_time
-        elif current_time - self.last_multiply_time >= self.multiply_interval:
+        elif current_time - self.last_multiply_time >= self.multiply_interval / game_speed_multiplier:
             self.multiply()
             self.last_multiply_time = current_time
-            self.multiply_interval = max(1000, self.multiply_interval - 500)
+            self.multiply_interval = max(2000, self.multiply_interval - 500)
 
         self.update_spawn_particles()
 
