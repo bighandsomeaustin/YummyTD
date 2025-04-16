@@ -270,6 +270,28 @@ def check_hitbox(image, position, placed_towers):
     return True  # Valid placement
 
 
+def apply_mantis_debuff(tower):
+    current_time = pygame.time.get_ticks()
+    # If not already stored, record the original shoot_interval.
+    if "original_shoot_interval" not in tower.__dict__:
+        tower.__dict__["original_shoot_interval"] = getattr(tower, "shoot_interval", 1000)
+        print("Original shoot_interval set to", tower.__dict__["original_shoot_interval"])
+    # Only apply the debuff if it isn’t already active.
+    if not tower.__dict__.get("mantis_debuff_active", False):
+        new_interval = tower.__dict__["original_shoot_interval"] * 2  # 50% slower.
+        tower.__dict__["shoot_interval"] = new_interval
+        print("Debuff applied: shoot_interval changed to", new_interval)
+        # Update the tower's base shooting interval if it exists.
+        if "_base_shoot_interval" in tower.__dict__:
+            tower.__dict__["_base_shoot_interval"] = new_interval
+        # Reset the firing timer.
+        tower.__dict__["last_shot_time"] = current_time
+        tower.__dict__["mantis_debuff_active"] = True
+        tower.__dict__["mantis_debuff_end_time"] = current_time + 15000
+        tower.__dict__["mantis_debuff_applied_time"] = current_time
+        tower.__dict__["mantis_debuff_active"] = True
+
+
 def within_spawn_point(cursor_position, path, radius=50):
     def closest_point_on_segment(p, p1, p2):
         x, y = p
@@ -1818,7 +1840,7 @@ def handle_upgrade(scrn, tower):
 
 
 def update_towers(scrn: pygame.surface):
-    global towers, enemies, last_frame_time
+    global towers, enemies, last_frame_time, game_speed_multiplier
     # Calculate delta time
     current_time = pygame.time.get_ticks()
     delta = (current_time - last_frame_time) * game_speed_multiplier
@@ -1840,6 +1862,17 @@ def update_towers(scrn: pygame.surface):
                 tower.investment_interface(scrn)
         if isinstance(tower, CheeseBeacon):
             tower.render_effects(scrn)
+
+    # Mantis debuff cleanup
+    for tower in towers:
+        if hasattr(tower, "mantis_debuff_active") and tower.mantis_debuff_active:
+            if pygame.time.get_ticks() < tower.mantis_debuff_end_time:
+                spawn_shard(tower.position, color=(105, 160, 25), count=random.randint(0, 1))
+            elapsed_virtual_time = (pygame.time.get_ticks() - tower.mantis_debuff_applied_time) * game_speed_multiplier
+            if elapsed_virtual_time >= 15000:
+                tower.shoot_interval = tower.original_shoot_interval
+                tower.mantis_debuff_active = False
+                print("reset debuff!", tower.shoot_interval)
 
 
 def update_and_render_damage_indicators(screen):
@@ -4261,7 +4294,7 @@ class MinigunTower:
 
         if self.magazine_size > 0:
             # Spool up when firing
-            self.current_spool = min(self.max_spool, self.current_spool + (self.spool_rate / game_speed_multiplier) * dt)
+            self.current_spool = min(self.max_spool, self.current_spool + (self.spool_rate * game_speed_multiplier) * dt)
             # Calculate fire delay: if fully spooled, shots per second = max_spool, so delay = 1/max_spool.
             # Otherwise, fire_delay = 1 / current_spool.
             fire_delay = 1.0 / self.current_spool if self.current_spool > 0 else float('inf')
@@ -4509,6 +4542,7 @@ class Ozbourne:
             self.riff_interval = self.original_riff_interval
 
     def trigger_solo(self, screen):
+        self.riff_channel.stop()
         if self.solo_active:
             return  # already triggered, do nothing
         # Stop any ongoing music (e.g. riff_longer effects and background music)
@@ -4586,7 +4620,7 @@ class Ozbourne:
                 if not self.riff_channel.get_busy():
                     if pygame.time.get_ticks() - self.last_riff_time >= 1500:
                         mixer.music.pause()
-                        self.riff_channel.set_volume(min(1.0, 0.5 + self.riff_count * 0.01))
+                        self.riff_channel.set_volume(user_volume * .75)
                         self.riff_channel.play(self.riff_sfx, loops=-1)
                         self.last_riff_time = pygame.time.get_ticks()
                 self.riff_playing = True
@@ -4827,7 +4861,6 @@ class CheeseBeacon:
             boosts['speed'] = 1.25
 
         return boosts
-
 
     def _apply_tower_boosts(self, tower, beacons):
         if tower not in towers:  # towers should be passed from update()
@@ -5603,7 +5636,7 @@ class SpiderEnemy:
         self.position = position
         self.health = 5
         self.speed = 1.5
-        self.path = house_path
+        self.path = path
         self.frames = ["assets/spider_frames/spider0.png", "assets/spider_frames/spider1.png",
                        "assets/spider_frames/spider2.png", "assets/spider_frames/spider3.png",
                        "assets/spider_frames/spider4.png"]
@@ -6017,13 +6050,13 @@ class DragonflyEnemy:
 
     def __init__(self, position, path):
         self.position = position
-        self.health = 6
+        self.health = 3
         self.speed = 3
-        self.path = house_path
+        self.path = path
         self.frames = ["assets/dragonfly_frames/dragonfly0.png", "assets/dragonfly_frames/dragonfly1.png",
                        "assets/dragonfly_frames/dragonfly2.png", "assets/dragonfly_frames/dragonfly3.png"]
         self.current_frame = 0
-        self.frame_duration = 25  # milliseconds per frame
+        self.frame_duration = 75  # milliseconds per frame
         self.last_frame_update = pygame.time.get_ticks()
         self.original_image = load_image("assets/dragonfly_frames/dragonfly0.png")
         self.image = self.original_image
@@ -6119,6 +6152,345 @@ class DragonflyEnemy:
             screen.blit(self.img_death, self.rect.topleft)
 
 
+class MantisBoss:
+    sfx_splat = load_sound("assets/splat_sfx.mp3")
+    img_death = load_image("assets/splatter.png")
+
+    def __init__(self, position, path):
+        self.position = position
+        self.health = 200
+        self.speed = .15
+        self.path = path
+        self.radius = 250
+        self.frames = []
+        for i in range(0, 15):
+            self.frames.append(f"assets/mantis_frames/mantis{i}.png")
+        self.current_frame = 0
+        self.frame_duration = 125  # milliseconds per frame
+        self.last_frame_update = pygame.time.get_ticks()
+        self.original_image = load_image("assets/mantis_frames/mantis0.png")
+        self.image = self.original_image
+        self.target = None
+        self.rect = self.image.get_rect(center=position)
+        self.size = self.rect.size
+        self.current_target = 0
+        self.is_alive = True
+        self.shoot_interval = 15000
+        self.shoot_sound = load_sound("assets/mantis_shoot.mp3")
+        self.last_shot_time = 0
+        self.projectiles = []
+
+    def move(self):
+        global user_health
+        self.update_animation()
+
+        # === Targeting ===
+        self.target = None
+        potential_targets = []
+        for enemy in towers:
+            distance = math.hypot(enemy.position[0] - self.position[0],
+                                  enemy.position[1] - self.position[1])
+            if distance <= self.radius:
+                potential_targets.append((distance, enemy))
+        potential_targets.sort(key=lambda x: x[0])
+        if potential_targets:
+            self.target = potential_targets[0][1]
+
+        if self.target:
+            dx = self.target.position[0] - self.position[0]
+            dy = self.target.position[1] - self.position[1]
+            angle = math.degrees(math.atan2(-dy, dx))
+            self.image = pygame.transform.rotate(self.original_image, angle)
+            self.rect = self.image.get_rect(center=self.position)
+            self.shoot()
+
+        # === Process Projectiles ===
+        for projectile in self.projectiles[:]:
+            projectile.move()
+            for enemy in towers:
+                enemy_center = enemy.rect.center
+                dist = math.hypot(projectile.position[0] - enemy_center[0],
+                                  projectile.position[1] - enemy_center[1])
+                if dist < enemy.rect.width / 2:
+                    projectile.hit = True
+                    spawn_shard(projectile.position, color=(105, 160, 25), count=25)
+                    if hasattr(enemy, "shoot_interval"):
+                        apply_mantis_debuff(enemy)
+            if projectile.hit:
+                self.projectiles.remove(projectile)
+
+        if self.current_target < len(self.path):
+            target_x, target_y = self.path[self.current_target]
+            dx = target_x - self.position[0]
+            dy = target_y - self.position[1]
+            distance = (dx ** 2 + dy ** 2) ** 0.5
+            if distance == 0:
+                return
+            direction_x = dx / distance
+            direction_y = dy / distance
+            self.position = (
+                self.position[0] + direction_x * self.speed,
+                self.position[1] + direction_y * self.speed
+            )
+            self.rect.center = self.position
+            self.update_orientation(direction_x, direction_y)
+            if distance <= self.speed:
+                self.current_target += 1
+        if self.current_target >= len(self.path):
+            self.is_alive = False
+            user_health -= self.health
+
+    # NEW: Shard particle methods (same as AntEnemy)
+    def spawn_shards(self, count=5):
+        spawn_shard(self.position, count=5)
+
+    def update_orientation(self, direction_x, direction_y):
+        angle = math.degrees(math.atan2(-direction_y, direction_x))
+        self.image = pygame.transform.rotate(self.original_image, angle - 90)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def shoot(self):
+        scaled_interval = self.shoot_interval / game_speed_multiplier
+        if self.target and pygame.time.get_ticks() - self.last_shot_time >= scaled_interval:
+            self.shoot_sound.play()
+            proj = Projectile(self.position, self.target, speed=5, damage=0, image_path="assets/mantis_ball.png")
+            self.projectiles.append(proj)
+            self.last_shot_time = pygame.time.get_ticks()
+
+    def show_damage_indicator(self, damage):
+        # Create a damage text surface using a shared font.
+        font = pygame.font.SysFont("impact", 20, bold=False)
+        text_surface = font.render(f"{damage:.1f}", True, (255, 0, 0))
+        text_surface.set_alpha(128)
+
+        angle_deg = random.uniform(-45, 45)
+        angle_rad = math.radians(angle_deg)
+
+        # Speed magnitude
+        speed = random.uniform(.5, 2)
+
+        # Convert polar to cartesian velocity
+        vel_x = math.sin(angle_rad) * speed
+        vel_y = -math.cos(angle_rad) * speed  # negative because up is -y in Pygame
+
+        # Set up the indicator's properties.
+        indicator = {
+            'surface': text_surface,
+            'pos': list(self.rect.center) + [0, -20],  # starting at the enemy's center
+            'vel': [vel_x, vel_y],
+            'lifetime': random.randint(100, 250),  # milliseconds
+            'start_time': pygame.time.get_ticks()
+        }
+        if len(global_damage_indicators) < MAX_INDICATORS:
+            global_damage_indicators.append(indicator)
+
+    def take_damage(self, damage, projectile=None):
+        global money
+        self.health -= damage
+        self.show_damage_indicator(damage)
+        self.spawn_shards()  # NEW: Create particles on hit
+        if self.health <= 0:
+            self.is_alive = False
+            self.sfx_splat.play()
+            money += 10
+            game_stats.global_kill_total["count"] += 1
+
+    def update_animation(self):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_frame_update >= self.frame_duration / game_speed_multiplier:
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+            self.image = load_image(self.frames[self.current_frame])
+            self.original_image = load_image(self.frames[self.current_frame])
+            self.last_frame_update = current_time
+
+    def render(self, screen):
+        if self.is_alive:
+            screen.blit(self.image, self.rect.topleft)
+        else:
+            screen.blit(self.img_death, self.rect.topleft)
+
+        for projectile in self.projectiles:
+            projectile.render(screen)
+
+
+class TermiteEnemy:
+
+    sfx_splat = load_sound("assets/splat_sfx.mp3")
+    img_death = load_image("assets/splatter.png")
+
+    def __init__(self, path, position=None):
+        """
+        Initializes the TermiteEnemy.
+        :param path: A list of (x, y) tuples representing the enemy's path.
+        :param position: Optional starting position; if None, uses the first point in the path.
+        """
+        self.path = path
+        if position is None:
+            self.position = path[0]
+            self.current_target = 1
+        else:
+            self.position = position
+            # Find the closest point in the path to the given position.
+            closest_dist = float('inf')
+            closest_index = 0
+            for i, point in enumerate(path):
+                dist = math.hypot(position[0] - point[0], position[1] - point[1])
+                if dist < closest_dist:
+                    closest_dist = dist
+                    closest_index = i
+            if closest_index + 1 < len(path):
+                self.current_target = closest_index + 1
+            else:
+                self.current_target = closest_index
+
+        self.health = 1
+        self.speed = 1  # Movement speed per update.
+        self.image = load_image("assets/termite.png")
+        self.original_image = self.image
+        self.rect = self.image.get_rect(center=self.position)
+        self.rotated_image = self.image  # Will be updated with rotation.
+        self.is_alive = True
+
+        global game_speed_multiplier
+        # Use virtual time (real ticks * game_speed_multiplier) for burrow timing.
+        self.next_burrow_time = 0
+        self.is_burrowed = False
+        self.burrow_start_time = 0
+        self.burrow_duration = 1000  # Duration in virtual ms
+
+    def move(self):
+        """Moves normally along the path."""
+        global user_health
+
+        if self.is_burrowed:
+            if pygame.time.get_ticks() - self.burrow_start_time >= self.burrow_duration:
+                self.finish_burrow()
+                self.is_burrowed = False
+        else:
+            if pygame.time.get_ticks() >= self.next_burrow_time:
+                self.start_burrow()
+
+        if self.current_target < len(self.path):
+            target_x, target_y = self.path[self.current_target]
+            dx = target_x - self.position[0]
+            dy = target_y - self.position[1]
+            distance = (dx ** 2 + dy ** 2) ** 0.5
+            if distance == 0:
+                return
+            direction_x = dx / distance
+            direction_y = dy / distance
+            self.position = (
+                self.position[0] + direction_x * self.speed,
+                self.position[1] + direction_y * self.speed
+            )
+            self.rect.center = self.position
+            self.update_orientation(direction_x, direction_y)
+            if distance <= self.speed:
+                self.current_target += 1
+        if self.current_target >= len(self.path):
+            self.is_alive = False
+            user_health -= self.health
+
+        if self.is_burrowed:
+            spawn_shard(self.position, color=(139, 69, 19), count=1)
+
+    def update_orientation(self, direction_x, direction_y):
+        angle = math.degrees(math.atan2(-direction_y, direction_x))
+        self.image = pygame.transform.rotate(self.original_image, angle - 90)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def start_burrow(self):
+        """
+        Initiates the burrow:
+          - Plays the pop sound.
+          - Spawns brown particles at the current location.
+          - Sets the termite as burrowed and chooses a random virtual burrow duration (1000–3000 ms).
+        """
+        global game_speed_multiplier
+        dig_sfx = load_sound("assets/dig.mp3")
+        dig_sfx.play()
+        spawn_shard(self.position, color=(139, 69, 19), count=10)
+        self.is_burrowed = True
+        self.burrow_start_time = pygame.time.get_ticks()
+        self.burrow_duration = random.randint(1500, 5500) / game_speed_multiplier
+        self.speed = random.uniform(.1, 1.0)
+
+    def finish_burrow(self):
+        """
+        Finishes burrowing:
+          - Advances the termite five waypoints ahead. If that index equals the path end,
+            reappear at the last point before the final.
+          - Spawns particles at the new location.
+          - Resets burrow state and sets the next burrow virtual time.
+        """
+        global game_speed_multiplier
+        pop_sound = load_sound("assets/pop.mp3")
+        pop_sound.play()
+        spawn_shard(self.position, color=(139, 69, 19), count=10)
+        self.is_burrowed = False
+        self.next_burrow_time = pygame.time.get_ticks() + random.randint(4000, 8000) / game_speed_multiplier
+        self.speed = 1
+
+    def take_damage(self, amount, projectile=None):
+        """
+        Reduces health by amount, shows a damage indicator, and if health falls to zero,
+        increments the global kill count and awards money.
+        """
+        if self.is_burrowed:
+            return
+        self.health -= amount
+        self.show_damage_indicator(amount)
+        if self.health <= 0:
+            self.health = 0
+            self.is_alive = False
+            self.sfx_splat.play()
+            spawn_shard(self.position)
+            import game_stats  # Ensure game_stats is imported
+            game_stats.global_kill_total["count"] += 1
+            global money
+            money += 4
+
+    def show_damage_indicator(self, damage):
+        """
+        Displays damage by spawning red particles at the termite's location.
+        """
+        # Create a damage text surface using a shared font.
+        font = pygame.font.SysFont("impact", 20, bold=False)
+        text_surface = font.render(f"{damage:.1f}", True, (255, 0, 0))
+        text_surface.set_alpha(128)
+
+        angle_deg = random.uniform(-45, 45)
+        angle_rad = math.radians(angle_deg)
+
+        # Speed magnitude
+        speed = random.uniform(.5, 2)
+
+        # Convert polar to cartesian velocity
+        vel_x = math.sin(angle_rad) * speed
+        vel_y = -math.cos(angle_rad) * speed  # negative because up is -y in Pygame
+
+        # Set up the indicator's properties.
+        indicator = {
+            'surface': text_surface,
+            'pos': list(self.rect.center) + [0, -20],  # starting at the enemy's center
+            'vel': [vel_x, vel_y],
+            'lifetime': random.randint(100, 250),  # milliseconds
+            'start_time': pygame.time.get_ticks()
+        }
+        if len(global_damage_indicators) < MAX_INDICATORS:
+            global_damage_indicators.append(indicator)
+
+    def render(self, screen):
+        """
+        Draws the termite on the screen only if it is not burrowed.
+        """
+        if not self.is_burrowed:
+            if self.is_alive:
+                screen.blit(self.image, self.rect.topleft)
+            else:
+                screen.blit(self.img_death, self.rect.topleft)
+
+
 class DungBeetleBoss:
     sfx_splat = load_sound("assets/splat_sfx.mp3")
     img_death = load_image("assets/splatter.png")
@@ -6128,8 +6500,8 @@ class DungBeetleBoss:
 
     def __init__(self, position, path):
         self.position = position
-        self.health = 100
-        self.speed = 0.5
+        self.health = 175
+        self.speed = 0.15
         self.path = path
         self.frames = ["assets/dungbeetle_frames/dung0.png", "assets/dungbeetle_frames/dung1.png",
                        "assets/dungbeetle_frames/dung2.png", "assets/dungbeetle_frames/dung3.png",
@@ -6138,7 +6510,7 @@ class DungBeetleBoss:
                        "assets/dungbeetle_frames/dung8.png", "assets/dungbeetle_frames/dung9.png",
                        "assets/dungbeetle_frames/dung10.png"]
         self.current_frame = 0
-        self.frame_duration = 100  # milliseconds per frame
+        self.frame_duration = 250  # milliseconds per frame
         self.last_frame_update = pygame.time.get_ticks()
         self.original_image = load_image("assets/dungbeetle_frames/dung0.png")
         self.image = self.original_image
@@ -6152,7 +6524,7 @@ class DungBeetleBoss:
         self.next_squeak_time = pygame.time.get_ticks() + random.randint(2000, 5000)
 
         # Health threshold for triggering shield effects every 10 points lost.
-        self.next_threshold = self.health - 15
+        self.next_threshold = self.health - 60
 
         # For trailing particles when health is below 10
         self.trail_particles = []
@@ -6309,7 +6681,7 @@ class DungBeetleBoss:
                 new_beetle.current_target = self.current_target  # Make it follow the boss's next point
                 new_beetle.speed = random.uniform(1, 1.5)
                 enemies.append(new_beetle)
-            self.next_threshold -= 10
+            self.next_threshold -= 35
 
         # Upon death, spawn 10 roaches with 2 health.
         if self.health <= 0 and self.is_alive:
@@ -7029,7 +7401,7 @@ class MillipedeBoss:
         """
         self.path = path
         self.current_target = 0  # Index in the path for head movement
-        self.base_speed = 0.5
+        self.base_speed = 0.35
         self.speed = self.base_speed
         self.links = links
         self.health = 30
@@ -7054,10 +7426,10 @@ class MillipedeBoss:
 
         # Create segments: head, links, and tail.
         self.segments = []
-        self.segments.append(self.Segment("head", 20, head_img, position))
+        self.segments.append(self.Segment("head", 18, head_img, position))
         for _ in range(self.links):
-            self.segments.append(self.Segment("link", 10, link_img, position))
-        self.segments.append(self.Segment("tail", 20, tail_img, position))
+            self.segments.append(self.Segment("link", 12, link_img, position))
+        self.segments.append(self.Segment("tail", 18, tail_img, position))
 
         # Initialize shard particles list.
         # global_impact_particles = []
@@ -7383,9 +7755,10 @@ class Projectile:
         self.penetration = 0
 
     def move(self):
-        if not self.target.is_alive:
-            self.hit = True
-            return
+        if self.damage > 0:
+            if not self.target.is_alive:
+                self.hit = True
+                return
         target_x, target_y = self.target.position
         dx = target_x - self.position[0]
         dy = target_y - self.position[1]
