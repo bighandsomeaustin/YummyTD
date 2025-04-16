@@ -516,9 +516,41 @@ for r in range(1, 101):
                          "spawn_interval": 8000,
                          "delay": 0})
 
-    # BALANCE MORE BETWEEN HERE!!!
-
     elif r == 46:
+        for i in range(3):
+            segments.append({"enemies": ["HORNET"] * 15,
+                             "spawn_interval": 0,
+                             "delay": 10000})
+            segments.append({"enemies": ["DUNG_BEETLE"],
+                             "spawn_interval": 0,
+                             "delay": 6500})
+        segments.append({"enemies": ["DUNG_BEETLE_ALT1"],
+                         "spawn_interval": 0,
+                         "delay": 0})
+
+    elif r == 47:
+        segments.append({"enemies": (["TERMITE_ALT1"] * 10 + ["TERMITE"] * 10),
+                         "spawn_interval": 1500,
+                         "delay": 8000})
+        segments.append({"enemies": ["MILLIPEDE"],
+                         "spawn_interval": 0,
+                         "delay": 0})
+
+    elif r == 48:
+        for i in range(4):
+            segments.append({"enemies": (["BEETLE"] * 10 + ["ANT"] * 60),
+                             "spawn_interval": 50,
+                             "delay": 0})
+        segments.append({"enemies": ["SPIDER"] * 10 + ["DRAGONFLY_ALT1"] * 15,
+                         "spawn_interval": 0,
+                         "delay": 6500})
+
+    elif r == 49:
+        segments.append({"enemies": ["MANTIS"],
+                         "spawn_interval": 0,
+                         "delay": 6500})
+
+    elif r == 50:
         segments.append({"enemies": ["MILLIPEDE_ALT1"],
                          "spawn_interval": 150,
                          "delay": 4000})
@@ -526,7 +558,7 @@ for r in range(1, 101):
                          "spawn_interval": 1250,
                          "delay": 0})
 
-    elif r == 47:
+    elif r == 51:
         for i in range(2):
             segments.append({"enemies": ["DUNG_BEETLE"],
                              "spawn_interval": 0,
@@ -541,12 +573,12 @@ for r in range(1, 101):
                          "spawn_interval": 0,
                          "delay": 0})
 
-    elif r == 48:
+    elif r == 52:
         segments.append({"enemies": (["MILLIPEDE_ALT1"] + ["DUNG_BEETLE_ALT1"] + ["FIREFLY"] * 4 + ["ANT"] * 50) * 2,
                          "spawn_interval": 150,
                          "delay": 0})
 
-    elif r == 49:
+    elif r == 53:
         segments.append({"enemies": ["MILLIPEDE"] * 3,
                          "spawn_interval": 3500,
                          "delay": 8500})
@@ -555,7 +587,7 @@ for r in range(1, 101):
                              "spawn_interval": 25,
                              "delay": 1500})
 
-    elif r == 50:
+    elif r == 54:
         for i in range(2):
             segments.append({"enemies": ["DUNG_BEETLE"],
                              "spawn_interval": 0,
@@ -570,13 +602,16 @@ for r in range(1, 101):
                              "spawn_interval": 0,
                              "delay": 4500})
 
-    elif r == 51:
-        segments.append({"enemies": ["MANTIS"],
-                         "spawn_interval": 10,
+    elif r == 55:
+        segments.append({"enemies": ["MANTIS"] * 2,
+                         "spawn_interval": 7500,
+                         "delay": 7500})
+        segments.append({"enemies": ["DUNG_BEETLE_ALT1"],
+                         "spawn_interval": 0,
                          "delay": 0})
 
-    elif r == 52:
-        segments.append({"enemies": ["TERMITE"] * 10,
+    elif r == 56:
+        segments.append({"enemies": ["TERMITE"] * 40,
                          "spawn_interval": 1500,
                          "delay": 0})
 
