@@ -358,6 +358,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     img_sniper_text = load_image("assets/sniper_text.png")
     img_frost_text = load_image("assets/frost_text.png")
     img_ratman_text = load_image("assets/ratman_text.png")
+    img_mortar_text = load_image("assets/mortar_text.png")
     img_playbutton = load_image("assets/playbutton.png")
     img_playbutton_1x = load_image("assets/playbutton_1x.png")
     img_playbutton_2x = load_image("assets/playbutton_2x.png")
@@ -606,7 +607,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
 
     # RAT SNIPER
     elif 1118 <= mouse[0] <= 1118 + 73 and 195 <= mouse[1] <= 195 + 88:
-        scrn.blit(img_ratman_text, (1113, 53))
+        scrn.blit(img_sniper_text, (1113, 53))
         scrn.blit(img_tower_select, (1118, 195))
         if detect_single_click():
             if money >= 350:
@@ -617,7 +618,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
 
     # RATMAN
     elif 1118 <= mouse[0] <= 1118 + 73 and 567 <= mouse[1] <= 567 + 88:
-        scrn.blit(img_sniper_text, (1113, 53))
+        scrn.blit(img_ratman_text, (1113, 53))
         scrn.blit(img_tower_select, (1118, 567))
         if detect_single_click():
             if money >= 2600:
@@ -626,18 +627,37 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
             else:
                 invalid.play()
 
-    # check if any tower is clicked after placement
-    for tower in towers:
-        # Build a rect from tower’s image on the fly
-        tower_rect = tower.image.get_rect()
-        tower_rect.center = tower.position
+    # MORTAR
+    elif 1195 <= mouse[0] <= 1195 + 73 and 567 <= mouse[1] <= 567 + 88:
+        scrn.blit(img_mortar_text, (1113, 53))
+        scrn.blit(img_tower_select, (1195, 567))
+        if detect_single_click():
+            if money >= 1500:
+                purchase.play()
+                return "mortar"
+            else:
+                invalid.play()
 
-        if tower_rect.collidepoint(mouse):
-            if detect_single_click():
-                if isinstance(tower, RatBank):
+    for tower in towers:
+        tower_rect = tower.image.get_rect(center=tower.position)
+
+        # Only do any tower‐click selection/deselection when NOT placing a new one:
+        if not TowerFlag:
+            # select a tower (or mortar) for upgrades/target‐dragging
+            if tower_rect.collidepoint(mouse) and detect_single_click():
+                if isinstance(tower, (RatBank, MortarStrike)):
                     tower.is_selected = True
                 UpgradeFlag = True
                 curr_upgrade_tower = tower
+
+            # deselect the mortar if you click outside both its base and its marker
+            if isinstance(tower, MortarStrike) and tower.is_selected and detect_single_click():
+                marker_rect = tower.target_image.get_rect(center=tower.target_pos)
+                if not (marker_rect.collidepoint(mouse) or tower_rect.collidepoint(mouse)):
+                    tower.is_selected = False
+                    UpgradeFlag = False
+
+
     if UpgradeFlag and not TowerFlag:
         handle_upgrade(scrn, curr_upgrade_tower)
     return "NULL"
@@ -2064,6 +2084,25 @@ def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
             money -= 2600
             TowerFlag = False
             return True
+
+    elif tower == "mortar":
+        img_base = load_image("assets/mortar_base.png")
+        circle = pygame.Surface((100, 100), pygame.SRCALPHA)
+        # placement preview
+        if check_hitbox(house_hitbox, relative_pos, towers):
+            pygame.draw.circle(circle, (0, 0, 0, 128), (50, 50), 50)
+        else:
+            pygame.draw.circle(circle, (255, 0, 0, 128), (50, 50), 50)
+        scrn.blit(img_base, (mouse[0] - 23, mouse[1] - 23))
+        scrn.blit(circle, (mouse[0] - 50, mouse[1] - 50))
+        if detect_single_click() and check_hitbox(house_hitbox, relative_pos, tower):
+            mortar = MortarStrike((mouse[0], mouse[1]), "assets/mortar_base.png")
+            towers.append(mortar)
+            tower_click.play()
+            play_splash_animation(scrn, (mouse[0], mouse[1]))
+            money -= 750  # adjust cost
+            TowerFlag = False
+            return True
     elif tower == "soldier":
         img_base_soldier = load_image("assets/base_soldier.png")
         circle_surface = pygame.Surface((150, 150), pygame.SRCALPHA)
@@ -2555,7 +2594,7 @@ class MrCheese:
             if not any(tower.target == enemy for tower in towers if
                        tower != self and not isinstance(tower, RatTent) and not isinstance(tower, Ozbourne)
                        and not isinstance(tower, RatBank) and not isinstance(tower, WizardTower)
-                       and not isinstance(tower, CheeseBeacon)):
+                       and not isinstance(tower, CheeseBeacon) and not isinstance(tower, MortarStrike)):
                 self.target = enemy
                 break
         if self.target is None and potential_targets:
@@ -2666,42 +2705,100 @@ class Ratman:
         self.projectile_image = projectile_image
         self.shoot_interval = shoot_interval
         self.last_shot_time = 0
-        self.curr_top_upgrade = 3
+        self.curr_top_upgrade = 2
         self.curr_bottom_upgrade = 2
         self.sell_amt = 1300
         self.impact_shards = []  # Changed from particles to shards
         self.robo = False
 
+        self.get_upgrades()
+
     def get_upgrades(self):
         # Super Radius
         if self.curr_top_upgrade == 1:
             self.radius = 225
+            if self.curr_bottom_upgrade == 0:
+                self.image_path = "assets/ratman+supervision.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_bottom_upgrade == 1:
+                self.image_path = "assets/ratman+fondue.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_bottom_upgrade == 2:
+                self.image_path = "assets/ratman+plasma.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
         # Super Speed
         elif self.curr_top_upgrade == 2:
             self.shoot_interval = 250
             self.radius = 225
+            if self.curr_bottom_upgrade == 0:
+                self.image_path = "assets/ratman+superspeed.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_bottom_upgrade == 1:
+                self.image_path = "assets/ratman+fondue+superspeed.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_bottom_upgrade == 2:
+                self.image_path = "assets/ratman+plasma+speed.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
         # RoboRat
-        elif self.curr_top_upgrade == 3:
+        elif self.curr_top_upgrade == 3 and self.curr_bottom_upgrade < 3:
             self.robo = True
             self.shoot_interval = 250
             self.radius = 225
+            self.image_path = "assets/ratman+roborat.png"
+            self.image = load_image(self.image_path)
+            self.original_image = load_image(self.image_path)
         # Fondue
         if self.curr_bottom_upgrade == 1:
             self.weapon = 'fondue'
             self.damage = 4
+            self.projectile_image = "assets/fondue.png"
+            if self.curr_top_upgrade == 0:
+                self.image_path = "assets/ratman+fondue.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_top_upgrade == 1:
+                self.image_path = "assets/ratman+fondue.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_top_upgrade == 2:
+                self.image_path = "assets/ratman+fondue+superspeed.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
         # Plasmatic Provolone
         elif self.curr_bottom_upgrade == 2:
             self.weapon = 'plasma'
             self.damage = 6
+            self.projectile_image = "assets/plasma_proj.png"
+            if self.curr_top_upgrade == 0:
+                self.image_path = "assets/ratman+plasma.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_top_upgrade == 1:
+                self.image_path = "assets/ratman+plasma.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_top_upgrade == 2:
+                self.image_path = "assets/ratman+plasma+speed.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
         # Cheese God
-        elif self.curr_bottom_upgrade == 3:
+        elif self.curr_bottom_upgrade == 3 and self.curr_top_upgrade < 3:
             self.weapon = 'god'
             self.damage = 8
-            self.shoot_interval = 50
+            self.shoot_interval = 125
+            self.projectile_image = "assets/cheesegod_proj.png"
+            self.image_path = "assets/ratman+cheesegod.png"
+            self.image = load_image(self.image_path)
+            self.original_image = load_image(self.image_path)
 
     def update(self, enemies):
         global last_time_sfx, RoundFlag
-        self.get_upgrades()
         self.target = None
         potential_targets = []
         current_time = pygame.time.get_ticks()
@@ -2721,7 +2818,7 @@ class Ratman:
             if not any(tower.target == enemy for tower in towers if
                        tower != self and not isinstance(tower, RatTent) and not isinstance(tower, Ozbourne)
                        and not isinstance(tower, RatBank) and not isinstance(tower, WizardTower)
-                       and not isinstance(tower, CheeseBeacon)):
+                       and not isinstance(tower, CheeseBeacon) and not isinstance(tower, MortarStrike)):
                 self.target = enemy
                 break
         if self.target is None and potential_targets:
@@ -2796,148 +2893,256 @@ class Ratman:
             screen.blit(shard_surface, shard['pos'])
 
     def shoot(self):
-        scaled_interval = self.shoot_interval / game_speed_multiplier
-        if self.target and self.target.is_alive:
-            current_time = pygame.time.get_ticks()
-            if current_time - self.last_shot_time >= scaled_interval:
-                # Compute the angle (in radians) from the tower to the target
-                dx = self.target.position[0] - self.position[0]
-                dy = self.target.position[1] - self.position[1]
-                base_angle_rad = math.atan2(dy, dx)
-                # Use the tower's angle (if already computed) or base_angle_rad if desired
-                # self.angle is in degrees; we can recalc it from base_angle_rad if needed
-                self.angle = math.degrees(base_angle_rad)
+        # how fast we’re allowed to fire
+        interval = self.shoot_interval / game_speed_multiplier
+        if not self.target or not self.target.is_alive:
+            return
 
-                if not self.robo:
-                    if self.weapon == 'cheese':
-                        projectile = Projectile(
-                            position=self.position,
-                            target=self.target,
-                            speed=10,
-                            damage=self.damage,
-                            image_path=self.projectile_image
-                        )
-                    elif self.weapon == 'fondue':
-                        projectile = Projectile(
-                            position=self.position,
-                            target=self.target,
-                            speed=5,
-                            damage=self.damage,
-                            image_path=self.projectile_image
-                        )
-                    elif self.weapon == 'plasma':
-                        projectile = CommandoProjectile(
-                            position=self.position,
-                            angle=self.angle,
-                            radius=10,
-                            color=(67, 201, 245),
-                            speed=5,
-                            damage=self.damage,
-                            piercing=True,
-                        )
-                    elif self.weapon == 'god':
-                        projectile = CommandoProjectile(
-                            position=self.position,
-                            angle=self.angle,
-                            radius=15,
-                            color=(245, 235, 67),
-                            speed=5,
-                            damage=self.damage,
-                            piercing=True
-                        )
-                    # Attach a spawn time to delay collision detection (if needed)
-                    projectile.spawn_time = current_time
-                    self.projectiles.append(projectile)
-                    self.last_shot_time = current_time
+        now = pygame.time.get_ticks()
+        if now - self.last_shot_time < interval:
+            return
+        self.last_shot_time = now
+
+        bx, by = self.position
+        tx, ty = self.target.position
+
+        # Always rotate the sprite toward the center‑to‑target line:
+        dx0, dy0 = tx - bx, ty - by
+        # -- rotate sprite (degrees)
+        self.angle = math.degrees(math.atan2(-dy0, dx0))
+        self.image = pygame.transform.rotate(self.original_image, self.angle)
+        self.rect = self.image.get_rect(center=self.position)
+
+        # Precompute the raw radian angle
+        ang_rad = math.atan2(dy0, dx0)
+        # Also compute it in degrees for CommandoProjectile
+        ang_deg = math.degrees(ang_rad)
+
+        if not self.robo:
+            # ——— classic single‑barrel shot ———
+            if self.weapon == 'cheese':
+                proj = Projectile(
+                    position=self.position,
+                    target=self.target,
+                    speed=10,
+                    damage=self.damage,
+                    image_path=self.projectile_image
+                )
+                proj.vx = math.cos(ang_rad) * proj.speed
+                proj.vy = math.sin(ang_rad) * proj.speed
+
+            elif self.weapon == 'fondue':
+                proj = Projectile(
+                    position=self.position,
+                    target=self.target,
+                    speed=5,
+                    damage=self.damage,
+                    image_path=self.projectile_image
+                )
+                proj.vx = math.cos(ang_rad) * proj.speed
+                proj.vy = math.sin(ang_rad) * proj.speed
+
+            elif self.weapon in ('plasma', 'god'):
+                # Fix A: pass degrees instead of radians
+                proj = CommandoProjectile(
+                    position=self.position,
+                    angle=ang_deg,
+                    radius=(10 if self.weapon == 'plasma' else 15),
+                    color=((67, 201, 245) if self.weapon == 'plasma' else (245, 235, 67)),
+                    speed=5,
+                    damage=self.damage,
+                    piercing=True,
+                    image_path=self.projectile_image
+                )
+                # OR Fix B: override its velocity to match the raw vector
+                proj.velocity = [math.cos(ang_rad) * proj.speed,
+                                 math.sin(ang_rad) * proj.speed]
+
+            proj.spawn_time = now
+            self.projectiles.append(proj)
+
+        else:
+            # ——— RoboRat: two‑barrel shot from y±15px ———
+            for sign in (-1, +1):
+                arm_offset = 15
+                ox, oy = bx + sign * arm_offset, by
+                dx, dy = tx - ox, ty - oy
+                arm_rad = math.atan2(dy, dx)
+                arm_deg = math.degrees(arm_rad)
+
+                if self.weapon == 'cheese':
+                    proj = Projectile(
+                        position=(ox, oy),
+                        target=self.target,
+                        speed=10,
+                        damage=self.damage,
+                        image_path=self.projectile_image
+                    )
+                    proj.vx = math.cos(arm_rad) * proj.speed
+                    proj.vy = math.sin(arm_rad) * proj.speed
+
+                elif self.weapon == 'fondue':
+                    proj = Projectile(
+                        position=(ox, oy),
+                        target=self.target,
+                        speed=5,
+                        damage=self.damage,
+                        image_path=self.projectile_image
+                    )
+                    proj.vx = math.cos(arm_rad) * proj.speed
+                    proj.vy = math.sin(arm_rad) * proj.speed
+
+                else:  # plasma or god
+                    # Fix A for robo‑arms as well
+                    proj = CommandoProjectile(
+                        position=(ox, oy),
+                        angle=arm_deg,
+                        radius=(10 if self.weapon == 'plasma' else 15),
+                        color=((67, 201, 245) if self.weapon == 'plasma' else (245, 235, 67)),
+                        speed=5,
+                        damage=self.damage,
+                        piercing=True,
+                        image_path=self.projectile_image
+                    )
+                    # Or Fix B override:
+                    proj.velocity = [math.cos(arm_rad) * proj.speed,
+                                     math.sin(arm_rad) * proj.speed]
+
+                proj.spawn_time = now
+                self.projectiles.append(proj)
+
+
+class MortarStrike:
+    """
+    Mortar Strike tower: places a target marker that can be moved when selected.
+    Fires a mortar to the target every 6500ms, causing an explosion (radius 75, damage 2, armor_break).
+    Upgrade at curr_top_upgrade == 3 spawns 5 smaller explosions around the circumference.
+    """
+    EXPLOSION_DURATION = 250  # ms
+
+    def __init__(self, position, image_path=None):
+        self.position = position
+        # Base sprite (tower icon)
+        self.original_image = load_image(image_path or "assets/mortar_base.png")
+        self.image = self.original_image
+        self.rect = self.image.get_rect(center=position)
+        # Rotation angle
+        self.angle = 0
+        self.radius = 0
+        # Target marker image and position
+        self.target_image = load_image("assets/strike.png")
+        self.target_pos = list(position)
+        self.dragging = False
+        self.is_selected = False
+        # Firing
+        self.shoot_interval = 6500  # ms
+        self.last_shot_time = 0
+        # Damage
+        self.damage = 3
+        # Upgrade
+        self.curr_top_upgrade = 3
+        self.curr_bottom_upgrade = 0
+        # Explosion schedule
+        self.explosions = []
+        # Sell value
+        self.sell_amt = 375
+
+    def update(self, enemies):
+        now = pygame.time.get_ticks()
+        # Shooting
+        if now - self.last_shot_time >= self.shoot_interval / game_speed_multiplier:
+            self.last_shot_time = now
+            # spawn main explosion
+            self._spawn_explosion(self.target_pos, 75, self.damage, enemies)
+            if self.curr_top_upgrade == 3:
+                for i in range(5):
+                    angle = i * (2 * math.pi / 5)
+                    ox = self.target_pos[0] + math.cos(angle) * 75
+                    oy = self.target_pos[1] + math.sin(angle) * 75
+                    self._spawn_explosion((ox, oy), 100 * 0.33, self.damage * 0.33, enemies)
+        # Cleanup old explosions
+        self.explosions = [e for e in self.explosions
+                           if pygame.time.get_ticks() - e['start'] < self.EXPLOSION_DURATION]
+
+    def _spawn_explosion(self, pos, radius, dmg, enemies):
+        if not RoundFlag:
+            return
+        class ExplosiveProjectile:
+            armor_break = True
+            explosive   = True
+        # Damage
+        for enemy in enemies:
+            ex, ey = enemy.rect.center
+            if math.hypot(ex - pos[0], ey - pos[1]) <= radius + enemy.rect.width/2:
+                enemy.take_damage(dmg, ExplosiveProjectile())
+        # Sound
+        load_sound("assets/explosion_sfx.mp3").play()
+        # Create particles
+        parts = []
+        for _ in range(20):
+            a = random.uniform(0, 2*math.pi)
+            mag = random.uniform(radius*0.3, radius*0.7)
+            parts.append({
+                'pos': [pos[0], pos[1]],
+                'vel': [math.cos(a)*mag, math.sin(a)*mag],
+                'life': self.EXPLOSION_DURATION
+            })
+        # Schedule explosion
+        self.explosions.append({ 'pos':pos, 'radius':radius, 'start':pygame.time.get_ticks(), 'particles':parts })
+
+    def render(self, screen):
+        # Rotate turret toward target
+        dx = self.target_pos[0] - self.position[0]
+        dy = self.target_pos[1] - self.position[1]
+        self.angle = math.degrees(math.atan2(-dy, dx))
+        self.image = pygame.transform.rotate(self.original_image, self.angle)
+        self.rect = self.image.get_rect(center=self.position)
+        # Draw tower
+        screen.blit(self.image, self.rect.topleft)
+        # Draw target only when selected
+        if getattr(self, 'is_selected', False):
+            mouse = pygame.mouse.get_pos()
+            pressed = pygame.mouse.get_pressed()[0]
+            if self.dragging:
+                if not pressed:
+                    self.dragging = False
                 else:
-                    # Compute the base firing angle from the tower to the target.
-                    dx = self.target.position[0] - self.position[0]
-                    dy = self.target.position[1] - self.position[1]
-                    # The base angle in radians and degrees
-                    base_angle_rad = math.atan2(dy, dx)
-                    base_angle_deg = math.degrees(base_angle_rad)
+                    self.target_pos = list(mouse)
+            else:
+                marker_rect = self.target_image.get_rect(center=self.target_pos)
+                if marker_rect.collidepoint(mouse) and pressed:
+                    self.dragging = True
+            screen.blit(self.target_image, self.target_image.get_rect(center=self.target_pos))
+        # Draw explosions
+        now = pygame.time.get_ticks()
+        for exp in self.explosions[:]:
+            elapsed = now - exp['start']
+            if elapsed > self.EXPLOSION_DURATION:
+                self.explosions.remove(exp)
+                continue
+            p = elapsed / self.EXPLOSION_DURATION
+            alpha = int(255*(1-p))
+            # flash + ring
+            fr = exp['radius']*(0.5+0.5*p)
+            surf = pygame.Surface((fr*2, fr*2), pygame.SRCALPHA)
+            pygame.draw.circle(surf, (255,200,50,alpha//2),(fr,fr),int(fr))
+            pygame.draw.circle(surf, (255,100,0,alpha),(fr,fr),int(exp['radius']),3)
+            screen.blit(surf,(exp['pos'][0]-fr, exp['pos'][1]-fr))
+            # particles
+            for part in exp['particles'][:]:
+                t = elapsed/part['life']
+                if t>=1:
+                    exp['particles'].remove(part)
+                    continue
+                part['pos'][0] += part['vel'][0]*(1/60)*game_speed_multiplier
+                part['pos'][1] += part['vel'][1]*(1/60)*game_speed_multiplier
+                pa = int(alpha*(1-t))
+                pygame.draw.circle(screen,(255,220,100,pa),
+                                   (int(part['pos'][0]),int(part['pos'][1])),
+                                   max(1,int(exp['radius']*0.05*(1-t))))
 
-                    # Define a small angular spread (in degrees)
-                    spread = 5  # Adjust this spread as needed
-
-                    # Set two distinct angles for left and right projectiles.
-                    left_proj_angle = base_angle_deg - spread
-                    right_proj_angle = base_angle_deg + spread
-
-                    # For the spawn origins, use fixed offsets relative to a rightward-facing tower.
-                    # When facing right (angle 0), left offset is (0, -25) and right offset is (0, 25).
-                    # Rotate these offsets by the tower's current angle (self.angle).
-                    theta = math.radians(self.angle)
-
-                    def rotate(offset, theta):
-                        x, y = offset
-                        return (x * math.cos(theta) - y * math.sin(theta),
-                                x * math.sin(theta) + y * math.cos(theta))
-
-                    base_left = (0, -25)
-                    base_right = (0, 25)
-                    left_offset = rotate(base_left, theta)
-                    right_offset = rotate(base_right, theta)
-                    left_origin = (self.position[0] + left_offset[0],
-                                   self.position[1] + left_offset[1])
-                    right_origin = (self.position[0] + right_offset[0],
-                                    self.position[1] + right_offset[1])
-
-                    # Create list of spawn origins and corresponding projectile angles.
-                    origins = [left_origin, right_origin]
-                    proj_angles = [left_proj_angle - 110, right_proj_angle - 110]
-
-                    # Compute the angle (in radians) from the tower to the target
-                    dx = self.target.position[0] - self.position[0]
-                    dy = self.target.position[1] - self.position[1]
-                    base_angle_rad = math.atan2(dy, dx)
-                    # Use the tower's angle (if already computed) or base_angle_rad if desired
-                    # self.angle is in degrees; we can recalc it from base_angle_rad if needed
-                    proj_angles = []
-
-                    # Spawn a projectile from each origin with its corresponding firing angle.
-                    current_time = pygame.time.get_ticks()
-                    for origin, angle in zip(origins, proj_angles):
-                        if self.weapon == 'cheese':
-                            projectile = Projectile(
-                                position=origin,
-                                target=self.target,
-                                speed=10,
-                                damage=self.damage,
-                                image_path=self.projectile_image
-                            )
-                        elif self.weapon == 'fondue':
-                            projectile = Projectile(
-                                position=origin,
-                                target=self.target,
-                                speed=5,
-                                damage=self.damage,
-                                image_path=self.projectile_image
-                            )
-                        elif self.weapon == 'plasma':
-                            projectile = CommandoProjectile(
-                                position=origin,
-                                angle=angle,
-                                radius=10,
-                                color=(67, 201, 245),
-                                speed=5,
-                                damage=self.damage,
-                                piercing=True
-                            )
-                        elif self.weapon == 'god':
-                            projectile = CommandoProjectile(
-                                position=origin,
-                                angle=angle,
-                                radius=15,
-                                color=(245, 235, 67),
-                                speed=5,
-                                damage=self.damage,
-                                piercing=True
-                            )
-                        projectile.spawn_time = current_time
-                        self.projectiles.append(projectile)
-
-                    self.last_shot_time = current_time
+    def shoot(self):
+        pass
 
 
 class ImportTruck:
@@ -3338,11 +3543,12 @@ class RatBank:
 
 # New projectile class for Cheddar Commando using pygame drawing for bullets
 class CommandoProjectile:
-    def __init__(self, position, angle, speed, damage, radius=5, color=(255, 255, 0), piercing=False):
+    def __init__(self, position, angle, speed, damage, radius=5, color=(255, 255, 0), piercing=False, image_path=None):
         self.position = list(position)  # Ensure mutability for movement
         self.angle = angle
         self.speed = speed
         self.damage = damage
+        self.image = load_image(image_path) if image_path else None
         self.radius = radius  # bullet radius for drawing
         self.penetration = 5  # Add penetration counter
         self.target = None
@@ -3382,7 +3588,10 @@ class CommandoProjectile:
 
     def render(self, screen):
         """Draw projectile."""
-        pygame.draw.circle(screen, self.color, (int(self.position[0]), int(self.position[1])), self.radius)
+        if self.image is not None:
+            screen.blit(self.image, (self.position[0], self.position[1]))
+        else:
+            pygame.draw.circle(screen, self.color, (int(self.position[0]), int(self.position[1])), self.radius)
 
 
 class CheddarCommando:
@@ -5070,6 +5279,7 @@ class CheeseBeacon:
         self.position = position
         self.image_path = "assets/beacon_base.png"
         self.image = load_image(self.image_path)
+        self.rect = self.image.get_rect(center=position)
         self.radius = 100
         self.last_signal = 0
         self.signal_interval = 5000
@@ -6489,7 +6699,7 @@ class MantisBoss:
 
     def __init__(self, position, path):
         self.position = position
-        self.health = 200
+        self.health = 250
         self.speed = .15
         self.path = path
         self.radius = 250
@@ -8104,7 +8314,16 @@ class Projectile:
             self.hit = True
 
     def render(self, screen):
+        # Rotate turret toward target
+        original_image = self.image
+        dx = self.target.position[0] - self.position[0]
+        dy = self.target.position[1] - self.position[1]
+        angle = math.degrees(math.atan2(-dy, dx))
+        self.image = pygame.transform.rotate(original_image, angle)
+        self.rect = self.image.get_rect(center=self.position)
+        # Draw tower
         screen.blit(self.image, self.rect.topleft)
+
 
 
 class RatRecruit:

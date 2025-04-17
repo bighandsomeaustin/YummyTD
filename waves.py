@@ -615,6 +615,11 @@ for r in range(1, 101):
                          "spawn_interval": 1500,
                          "delay": 0})
 
+    elif r == 57:
+        segments.append({"enemies": ["DUNG_BEETLE"] * 4,
+                         "spawn_interval": 500,
+                         "delay": 0})
+
     else:
         if (r % 5) == 0:
             segments.append({"enemies": ["MILLIPEDE"],

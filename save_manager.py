@@ -49,19 +49,19 @@ TOWER_CONSTRUCTOR_ATTRIBUTES = {
         "position",
         "shoot_interval",
         "damage",
-        #"image_path",
+        # "image_path",
     ],
     "RatFrost": [
         "position",
-        #"image_path",
+        # "image_path",
     ],
     "WizardTower": [
         "position",
-        #"image_path",
+        # "image_path",
     ],
     "CheeseBeacon": [
         "position",
-        #"image_path",
+        # "image_path",
     ],
     "CheddarCommando": [
         "position",
@@ -69,7 +69,20 @@ TOWER_CONSTRUCTOR_ATTRIBUTES = {
         "damage",
         "shoot_interval",
         "reload_time",
-        #"image_path",
+        # "image_path",
+    ],
+    "Ratman": [
+        "position",
+        "radius",
+        "weapon",
+        "damage",
+        "image_path",
+        "projectile_image",
+        "shoot_interval",
+    ],
+    "MortarStrike": [
+        "position",
+        "image_path",
     ],
 }
 
@@ -187,6 +200,23 @@ TOWER_SAVE_ATTRIBUTES = {
         "damage",
         "shoot_interval",
         "reload_time",
+    ],
+    "Ratman": [
+        "image_path",
+        "radius",
+        "damage",
+        "shoot_interval",
+        "curr_top_upgrade",
+        "curr_bottom_upgrade",
+        "sell_amt",
+    ],
+    "MortarStrike": [
+        "curr_top_upgrade",
+        "curr_bottom_upgrade",
+        "sell_amt",
+        "shoot_interval",
+        "damage",
+        "target_pos",
     ],
 }
 
