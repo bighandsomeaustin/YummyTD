@@ -1,6 +1,7 @@
 import json
 import pygame
 import game_tools
+import os
 import game_stats
 
 ###############################################################################
@@ -42,7 +43,7 @@ TOWER_CONSTRUCTOR_ATTRIBUTES = {
     ],
     "MinigunTower": [
         "position",
-        "image_path",
+        #"image_path",
 
     ],
     "RatSniper": [
@@ -334,6 +335,9 @@ def load_game(filename):
             if attr in tower_data:
                 setattr(new_tower, attr, tower_data[attr])
 
+        if hasattr(new_tower, "get_upgrades"):
+            new_tower.get_upgrades()
+
         # If needed, load images post-init:
         # (But only if the tower constructor doesn't already do it.)
         if hasattr(new_tower, "image_path"):
@@ -344,6 +348,13 @@ def load_game(filename):
                 except Exception as ex:
                     print(f"[WARN] Could not load image '{ip}': {ex}")
                     new_tower.image = game_tools.load_image("assets/fallback.png")
+
+        if hasattr(new_tower, "original_image"):
+            try:
+                new_tower.original_image = game_tools.load_image(ip)
+            except Exception as ex:
+                print(f"[WARN] Could not load original_image '{ip}': {ex}")
+                new_tower.original_image = game_tools.load_image("assets/fallback.png")
 
         if hasattr(new_tower, "projectile_image"):
             pi = getattr(new_tower, "projectile_image", "")

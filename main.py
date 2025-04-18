@@ -118,7 +118,7 @@ while running:
 
         # CHANGE THESE 3 FOR DEBUGGING
         game_tools.user_health = 100
-        game_tools.money = 35000
+        game_tools.money = 350
         round_number = 1
 
         game_tools.towers.clear()

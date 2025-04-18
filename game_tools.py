@@ -655,7 +655,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
                 marker_rect = tower.target_image.get_rect(center=tower.target_pos)
                 if not (marker_rect.collidepoint(mouse) or tower_rect.collidepoint(mouse)):
                     tower.is_selected = False
-                    UpgradeFlag = False
+                    UpgradeFlag = True
 
 
     if UpgradeFlag and not TowerFlag:
@@ -1823,6 +1823,102 @@ def handle_upgrade(scrn, tower):
                     UpgradeFlag = True
                     tower.get_upgrades()
 
+    if isinstance(tower, MortarStrike):
+        img_bigger_upgrade = load_image("assets/upgrade_biggerbombs.png")
+        img_napalm_upgrade = load_image("assets/upgrade_napalm.png")
+        img_tzar_upgrade = load_image("assets/upgrade_tzar.png")
+        img_rapid_upgrade = load_image("assets/upgrade_rapid.png")
+        img_cluster_upgrade = load_image("assets/upgrade_cluster.png")
+        img_triple_upgrade = load_image("assets/upgrade_triple.png")
+        if tower.curr_top_upgrade == 0:
+            scrn.blit(img_bigger_upgrade, (883, 65))
+            blit_text(scrn, "Bigger Bombs", "top")
+        elif tower.curr_top_upgrade == 1:
+            scrn.blit(img_napalm_upgrade, (883, 65))
+            blit_text(scrn, "Napalm", "top")
+        elif tower.curr_top_upgrade == 2 and tower.curr_bottom_upgrade < 3:
+            scrn.blit(img_tzar_upgrade, (883, 65))
+            blit_text(scrn, "Tzar Bomba", "top")
+        else:
+            scrn.blit(img_max_upgrades, top)
+
+        if tower.curr_bottom_upgrade == 0:
+            scrn.blit(img_rapid_upgrade, (883, 194))
+            blit_text(scrn, "Rapid Reload", "bottom")
+        elif tower.curr_bottom_upgrade == 1:
+            scrn.blit(img_cluster_upgrade, (883, 194))
+            blit_text(scrn, "Cluster Bombs", "bottom")
+        elif tower.curr_bottom_upgrade == 2 and tower.curr_top_upgrade < 3:
+            scrn.blit(img_triple_upgrade, (883, 194))
+            blit_text(scrn, "Triple Barrel", "bottom")
+        else:
+            scrn.blit(img_max_upgrades, bottom)
+        # TOP UPGRADE PATH
+        if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+            scrn.blit(img_upgrade_highlighted, (883, 65))
+            if detect_single_click():
+                # Bigger Bombs
+                if tower.curr_top_upgrade == 0 and money >= 400:
+                    purchase.play()
+                    money -= 400
+                    tower.sell_amt += 200
+                    tower.curr_top_upgrade = 1
+                    UpgradeFlag = True
+                    tower.get_upgrades()
+                # Napalm
+                elif tower.curr_top_upgrade == 1 and money >= 900:
+                    purchase.play()
+                    money -= 900
+                    tower.sell_amt += 450
+                    tower.curr_top_upgrade = 2
+                    UpgradeFlag = True
+                    tower.get_upgrades()
+                # Tzar Bomba
+                elif tower.curr_top_upgrade == 2 and money >= 5400 and tower.curr_bottom_upgrade < 3:
+                    purchase.play()
+                    money -= 5400
+                    tower.sell_amt += 2700
+                    tower.curr_top_upgrade = 3
+                    UpgradeFlag = True
+                    tower.get_upgrades()
+
+        # SELL BUTTON
+        if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
+            if detect_single_click():
+                money += tower.sell_amt
+                towers.remove(tower)
+                UpgradeFlag = False
+                return
+
+        # BOTTOM UPGRADE PATH
+        if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+            scrn.blit(img_upgrade_highlighted, (883, 194))
+            if detect_single_click():
+                # Rapid Reload
+                if tower.curr_bottom_upgrade == 0 and money >= 1100:
+                    purchase.play()
+                    money -= 1100
+                    tower.sell_amt += 550
+                    tower.curr_bottom_upgrade = 1
+                    UpgradeFlag = True
+                    tower.get_upgrades()
+                # Cluster Bombs
+                elif tower.curr_bottom_upgrade == 1 and money >= 900:
+                    purchase.play()
+                    money -= 900
+                    tower.sell_amt += 450
+                    tower.curr_bottom_upgrade = 2
+                    UpgradeFlag = True
+                    tower.get_upgrades()
+                # Triple Barrel
+                elif tower.curr_bottom_upgrade == 2 and money >= 2600 and tower.curr_top_upgrade < 3:
+                    purchase.play()
+                    money -= 2600
+                    tower.sell_amt += 1300
+                    tower.curr_bottom_upgrade = 3
+                    UpgradeFlag = True
+                    tower.get_upgrades()
+
     if isinstance(tower, CheeseBeacon):
         img_damage3_upgrade = load_image("assets/upgrade_damage3.png")
         img_damage4_upgrade = load_image("assets/upgrade_damage4.png")
@@ -2847,7 +2943,7 @@ class Ratman:
         elif self.curr_top_upgrade == 3 and self.curr_bottom_upgrade < 3:
             self.robo = True
             self.shoot_interval = 250
-            self.radius = 225
+            self.radius = 250
             self.image_path = "assets/ratman+roborat.png"
             self.image = load_image(self.image_path)
             self.original_image = load_image(self.image_path)
@@ -3035,8 +3131,9 @@ class Ratman:
                     target=self.target,
                     speed=5,
                     damage=self.damage,
-                    image_path=self.projectile_image
+                    image_path=self.projectile_image,
                 )
+                proj.penetration = 2,
                 proj.vx = math.cos(ang_rad) * proj.speed
                 proj.vy = math.sin(ang_rad) * proj.speed
 
@@ -3127,8 +3224,10 @@ class MortarStrike:
         # Rotation angle
         self.angle = 0
         self.radius = 0
+        self.explosion_radius = 75
         # Target marker image and position
         self.target_image = load_image("assets/strike.png")
+        self.explosion_sfx = load_sound("assets/explosion_sfx.mp3")
         self.target_pos = list(position)
         self.dragging = False
         self.is_selected = False
@@ -3138,12 +3237,110 @@ class MortarStrike:
         # Damage
         self.damage = 3
         # Upgrade
-        self.curr_top_upgrade = 3
+        self.curr_top_upgrade = 0
         self.curr_bottom_upgrade = 0
         # Explosion schedule
         self.explosions = []
         # Sell value
         self.sell_amt = 375
+
+        self.get_upgrades()
+
+    def get_upgrades(self):
+        # Bigger Bombs
+        if self.curr_top_upgrade == 1:
+            self.explosion_radius = 100
+            if self.curr_bottom_upgrade == 0:
+                self.image_path = "assets/mortar+biggerbombs.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_bottom_upgrade == 1:
+                self.image_path = "assets/mortar_biggerbombs+rapid.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_bottom_upgrade == 2:
+                self.image_path = "assets/mortar_biggerbombs+rapid.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_bottom_upgrade == 3:
+                self.image_path = "assets/mortar+triple+bigger.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+        # Napalm
+        elif self.curr_top_upgrade == 2:
+            self.damage = 5
+            self.explosion_radius = 100
+            self.EXPLOSION_DURATION = 500
+            if self.curr_bottom_upgrade == 0:
+                self.image_path = "assets/mortar+napalm.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_bottom_upgrade == 1:
+                self.image_path = "assets/mortar+napalm+rapid.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_bottom_upgrade == 2:
+                self.image_path = "assets/mortar+napalm+rapid.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_bottom_upgrade == 3:
+                self.image_path = "assets/mortar+triple+napalm.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+        # Tzar Bomba
+        elif self.curr_top_upgrade == 3 and self.curr_bottom_upgrade < 3:
+            self.explosion_radius = 250
+            self.damage = 8
+            self.EXPLOSION_DURATION = 500
+            self.explosion_sfx = load_sound("assets/tzar_sfx.mp3")
+            self.image_path = "assets/mortar+tzar.png"
+            self.image = load_image(self.image_path)
+            self.original_image = load_image(self.image_path)
+        # Rapid Reload
+        if self.curr_bottom_upgrade == 1:
+            self.shoot_interval = 3500
+            if self.curr_top_upgrade == 0:
+                self.image_path = "assets/mortar+rapid.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_top_upgrade == 1:
+                self.image_path = "assets/mortar_biggerbombs+rapid.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_top_upgrade == 2:
+                self.image_path = "assets/mortar+napalm+rapid.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+        # Cluster Bombs
+        elif self.curr_bottom_upgrade == 2:
+            self.shoot_interval = 3500
+            if self.curr_top_upgrade == 0:
+                self.image_path = "assets/mortar+rapid.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_top_upgrade == 1:
+                self.image_path = "assets/mortar_biggerbombs+rapid.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_top_upgrade == 2:
+                self.image_path = "assets/mortar+napalm+rapid.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+        # Triple Barrel
+        elif self.curr_bottom_upgrade == 3 and self.curr_top_upgrade < 3:
+            self.shoot_interval = 3500
+            if self.curr_top_upgrade == 0:
+                self.image_path = "assets/mortar+triple.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_top_upgrade == 1:
+                self.image_path = "assets/mortar+triple+bigger.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
+            elif self.curr_top_upgrade == 2:
+                self.image_path = "assets/mortar+triple+napalm.png"
+                self.image = load_image(self.image_path)
+                self.original_image = load_image(self.image_path)
 
     def update(self, enemies):
         now = pygame.time.get_ticks()
@@ -3151,13 +3348,24 @@ class MortarStrike:
         if now - self.last_shot_time >= self.shoot_interval / game_speed_multiplier:
             self.last_shot_time = now
             # spawn main explosion
-            self._spawn_explosion(self.target_pos, 75, self.damage, enemies)
-            if self.curr_top_upgrade == 3:
+            self._spawn_explosion(self.target_pos, self.explosion_radius, self.damage, enemies)
+            # cluster bombs
+            if self.curr_bottom_upgrade >= 2:
                 for i in range(5):
                     angle = i * (2 * math.pi / 5)
-                    ox = self.target_pos[0] + math.cos(angle) * 75
-                    oy = self.target_pos[1] + math.sin(angle) * 75
-                    self._spawn_explosion((ox, oy), 100 * 0.33, self.damage * 0.33, enemies)
+                    ox = self.target_pos[0] + math.cos(angle) * self.explosion_radius
+                    oy = self.target_pos[1] + math.sin(angle) * self.explosion_radius
+                    self._spawn_explosion((ox, oy), self.explosion_radius * 0.33, self.damage * 0.33, enemies)
+            # triple barrel
+            if self.curr_bottom_upgrade == 3:
+                for i in (-1, 1):
+                    pos = self.target_pos[0], self.target_pos[1] + i * self.explosion_radius
+                    self._spawn_explosion(pos, self.explosion_radius, self.damage, enemies)
+                    for j in range(5):
+                        angle = j * (2 * math.pi / 5)
+                        ox = pos[0] + math.cos(angle) * self.explosion_radius
+                        oy = pos[1] + math.sin(angle) * self.explosion_radius
+                        self._spawn_explosion((ox, oy), self.explosion_radius * 0.33, self.damage * 0.33, enemies)
         # Cleanup old explosions
         self.explosions = [e for e in self.explosions
                            if pygame.time.get_ticks() - e['start'] < self.EXPLOSION_DURATION]
@@ -3165,6 +3373,7 @@ class MortarStrike:
     def _spawn_explosion(self, pos, radius, dmg, enemies):
         if not RoundFlag:
             return
+
         class ExplosiveProjectile:
             armor_break = True
             explosive   = True
@@ -3174,7 +3383,7 @@ class MortarStrike:
             if math.hypot(ex - pos[0], ey - pos[1]) <= radius + enemy.rect.width/2:
                 enemy.take_damage(dmg, ExplosiveProjectile())
         # Sound
-        load_sound("assets/explosion_sfx.mp3").play()
+        self.explosion_sfx.play()
         # Create particles
         parts = []
         for _ in range(20):
@@ -3185,8 +3394,29 @@ class MortarStrike:
                 'vel': [math.cos(a)*mag, math.sin(a)*mag],
                 'life': self.EXPLOSION_DURATION
             })
-        # Schedule explosion
-        self.explosions.append({ 'pos':pos, 'radius':radius, 'start':pygame.time.get_ticks(), 'particles':parts })
+
+        explosion = {
+            'pos': pos,
+            'radius': radius,
+            'start': pygame.time.get_ticks(),
+            'particles': parts
+        }
+
+        # napalm fire effect
+        if self.curr_top_upgrade >= 2:
+            fire = []
+            for _ in range(30):
+                angle = random.uniform(-math.pi / 3, math.pi + math.pi / 3)
+                speed = random.uniform(radius * 0.2, radius * 0.5)
+                fire.append({
+                    'pos': [pos[0], pos[1]],
+                    'vel': [math.cos(angle) * speed, -abs(math.sin(angle) * speed) * 0.5],
+                    'life': self.EXPLOSION_DURATION * 1.5,
+                    'color': (255, random.randint(80, 160), 0)
+                })
+            explosion['fire_particles'] = fire
+
+        self.explosions.append(explosion)
 
     def render(self, screen):
         # Rotate turret toward target
@@ -3195,8 +3425,10 @@ class MortarStrike:
         self.angle = math.degrees(math.atan2(-dy, dx))
         self.image = pygame.transform.rotate(self.original_image, self.angle)
         self.rect = self.image.get_rect(center=self.position)
+
         # Draw tower
         screen.blit(self.image, self.rect.topleft)
+
         # Draw target only when selected
         if getattr(self, 'is_selected', False):
             mouse = pygame.mouse.get_pos()
@@ -3211,33 +3443,59 @@ class MortarStrike:
                 if marker_rect.collidepoint(mouse) and pressed:
                     self.dragging = True
             screen.blit(self.target_image, self.target_image.get_rect(center=self.target_pos))
-        # Draw explosions
+
+        # Draw explosions (with napalm fire when upgraded)
         now = pygame.time.get_ticks()
         for exp in self.explosions[:]:
             elapsed = now - exp['start']
             if elapsed > self.EXPLOSION_DURATION:
                 self.explosions.remove(exp)
                 continue
+
             p = elapsed / self.EXPLOSION_DURATION
-            alpha = int(255*(1-p))
+            alpha = int(255 * (1 - p))
+
             # flash + ring
-            fr = exp['radius']*(0.5+0.5*p)
-            surf = pygame.Surface((fr*2, fr*2), pygame.SRCALPHA)
-            pygame.draw.circle(surf, (255,200,50,alpha//2),(fr,fr),int(fr))
-            pygame.draw.circle(surf, (255,100,0,alpha),(fr,fr),int(exp['radius']),3)
-            screen.blit(surf,(exp['pos'][0]-fr, exp['pos'][1]-fr))
-            # particles
+            fr = exp['radius'] * (0.5 + 0.5 * p)
+            surf = pygame.Surface((fr * 2, fr * 2), pygame.SRCALPHA)
+            pygame.draw.circle(surf, (255, 200, 50, alpha // 2), (fr, fr), int(fr))
+            pygame.draw.circle(surf, (255, 100, 0, alpha), (fr, fr), int(exp['radius']), 3)
+            screen.blit(surf, (exp['pos'][0] - fr, exp['pos'][1] - fr))
+
+            # debris particles
             for part in exp['particles'][:]:
-                t = elapsed/part['life']
-                if t>=1:
+                t = elapsed / part['life']
+                if t >= 1:
                     exp['particles'].remove(part)
                     continue
-                part['pos'][0] += part['vel'][0]*(1/60)*game_speed_multiplier
-                part['pos'][1] += part['vel'][1]*(1/60)*game_speed_multiplier
-                pa = int(alpha*(1-t))
-                pygame.draw.circle(screen,(255,220,100,pa),
-                                   (int(part['pos'][0]),int(part['pos'][1])),
-                                   max(1,int(exp['radius']*0.05*(1-t))))
+                part['pos'][0] += part['vel'][0] * (1 / 60)
+                part['pos'][1] += part['vel'][1] * (1 / 60)
+                pa = int(alpha * (1 - t))
+                pygame.draw.circle(
+                    screen,
+                    (255, 220, 100, pa),
+                    (int(part['pos'][0]), int(part['pos'][1])),
+                    max(1, int(exp['radius'] * 0.05 * (1 - t)))
+                )
+
+            # napalm fire particles (only if upgraded and present)
+            if self.curr_top_upgrade >= 2 and 'fire_particles' in exp:
+                for fire in exp['fire_particles'][:]:
+                    tf = (now - exp['start']) / fire['life']
+                    if tf >= 1:
+                        exp['fire_particles'].remove(fire)
+                        continue
+                    # rising, flickering flames
+                    fire['pos'][0] += fire['vel'][0] * (1 / 60)
+                    fire['pos'][1] += fire['vel'][1] * (1 / 60)
+                    size = random.uniform(2, 6) * (1 - tf)
+                    fa = int(255 * (1 - tf))
+                    pygame.draw.circle(
+                        screen,
+                        (*fire['color'], fa),
+                        (int(fire['pos'][0]), int(fire['pos'][1])),
+                        int(size)
+                    )
 
     def shoot(self):
         pass
@@ -4850,11 +5108,11 @@ class WizardTower:
 
 
 class MinigunTower:
-    def __init__(self, position, image_path = None):
+    def __init__(self, position, image_path=None):
         self.position = position
         self.image_path = "assets/base_minigun.png"
         self.image = load_image(self.image_path)
-        self.original_image = load_image(self.image_path)
+        self.original_image = self.image
         self.rect = self.image.get_rect(center=position)
         self.radius = 150  # attack range
         self.damage = 0.5
@@ -5255,12 +5513,16 @@ class Ozbourne:
         if self.curr_bottom_upgrade >= 1 and enemy_in_range:
             self.riff_sfx = load_sound("assets/riff_longer.mp3")
             if not self.riff_playing and not self.solo_active:
-                if not self.riff_channel.get_busy():
-                    if pygame.time.get_ticks() - self.last_riff_time >= 1500:
-                        mixer.music.pause()
-                        self.riff_channel.set_volume(user_volume * .75)
-                        self.riff_channel.play(self.riff_sfx, loops=-1)
-                        self.last_riff_time = pygame.time.get_ticks()
+                try:
+                    if not self.riff_channel.get_busy():
+                        if pygame.time.get_ticks() - self.last_riff_time >= 1500:
+                            mixer.music.pause()
+                            self.riff_channel.set_volume(user_volume * .75)
+                            self.riff_channel.play(self.riff_sfx, loops=-1)
+                            self.last_riff_time = pygame.time.get_ticks()
+                except Exception:
+                    print("Warning: Failed to load Ozbourne riff")
+                    return
                 self.riff_playing = True
             # Trigger blast at the specified interval
             if pygame.time.get_ticks() - self.last_blast_time >= scaled_interval:
