@@ -1,9 +1,9 @@
 {
     "max_shards": 132,
     "max_indicators": 105,
-    "game_speed": 4,
+    "game_speed": 7,
     "showfps": true,
     "showcursor": true,
-    "music_level": 0.9761904761904762,
+    "music_level": 1.0,
     "fullscreen": false
 }

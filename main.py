@@ -28,7 +28,7 @@ running = True
 state = "Menu"
 resumeFlag = False
 curr_wave = False
-round_number = 1  # For debugging
+round_number = 2  # For debugging
 PlayFlag = True
 
 # Preload map image for the game background

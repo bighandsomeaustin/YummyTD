@@ -15,6 +15,7 @@ segment_completion_time = None
 FINAL_CLEANUP_DELAY = 1000 / game_tools.game_speed_multiplier  # in milliseconds
 new_enemy = None
 
+from enemies import AntEnemy, BeetleEnemy, HornetEnemy, DungBeetleBoss, RoachMinionEnemy, RoachQueenEnemy, FireflyEnemy, DragonflyEnemy, SpiderEnemy, TermiteEnemy
 # Round configuration: each round is a list of segments.
 # Each segment is a dict with keys:
 #   "enemies": list of enemy type strings ("ANT", "HORNET", "BEETLE", "SPIDER", "CENTIPEDE", "CENTIPEDE_BOSS")
@@ -828,10 +829,10 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
             # apply damage multiplier
             if new_enemy is not None:
                 if hasattr(new_enemy, "health"):
-                    new_enemy.health *= health_mult
+                    new_enemy.health *= 1
                 if isinstance(new_enemy, game_tools.CentipedeEnemy):
                     for seg in new_enemy.segments:
-                        seg.health *= health_mult
+                        seg.health *= 1
                 enemies.append(new_enemy)
 
             segment_enemy_spawned += 1

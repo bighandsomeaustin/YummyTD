@@ -1,13 +1,173 @@
 {
-    "wave_number": 4,
-    "kill_count": 69,
+    "wave_number": 56,
+    "kill_count": 3785,
     "resume_flag": true,
     "towers": [
         {
+            "tower_type": "Ratman",
+            "position": [
+                616,
+                250
+            ],
+            "radius": 225,
+            "weapon": "plasma",
+            "damage": 6,
+            "image_path": "assets/ratman+plasma+speed.png",
+            "projectile_image": "assets/plasma_proj.png",
+            "shoot_interval": 250,
+            "curr_top_upgrade": 2,
+            "curr_bottom_upgrade": 2,
+            "sell_amt": 1300
+        },
+        {
+            "tower_type": "Ratman",
+            "position": [
+                712,
+                259
+            ],
+            "radius": 225,
+            "weapon": "plasma",
+            "damage": 6,
+            "image_path": "assets/ratman+plasma+speed.png",
+            "projectile_image": "assets/plasma_proj.png",
+            "shoot_interval": 250,
+            "curr_top_upgrade": 2,
+            "curr_bottom_upgrade": 2,
+            "sell_amt": 1300
+        },
+        {
+            "tower_type": "Ratman",
+            "position": [
+                590,
+                198
+            ],
+            "radius": 225,
+            "weapon": "plasma",
+            "damage": 6,
+            "image_path": "assets/ratman+plasma+speed.png",
+            "projectile_image": "assets/plasma_proj.png",
+            "shoot_interval": 250,
+            "curr_top_upgrade": 2,
+            "curr_bottom_upgrade": 2,
+            "sell_amt": 1300
+        },
+        {
+            "tower_type": "Ratman",
+            "position": [
+                336,
+                441
+            ],
+            "radius": 439.453125,
+            "weapon": "plasma",
+            "damage": 11.71875,
+            "image_path": "assets/ratman+plasma+speed.png",
+            "projectile_image": "assets/plasma_proj.png",
+            "shoot_interval": 128.0,
+            "curr_top_upgrade": 2,
+            "curr_bottom_upgrade": 2,
+            "sell_amt": 1300
+        },
+        {
+            "tower_type": "Ratman",
+            "position": [
+                355,
+                486
+            ],
+            "radius": 439.453125,
+            "weapon": "plasma",
+            "damage": 11.71875,
+            "image_path": "assets/ratman+plasma+speed.png",
+            "projectile_image": "assets/plasma_proj.png",
+            "shoot_interval": 128.0,
+            "curr_top_upgrade": 2,
+            "curr_bottom_upgrade": 2,
+            "sell_amt": 1300
+        },
+        {
+            "tower_type": "Ratman",
+            "position": [
+                278,
+                417
+            ],
+            "radius": 439.453125,
+            "weapon": "plasma",
+            "damage": 11.71875,
+            "image_path": "assets/ratman+plasma+speed.png",
+            "projectile_image": "assets/plasma_proj.png",
+            "shoot_interval": 128.0,
+            "curr_top_upgrade": 2,
+            "curr_bottom_upgrade": 2,
+            "sell_amt": 1300
+        },
+        {
+            "tower_type": "Ratman",
+            "position": [
+                346,
+                539
+            ],
+            "radius": 439.453125,
+            "weapon": "plasma",
+            "damage": 11.71875,
+            "image_path": "assets/ratman+plasma+speed.png",
+            "projectile_image": "assets/plasma_proj.png",
+            "shoot_interval": 128.0,
+            "curr_top_upgrade": 2,
+            "curr_bottom_upgrade": 2,
+            "sell_amt": 1300
+        },
+        {
+            "tower_type": "Ratman",
+            "position": [
+                297,
+                579
+            ],
+            "radius": 439.453125,
+            "weapon": "plasma",
+            "damage": 11.71875,
+            "image_path": "assets/ratman+plasma+speed.png",
+            "projectile_image": "assets/plasma_proj.png",
+            "shoot_interval": 128.0,
+            "curr_top_upgrade": 2,
+            "curr_bottom_upgrade": 2,
+            "sell_amt": 1300
+        },
+        {
+            "tower_type": "Ratman",
+            "position": [
+                197,
+                534
+            ],
+            "radius": 225,
+            "weapon": "plasma",
+            "damage": 6,
+            "image_path": "assets/ratman+plasma+speed.png",
+            "projectile_image": "assets/plasma_proj.png",
+            "shoot_interval": 250,
+            "curr_top_upgrade": 2,
+            "curr_bottom_upgrade": 2,
+            "sell_amt": 1300
+        },
+        {
+            "tower_type": "Ratman",
+            "position": [
+                215,
+                578
+            ],
+            "radius": 225,
+            "weapon": "plasma",
+            "damage": 6,
+            "image_path": "assets/ratman+plasma+speed.png",
+            "projectile_image": "assets/plasma_proj.png",
+            "shoot_interval": 250,
+            "curr_top_upgrade": 2,
+            "curr_bottom_upgrade": 2,
+            "sell_amt": 1300
+        },
+        {
             "tower_type": "MortarStrike",
             "position": [
-                291,
-                398
+                142,
+                473
             ],
             "image_path": null,
             "curr_top_upgrade": 3,
@@ -16,10 +176,71 @@
             "shoot_interval": 6500,
             "damage": 3,
             "target_pos": [
-                660,
-                232
+                223,
+                474
+            ]
+        },
+        {
+            "tower_type": "MinigunTower",
+            "position": [
+                110,
+                421
+            ],
+            "image_path": "assets/minigun_deathray+faster_spool.png",
+            "curr_top_upgrade": 1,
+            "curr_bottom_upgrade": 2,
+            "sell_amt": 2025,
+            "damage": 0.2,
+            "radius": 175,
+            "magazine_size": 100,
+            "base_magazine": 65,
+            "reload_time": 0.1
+        },
+        {
+            "tower_type": "CheeseBeacon",
+            "position": [
+                294,
+                499
+            ],
+            "image_path": "assets/beacon+speed.png",
+            "curr_top_upgrade": 0,
+            "curr_bottom_upgrade": 2,
+            "sell_amt": 2100,
+            "buff_radius": null
+        },
+        {
+            "tower_type": "Ratman",
+            "position": [
+                601,
+                140
+            ],
+            "radius": 225,
+            "weapon": "plasma",
+            "damage": 6,
+            "image_path": "assets/ratman+plasma+speed.png",
+            "projectile_image": "assets/plasma_proj.png",
+            "shoot_interval": 250,
+            "curr_top_upgrade": 2,
+            "curr_bottom_upgrade": 2,
+            "sell_amt": 1300
+        },
+        {
+            "tower_type": "MortarStrike",
+            "position": [
+                407,
+                272
+            ],
+            "image_path": null,
+            "curr_top_upgrade": 3,
+            "curr_bottom_upgrade": 0,
+            "sell_amt": 375,
+            "shoot_interval": 6500,
+            "damage": 3,
+            "target_pos": [
+                226,
+                176
             ]
         }
     ],
-    "money": 34569
+    "money": 18075
 }
