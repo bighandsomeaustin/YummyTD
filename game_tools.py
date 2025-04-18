@@ -1726,6 +1726,103 @@ def handle_upgrade(scrn, tower):
                     tower.image_path = "assets/soldier_thumper.png"
                     tower.image = load_image("assets/soldier_thumper.png")
                     tower.original_image = load_image("assets/soldier_thumper.png")
+
+    if isinstance(tower, Ratman):
+        img_supervision_upgrade = load_image("assets/upgrade_supervision.png")
+        img_superspeed_upgrade = load_image("assets/upgrade_superspeed.png")
+        img_roborat_upgrade = load_image("assets/upgrade_ratman_roborat.png")
+        img_fondue_upgrade = load_image("assets/upgrade_fondue.png")
+        img_plasma_upgrade = load_image("assets/upgrade_plasma.png")
+        img_cheesegod_upgrade = load_image("assets/upgrade_cheesegod.png")
+        if tower.curr_top_upgrade == 0:
+            scrn.blit(img_supervision_upgrade, (883, 65))
+            blit_text(scrn, "Supervision", "top")
+        elif tower.curr_top_upgrade == 1:
+            scrn.blit(img_superspeed_upgrade, (883, 65))
+            blit_text(scrn, "Superspeed", "top")
+        elif tower.curr_top_upgrade == 2 and tower.curr_bottom_upgrade < 3:
+            scrn.blit(img_roborat_upgrade, (883, 65))
+            blit_text(scrn, "Robo-Rat", "top")
+        else:
+            scrn.blit(img_max_upgrades, top)
+
+        if tower.curr_bottom_upgrade == 0:
+            scrn.blit(img_fondue_upgrade, (883, 194))
+            blit_text(scrn, "Fondue Blast", "bottom")
+        elif tower.curr_bottom_upgrade == 1:
+            scrn.blit(img_plasma_upgrade, (883, 194))
+            blit_text(scrn, "Plasmatic Provolone", "bottom")
+        elif tower.curr_bottom_upgrade == 2 and tower.curr_top_upgrade < 3:
+            scrn.blit(img_cheesegod_upgrade, (883, 194))
+            blit_text(scrn, "Cheese God", "bottom")
+        else:
+            scrn.blit(img_max_upgrades, bottom)
+        # TOP UPGRADE PATH
+        if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+            scrn.blit(img_upgrade_highlighted, (883, 65))
+            if detect_single_click():
+                # Supervision
+                if tower.curr_top_upgrade == 0 and money >= 850:
+                    purchase.play()
+                    money -= 850
+                    tower.sell_amt += 425
+                    tower.curr_top_upgrade = 1
+                    UpgradeFlag = True
+                    tower.get_upgrades()
+                # Superspeed
+                elif tower.curr_top_upgrade == 1 and money >= 1500:
+                    purchase.play()
+                    money -= 1500
+                    tower.sell_amt += 750
+                    tower.curr_top_upgrade = 2
+                    UpgradeFlag = True
+                    tower.get_upgrades()
+                # Robo-Rat
+                elif tower.curr_top_upgrade == 2 and money >= 7300 and tower.curr_bottom_upgrade < 3:
+                    purchase.play()
+                    money -= 7300
+                    tower.sell_amt += 3650
+                    tower.curr_top_upgrade = 3
+                    UpgradeFlag = True
+                    tower.get_upgrades()
+
+        # SELL BUTTON
+        if 997 <= mouse[0] <= 997 + 105 and 298 <= mouse[1] <= 298 + 35:
+            if detect_single_click():
+                money += tower.sell_amt
+                towers.remove(tower)
+                UpgradeFlag = False
+                return
+
+        # BOTTOM UPGRADE PATH
+        if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+            scrn.blit(img_upgrade_highlighted, (883, 194))
+            if detect_single_click():
+                # FONDUE BLAST
+                if tower.curr_bottom_upgrade == 0 and money >= 2200:
+                    purchase.play()
+                    money -= 2200
+                    tower.sell_amt += 1100
+                    tower.curr_bottom_upgrade = 1
+                    UpgradeFlag = True
+                    tower.get_upgrades()
+                # PLASMATIC PROVOLONE
+                elif tower.curr_bottom_upgrade == 1 and money >= 3000:
+                    purchase.play()
+                    money -= 3000
+                    tower.sell_amt += 1500
+                    tower.curr_bottom_upgrade = 2
+                    UpgradeFlag = True
+                    tower.get_upgrades()
+                # CHEESE GOD
+                elif tower.curr_bottom_upgrade == 2 and money >= 12000 and tower.curr_top_upgrade < 3:
+                    purchase.play()
+                    money -= 12000
+                    tower.sell_amt += 6000
+                    tower.curr_bottom_upgrade = 3
+                    UpgradeFlag = True
+                    tower.get_upgrades()
+
     if isinstance(tower, CheeseBeacon):
         img_damage3_upgrade = load_image("assets/upgrade_damage3.png")
         img_damage4_upgrade = load_image("assets/upgrade_damage4.png")
@@ -2705,8 +2802,9 @@ class Ratman:
         self.projectile_image = projectile_image
         self.shoot_interval = shoot_interval
         self.last_shot_time = 0
-        self.curr_top_upgrade = 2
-        self.curr_bottom_upgrade = 2
+        self.curr_top_upgrade = 0
+        self.curr_bottom_upgrade = 0
+        self.curr_bottom_upgrade = 0
         self.sell_amt = 1300
         self.impact_shards = []  # Changed from particles to shards
         self.robo = False
@@ -2734,7 +2832,7 @@ class Ratman:
             self.shoot_interval = 250
             self.radius = 225
             if self.curr_bottom_upgrade == 0:
-                self.image_path = "assets/ratman+superspeed.png"
+                self.image_path = "assets/ratman_superspeed.png"
                 self.image = load_image(self.image_path)
                 self.original_image = load_image(self.image_path)
             elif self.curr_bottom_upgrade == 1:

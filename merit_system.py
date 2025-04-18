@@ -488,6 +488,7 @@ def get_achievement_status():
 
 
 def check_mrcheese_only(round_towers):
+    # PLAIN WITH CHEESE
     """
     Checks if all towers placed during the round are of type 'MrCheese'.
     Returns True if the condition is met, otherwise False.
