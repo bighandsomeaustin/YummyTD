@@ -4,6 +4,9 @@ import json
 import os
 import pygame
 import game_tools
+import save_manager
+
+MERIT_SAVE_FILE = os.path.join(save_manager.SAVE_DIR, "merit_save.json")
 
 # Global variables for star merit system.
 TOTAL_STARS = 0
@@ -34,8 +37,6 @@ ACHIEVEMENTS = {
     },
     # Additional achievements can be defined here.
 }
-
-MERIT_SAVE_FILE = "merit_save.json"
 
 
 def load_merit_data():

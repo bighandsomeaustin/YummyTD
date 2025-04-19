@@ -4,6 +4,12 @@ import game_tools
 import os
 import game_stats
 
+SAVE_DIR = os.path.join(os.getenv("LOCALAPPDATA"), "YummyTD")
+os.makedirs(SAVE_DIR, exist_ok=True)
+
+SAVE_FILE = os.path.join(SAVE_DIR, "my_save.json")
+SETTINGS_FILE = os.path.join(SAVE_DIR, "settings.json")
+
 ###############################################################################
 # TOWER_CONSTRUCTOR_ATTRIBUTES:
 # Must match the tower class __init__ exactly. No extras.
@@ -236,7 +242,8 @@ def sanitize_for_json(value):
 ###############################################################################
 # 1) Save
 ###############################################################################
-def save_game(filename, wave_number, kill_count, resume_flag, money):
+def save_game(wave_number, kill_count, resume_flag, money):
+    filename = SAVE_FILE
     data = {
         "wave_number": wave_number,
         "kill_count": kill_count,
@@ -271,7 +278,8 @@ def save_game(filename, wave_number, kill_count, resume_flag, money):
     print(f"Game saved to {filename}!")
 
 
-def save_settings(filename, max_shards, max_indicators, game_speed, showfps, showcursor, music_level, fullscreen):
+def save_settings(max_shards, max_indicators, game_speed, showfps, showcursor, music_level, fullscreen):
+    filename = SETTINGS_FILE
     data = {
         "max_shards": max_shards,
         "max_indicators": max_indicators,
@@ -291,7 +299,8 @@ def save_settings(filename, max_shards, max_indicators, game_speed, showfps, sho
 ###############################################################################
 # 2) Load
 ###############################################################################
-def load_game(filename):
+def load_game():
+    filename = SAVE_FILE
     try:
         with open(filename, "r") as f:
             data = json.load(f)
@@ -383,7 +392,8 @@ def load_game(filename):
     return wave_number, kill_count, resume_flag, money
 
 
-def load_settings(filename):
+def load_settings():
+    filename = SETTINGS_FILE
     try:
         with open(filename, "r") as f:
             data = json.load(f)
@@ -402,7 +412,8 @@ def load_settings(filename):
     return max_shards, max_indicators, game_speed, showfps, showcursor, music_level, fullscreen
 
 
-def wipe_save(filename):
+def wipe_save():
+    filename = SAVE_FILE
     """
     Overwrites the save file with a minimal/empty JSON structure,
     effectively resetting progress.

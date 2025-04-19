@@ -12,7 +12,7 @@ import merit_system
 # Load settings
 (game_tools.MAX_SHARDS, game_tools.MAX_INDICATORS,
  game_tools.max_speed_multiplier, game_tools.showFPS,
- game_tools.showCursor, game_tools.user_volume, mainmenu.FullscreenFlag) = save_manager.load_settings("settings.json")
+ game_tools.showCursor, game_tools.user_volume, mainmenu.FullscreenFlag) = save_manager.load_settings()
 
 mainmenu.screen, mainmenu.game_surface = mainmenu.set_window()
 
@@ -42,7 +42,7 @@ while running:
     if state == "Menu":
         mixer.music.load("assets/menu_music.mp3")
         mixer.music.play(loops=-1)
-        loaded_round, loaded_kills, resumeFlag, game_tools.money = load_game("my_save.json")
+        loaded_round, loaded_kills, resumeFlag, game_tools.money = load_game()
         merit_system.load_merit_data()
         round_number = loaded_round
         game_stats.global_kill_total["count"] = loaded_kills
@@ -104,7 +104,7 @@ while running:
 
     if state == "New Game":
         resumeFlag = False
-        save_manager.wipe_save("my_save.json")
+        save_manager.wipe_save()
         game_stats.global_kill_total["count"] = 0
         # Fade into the background image using the final display surface when in fullscreen
         if mainmenu.FullscreenFlag:
@@ -168,7 +168,7 @@ while running:
             game_tools.TowerFlag = False
             resumeFlag = True
             game_tools.RoundFlag = False
-            save_game("my_save.json", round_number, game_stats.global_kill_total["count"], resumeFlag, game_tools.money)
+            save_game(round_number, game_stats.global_kill_total["count"], resumeFlag, game_tools.money)
             state = "Menu"
         if cursor_select == 'quit':
             game_tools.RoundFlag = False
@@ -177,7 +177,7 @@ while running:
         if cursor_select == "newgame":
             resumeFlag = False
             game_stats.global_kill_total["count"] = 0
-            save_manager.wipe_save("my_save.json")
+            save_manager.wipe_save()
             state = "New Game"
         if cursor_select == 'menu':
             state = "Menu"
@@ -227,7 +227,7 @@ while running:
                 elif round_number == 100:
                     merit_system.award_stars_for_round(8, mainmenu.game_surface)
                 if round_number > 1:
-                    save_game("my_save.json", round_number, game_stats.global_kill_total["count"], resumeFlag, game_tools.money)
+                    save_game(round_number, game_stats.global_kill_total["count"], resumeFlag, game_tools.money)
                 start_new_wave(round_number)
                 cursor_select = "NULL"
 

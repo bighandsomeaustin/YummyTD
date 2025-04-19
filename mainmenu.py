@@ -282,7 +282,7 @@ def options_control() -> str:
             button_press = pygame.mixer.Sound("assets/button_press.mp3")
             button_press.play()
             optionFlag = False
-            save_manager.save_settings("settings.json", game_tools.MAX_SHARDS, game_tools.MAX_INDICATORS,
+            save_manager.save_settings(game_tools.MAX_SHARDS, game_tools.MAX_INDICATORS,
                                        game_tools.max_speed_multiplier, game_tools.showFPS, game_tools.showCursor, game_tools.user_volume, FullscreenFlag)
             return "options"
 
@@ -343,6 +343,6 @@ def toggle_fullscreen():
         # In windowed mode, use the display surface directly.
         game_surface = screen
 
-    save_manager.save_settings("settings.json", game_tools.MAX_SHARDS, game_tools.MAX_INDICATORS,
+    save_manager.save_settings(game_tools.MAX_SHARDS, game_tools.MAX_INDICATORS,
                                game_tools.max_speed_multiplier, game_tools.showFPS, game_tools.showCursor,
                                game_tools.user_volume, FullscreenFlag)

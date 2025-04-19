@@ -394,7 +394,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
         pygame.mixer.stop()
         SettingsFlag = False
         contFlag = False
-        save_manager.wipe_save("my_save.json")
+        save_manager.wipe_save()
         game_stats.global_kill_total["count"] = 0
         user_health = 0
         gameoverFlag = True
@@ -470,13 +470,13 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
         if 766 <= mouse[0] <= 766 + 15 and 205 <= mouse[1] <= 205 + 18:
             if detect_single_click():
                 SettingsFlag = False
-                save_manager.save_settings("settings.json", MAX_SHARDS, MAX_INDICATORS,
+                save_manager.save_settings(MAX_SHARDS, MAX_INDICATORS,
                                            max_speed_multiplier, showFPS, showCursor,
                                            user_volume, mainmenu.FullscreenFlag)
         if 306 <= mouse[0] <= 306 + 199 and 286 <= mouse[1] <= 286 + 114:
             if detect_single_click():
                 SettingsFlag = False
-                save_manager.save_settings("settings.json", MAX_SHARDS, MAX_INDICATORS,
+                save_manager.save_settings(MAX_SHARDS, MAX_INDICATORS,
                                            max_speed_multiplier, showFPS, showCursor,
                                            user_volume, mainmenu.FullscreenFlag)
                 return "saveandquit"
@@ -489,7 +489,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
         if 550 <= mouse[0] <= 550 + 199 and 286 <= mouse[1] <= 286 + 114:
             if detect_single_click():
                 SettingsFlag = False
-                save_manager.save_settings("settings.json", MAX_SHARDS, MAX_INDICATORS,
+                save_manager.save_settings(MAX_SHARDS, MAX_INDICATORS,
                                            max_speed_multiplier, showFPS, showCursor,
                                            user_volume, mainmenu.FullscreenFlag)
                 return "quit"
