@@ -1,0 +1,9 @@
+{
+    "max_shards": 500,
+    "max_indicators": 500,
+    "game_speed": 2,
+    "showfps": false,
+    "showcursor": false,
+    "music_level": 1.0,
+    "fullscreen": false
+}

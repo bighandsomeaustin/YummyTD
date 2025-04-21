@@ -620,6 +620,57 @@ for r in range(1, 101):
                          "spawn_interval": 500,
                          "delay": 0})
 
+    elif r == 58:
+        segments.append({"enemies": ["FIREFLY"] * 4,
+                         "spawn_interval": 10,
+                         "delay": 2500})
+        segments.append({"enemies": ["TERMITE"] * 15,
+                         "spawn_interval": 10,
+                         "delay": 0})
+        segments.append({"enemies": ["ANT_ALT1"] * 100,
+                         "spawn_interval": 55,
+                         "delay": 2500})
+        segments.append({"enemies": ["MANTIS_ALT1"] * 2,
+                         "spawn_interval": 5000,
+                         "delay": 0})
+        segments.append({"enemies": ["ANT"] * 100,
+                         "spawn_interval": 55,
+                         "delay": 2500})
+        segments.append({"enemies": ["CENTIPEDE_BOSS"] * 1,
+                         "spawn_interval": 0,
+                         "delay": 5000})
+
+    elif r == 59:
+        segments.append({"enemies": ["HORNET"] * 50,
+                         "spawn_interval": 100,
+                         "delay": 0})
+        segments.append({"enemies": (["ROACH"] + ["ROACH_ALT1"]) * 75,
+                         "spawn_interval": 500,
+                         "delay": 0})
+        segments.append({"enemies": ["FIREFLY"] * 4,
+                         "spawn_interval": 10,
+                         "delay": 25})
+        segments.append({"enemies": ["CENTIPEDE"] * 1,
+                         "spawn_interval": 2500,
+                         "delay": 600})
+        segments.append({"enemies": ["FIREFLY"] * 2,
+                         "spawn_interval": 10,
+                         "delay": 0})
+        segments.append({"enemies": ["ANT"] * 4,
+                         "spawn_interval": 10,
+                         "delay": 2500})
+        segments.append({"enemies": ["ROACH_QUEEN"] * 3,
+                         "spawn_interval": 600,
+                         "delay": 300})
+
+    elif r == 60:
+        segments.append({"enemies": ["DUNG_BEETLE"] * 6,
+                         "spawn_interval": 4500,
+                         "delay": 0})
+
+
+
+
     else:
         if (r % 5) == 0:
             segments.append({"enemies": ["MILLIPEDE"],
@@ -653,7 +704,6 @@ for r in range(1, 101):
         segments.append({"enemies": ["DUNG_BEETLE"],
                          "spawn_interval": 25,
                          "delay": 0})
-
 
     round_configs[r] = segments
 
@@ -707,11 +757,11 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
     elif 50 <= round_number < 65:
         health_mult = 1.5
     elif 65 <= round_number < 75:
-        health_mult = 8
+        health_mult = 2
     elif 75 <= round_number < 85:
-        health_mult = 10
+        health_mult = 2.5
     elif 85 <= round_number < 100:
-        health_mult = 12
+        health_mult = 3
     elif round_number >= 100:
         health_mult = int(round_number / 5) - 6
     else:
@@ -782,7 +832,7 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
                 new_enemy = (game_tools.RoachQueenEnemy(spawn_pos, offset_path))
             elif enemy_type == "ROACH":
                 new_enemy = (game_tools.RoachMinionEnemy(position=spawn_pos, path=offset_path,
-                                                           speed=random.randint(1, 4), health=3))
+                                                         speed=random.randint(1, 4), health=3))
             elif enemy_type == "FIREFLY":
                 new_enemy = (game_tools.FireflyEnemy(spawn_pos, offset_path))
             elif enemy_type == "DUNG_BEETLE":
@@ -813,7 +863,7 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
                 new_enemy = (game_tools.RoachQueenEnemy(spawn_pos_alt1, offset_path_alt1))
             elif enemy_type == "ROACH_ALT1":
                 new_enemy = (game_tools.RoachMinionEnemy(position=spawn_pos_alt1, path=offset_path_alt1,
-                                                           speed=random.randint(1, 4), health=3))
+                                                         speed=random.randint(1, 4), health=3))
             elif enemy_type == "FIREFLY_ALT1":
                 new_enemy = (game_tools.FireflyEnemy(spawn_pos_alt1, offset_path_alt1))
             elif enemy_type == "DUNG_BEETLE_ALT1":

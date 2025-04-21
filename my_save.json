@@ -1,0 +1,27 @@
+{
+    "wave_number": 2,
+    "kill_count": 10,
+    "resume_flag": true,
+    "towers": [
+        {
+            "tower_type": "RatBank",
+            "position": [
+                982,
+                410
+            ],
+            "image_path": "assets/rat_bank_fargo_skyscraper.png",
+            "curr_top_upgrade": 0,
+            "curr_bottom_upgrade": 2,
+            "sell_amt": 1750,
+            "interest_rate": 1.03,
+            "cash_invested": 42500,
+            "cash_generated": 1549,
+            "loan_amount": 15395.0,
+            "loan_payment": 1005,
+            "provoloanFlag": true,
+            "briefundFlag": true,
+            "is_selected": false
+        }
+    ],
+    "money": 70
+}

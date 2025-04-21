@@ -271,14 +271,18 @@ def check_hitbox(image, position, placed_towers):
 
 
 def apply_mantis_debuff(tower):
+    print(tower)
     current_time = pygame.time.get_ticks()
     # If not already stored, record the original shoot_interval.
     if "original_shoot_interval" not in tower.__dict__:
         tower.__dict__["original_shoot_interval"] = getattr(tower, "shoot_interval", 1000)
         print("Original shoot_interval set to", tower.__dict__["original_shoot_interval"])
+        if tower.__dict__["original_shoot_interval"] is None:
+            tower.__dict__["original_shoot_interval"] = 0
     # Only apply the debuff if it isn’t already active.
     if not tower.__dict__.get("mantis_debuff_active", False):
         new_interval = tower.__dict__["original_shoot_interval"] * 2  # 50% slower.
+        print(tower)
         tower.__dict__["shoot_interval"] = new_interval
         print("Debuff applied: shoot_interval changed to", new_interval)
         # Update the tower's base shooting interval if it exists.
@@ -632,7 +636,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
         scrn.blit(img_mortar_text, (1113, 53))
         scrn.blit(img_tower_select, (1195, 567))
         if detect_single_click():
-            if money >= 1500:
+            if money >= 750:
                 purchase.play()
                 return "mortar"
             else:
@@ -4192,13 +4196,13 @@ class RatFrost:
         self.rect = self.image.get_rect(center=position)
         self.sell_amt = 100
         self.angle = 0
-
+        self.shoot_interval = 1500
         # Base stats
         self.radius = 75
         self.slow_multiplier = 0.75
         self.radius_image = load_image("assets/frost_freeze_radius_75.png")
         self.projectiles = []
-        self.snowball_interval = 1500
+        self.snowball_interval = self.shoot_interval
         self.last_shot = 0
         self.last_freeze_time = 0
 

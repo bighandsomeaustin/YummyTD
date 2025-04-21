@@ -116,9 +116,10 @@ while running:
         mixer.music.load("assets/map_music.mp3")
         mixer.music.play(-1)
 
+        # AVG MONEY AT RND 50: $17934
         # CHANGE THESE 3 FOR DEBUGGING
         game_tools.user_health = 100
-        game_tools.money = 350
+        game_tools.money = 35000
         round_number = 1
 
         game_tools.towers.clear()

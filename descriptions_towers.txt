@@ -1,0 +1,98 @@
+"MrCheese" {
+	"A humble tower with basic projectile damage."
+	
+	UPGRADES:
+	
+	TOP:
+	
+	"Book Smart" {
+		"Mr. Cheese has been hitting the books. Increased radius and shoot speed."
+		}
+		
+	"College Diploma" {
+		"Mr. Cheese's smarts and earned him a degree in Ratcanomics. Increased radius and shoot speed substantially."
+		}
+		
+	BOTTOM:
+		
+	"Protein 9000" {
+		"Mr. Cheese has found a passion for gains. Damage doubled."
+		}
+		
+	"Culture Injection" {
+		"The protein isn't cutting it. Mr. Cheese has turned to illegitimate methods of gains. Damage increased, cheese penetrates foes."
+		}
+	}
+		
+"Colby Frost" {
+	"A chilling creature who slows enemies in his radius."
+	
+	UPGRADES:
+	
+	TOP:
+	
+	"Snowballs" {
+		"Colby Frost breeds hate from the cold. Snowball projectiles slow enemies by an additional 25%."
+		}
+		
+	"Deadly Snowballs" {
+		"Hard rocks are tucked in the snowballs, dealing 1 damage each. OUCH!"
+		}
+		
+	"Snowball Barrage" {
+		"Colby Frost channels his hatred into a swarm of balls. Slow percentage increased to 35%, shoot interval halved."
+		}
+		
+	BOTTOM:
+	
+	"Bigger Storm" {
+		"Colby Frost's cold heart grows. Radius increased by 50%."
+		}
+		
+	"Snow Flurries" {
+		"Angiush fills Colby Frost with rage. His winds blow with immense strength. Slowing percentage increased by 15%."
+		}
+		
+	"Sub-Zero Temps" {
+		"Colby Frost's anger blocks out the sun. Freezing applies 1 damage to enemies once a second."
+		}
+	}
+		
+"Sniper" {
+	"A trained ex-military rodent. He uses his skills to nail opps from any range."
+	
+	UPGRADES:
+	
+	TOP:
+	
+	"Collateral Hits" {
+		"The sniper aces his shots to smoke multiple enemies with one round. Deal 60% damage to the enemy behind."
+		}
+		
+	"50cal Rounds" {
+		"Larger funding leads to more firepower. Damage increased to 15."
+		}
+		
+	"Collateral Chain" {
+		"Hollow points deal chain damage. 70% to 50% for the next 5 enemies."
+		}
+		
+	BOTTOM:
+	
+	"Fast Rechamber" {
+		"Ergonomic grip allows for fast bolt action rechambering. Shoot interval halved."
+		}
+		
+	"FMJ Rounds" {
+		"Armor-piercing rounds cracks layers of armor instantly. Break beetle armor."
+		}
+		
+	"Semi-Automatic Rifle" {
+		"Bolt-action replaced with a semi-automatic trigger. Shoot interval halved again."
+		}
+	}
+		
+"Cheddar Commando" {
+	"A rogue vigilante with a vengence against bugs. Deals one damage rapidly, with a 12-round magazine."
+	
+		
