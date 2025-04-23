@@ -24,11 +24,12 @@ def set_window():
     pygame.init()
     if FullscreenFlag:
         # Create borderless fullscreen using FULLSCREEN | NOFRAME
-        snart = pygame.display.set_mode((full_width, full_height), pygame.FULLSCREEN | pygame.NOFRAME)
+        snart = pygame.display.set_mode((full_width, full_height), pygame.FULLSCREEN | pygame.NOFRAME | pygame.HWSURFACE | pygame.DOUBLEBUF)
         # Create a fixed-resolution off-screen surface for game rendering
         sneef = pygame.Surface((1280, 720))
     else:
-        snart = pygame.display.set_mode((1280, 720))
+        snart = pygame.display.set_mode((1280, 720),
+                                        pygame.HWSURFACE | pygame.DOUBLEBUF)
         sneef = snart
 
     return snart, sneef
@@ -107,7 +108,7 @@ def mainmenu_control(screen: pygame.Surface) -> bool:
         if click:
             button_press.play()
             pygame.quit()
-            #exit()
+            # exit()
     else:
         screen.blit(img_quit, (502, 635))
 
@@ -192,7 +193,7 @@ def playscreen_control(screen: pygame.Surface, resume_flag: bool) -> str:
 
 def options_control() -> str:
     global optionFlag, shard_slider_dragging, indicator_slider_dragging, music_slider_dragging, FullscreenFlag, \
-            full_height, full_width, screen, game_surface, display_info
+        full_height, full_width, screen, game_surface, display_info
     mouse = pygame.mouse.get_pos()
     mouse_pressed = pygame.mouse.get_pressed()[0]
 
@@ -251,7 +252,6 @@ def options_control() -> str:
             toggle_fullscreen()
             optionFlag = False
 
-
     # ===== SHARD SLIDER =====
     shard_slider_min = 243
     shard_slider_max = 243 + 227
@@ -264,7 +264,8 @@ def options_control() -> str:
     indicator_slider_min = 243
     indicator_slider_max = 243 + 227
     indicator_slider_y = 419
-    indicator_slider_x = indicator_slider_min + (game_tools.MAX_INDICATORS / 1000) * (indicator_slider_max - indicator_slider_min)
+    indicator_slider_x = indicator_slider_min + (game_tools.MAX_INDICATORS / 1000) * (
+                indicator_slider_max - indicator_slider_min)
     game_surface.blit(option_slider, (indicator_slider_x - 8, indicator_slider_y))  # -8 to center handle
 
     # ===== MUSIC SLIDER =====
@@ -274,8 +275,6 @@ def options_control() -> str:
     music_slider_x = music_slider_min + game_tools.user_volume * (music_slider_max - music_slider_min)
     game_surface.blit(music_slider_img, (music_slider_x - 15, music_slider_y))  # -15 to center handle
 
-
-
     # Close button logic
     if 1039 <= mouse[0] <= 1070 and 140 <= mouse[1] <= 178:
         if game_tools.detect_single_click():
@@ -283,7 +282,8 @@ def options_control() -> str:
             button_press.play()
             optionFlag = False
             save_manager.save_settings(game_tools.MAX_SHARDS, game_tools.MAX_INDICATORS,
-                                       game_tools.max_speed_multiplier, game_tools.showFPS, game_tools.showCursor, game_tools.user_volume, FullscreenFlag)
+                                       game_tools.max_speed_multiplier, game_tools.showFPS, game_tools.showCursor,
+                                       game_tools.user_volume, FullscreenFlag)
             return "options"
 
     # ===== DRAGGING LOGIC =====
@@ -305,7 +305,7 @@ def options_control() -> str:
         if indicator_slider_dragging:
             new_x = max(indicator_slider_min, min(mouse[0], indicator_slider_max))
             game_tools.MAX_INDICATORS = int(((new_x - indicator_slider_min) / (
-                        indicator_slider_max - indicator_slider_min)) * 1000)  # Added inner parentheses
+                    indicator_slider_max - indicator_slider_min)) * 1000)  # Added inner parentheses
 
         if music_slider_dragging:
             new_x = max(music_slider_min, min(mouse[0], music_slider_max))

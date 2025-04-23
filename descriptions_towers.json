@@ -1,0 +1,132 @@
+{
+  "MrCheese": {
+    "description": "A humble tower with basic projectile damage.",
+    "upgrades": {
+      "Book Smart":          "Mr. Cheese has been hitting the books. Increased radius and shoot speed.",
+      "College Diploma":     "Mr. Cheese's smarts have earned him a degree in Ratcanomics. Increased radius and shoot speed substantially.",
+      "Protein 9000":        "Mr. Cheese has found a passion for gains. Damage doubled.",
+      "Culture Injection":   "The protein isn't cutting it. Mr. Cheese has turned to illegitimate methods of gains. Damage increased, cheese penetrates foes."
+    }
+  },
+
+  "Colby Frost": {
+    "description": "A chilling creature who slows enemies in his radius.",
+    "upgrades": {
+      "Snowballs":          "Colby Frost breeds hate from the cold. Snowball projectiles slow enemies by an additional 25%.",
+      "Deadly Snowballs":   "Hard rocks are tucked in the snowballs, dealing 1 damage each. OUCH!",
+      "Snowball Barrage":   "Colby Frost channels his hatred into a swarm of balls. Slow percentage increased to 35%, shoot interval halved.",
+      "Bigger Storm":       "Colby Frost's cold heart grows. Radius increased by 50%.",
+      "Snow Flurries":      "Angiush fills Colby Frost with rage. His winds blow with immense strength. Slowing percentage increased by 15%.",
+      "Sub-Zero Temps":     "Colby Frost's anger blocks out the sun. Freezing applies 1 damage to enemies once a second."
+    }
+  },
+
+  "Sniper": {
+    "description": "A trained ex-military rodent. He uses his skills to nail opponents from any range. Shoots high-caliper rounds with a long reset.",
+    "upgrades": {
+      "Collateral Hits":    "The sniper aces his shots to smoke multiple enemies with one round. Deal 60% damage to the enemy behind.",
+      "50cal Rounds":       "Larger funding leads to more firepower. Damage increased to 15.",
+      "Collateral Chain":   "Hollow points deal chain damage. 70% to 50% for the next 5 enemies.",
+      "Fast Rechamber":     "Ergonomic grip allows for fast bolt action rechambering. Shoot interval halved.",
+      "FMJ Rounds":         "Armor-piercing rounds crack layers of armor instantly. Break beetle armor.",
+      "Semi-Automatic Rifle":"Bolt-action replaced with a semi-automatic trigger. Shoot interval halved again."
+    }
+  },
+
+  "Cheddar Commando": {
+	"description": "A rogue vigilante with a passion for killing bugs. Shoots projectiles with a 12-round magazine.",
+	"upgrades": {
+		"Piercing Rounds":	"Cheddar's rounds fire with wrath. Bullets can pierce up to 5 enemies.",
+		"Shotgun":			"Pistol replaced with a shotgun, shooting 5 projectiles at once.",
+		"Explosive Rounds": "Fueled off of nothing but bitterness, Cheddar has stuffed explosives into his bullets. Deals radial damage, radius increased.",
+		"Grenade Launcher": "Cheddar, boiling with fury, has traded his 401k for a WW2 thumper. Shoots 6 explosives rounds, with a long reload time."
+		}
+	},
+	
+  "Rat Wizard": {
+	"description": "An arcane mysticist, who summons the power of dairy into four orbs which collide with foes.",
+	"upgrades": {
+		"Rat Apprentice":	"The Wizard has been taken under the wing of a higher power. Radius increased by 25, can summon 6 orbs.",
+		"Master Wizard":	"After completing his apprenticeship, the Wizard has honed in on his craft. Radius increased by 25, can summon 8 orbs, orb respawn halved.",
+		"Explosive Orbs":	"The power of gravity and momentum allows the Wizard to crash his orbs with great force. Orbs deal explosive radial damage on impact.",
+		"Lightning Spell":	"The Wizard has learned a new trick from an ancient rune. Can summon lightning, which deals chain damage to enemies next to each other.",
+		"Lightning Storm":	"Electricity runs through the Wizard's blood, allowing him to cast lightning rapidly. Chain damage extended, lightning spawn halved."
+		}
+	},
+  
+  "Rat Tent":	{
+	"description":	"Trains and produces recruits to join the war efforts. Must be placed along the enemy path.",
+	"upgrades": {
+		"Faster Rats":		"The camp has introduced a new crystal-like substance which speeds recruits greatly. Spawn interval halved, recruit speed doubled.",
+		"Stronger Rats":	"War bonds allow the camp to spend funding on better conditioning. Recruit health doubled to 2.",
+		"Freak Release":	"A new experimental drug is turning some recruits into monsterous weapons of chaos. Releases a freak every 10 recruits, with 10 health and .5 speed.",
+		"Task Force Cheese":	"The camp has devised a team specifically for insect annihilation. Releases a group of 60 rats with .5 health every 15 seconds."
+		}
+	},
+	
+  "Cheesy Ozbourne": {
+	"description": "An old rock legend, reborn in his hatred for insects and love for metal. Deals radial damage by hitting riffs.",
+	"upgrades":	{
+		"Amplifier":		"A huge 2000W amplifier allows riffs to travel further. Riff radius increased.",
+		"Longer Riffs":		"Ozbourne's record label is pushing a new single for him to perform. Riffs continue as enemies are in his radius, increasing in damage. Damage and riffs reset when no enemies are in range.",
+		"One Million Watts":	"New technology pushes Ozzy's riffs to over 1MW. Riffs are so powerful, enemies in his radius are left stunned for half a second.",
+		"Guitar Solo":		"With his new fanbase, Ozzy's ego gets to him. Clicking the new rock icon above his head triggers a powerful solo, with a huge radius, for 20 seconds. Can be used once a round."
+		}
+	},
+	
+  "Rat Bank":	{
+	"description": "Government-backed bank which generates $100/round for war efforts. Money can be invested to generate interest per round. Stock price determined by quality of rats, generating more income.",
+	"upgrades":	{
+		"715 Credit Score":	"FICO (Field Intelligence & Cheese Operations) reports lending viability. Interest rate increased to 7%.",
+		"Gouda Investments":	"Market strategists capitalize on new opportunities. Roundly return doubled, stock price soars.",
+		"Cheese Imports":	"New trade routes allow cheese to be imported. Importing cheese sends cargo which regenerates health.",
+		"Cheese Fargo":		"Cheese Fargo creates a new headquarters building to allow for more opportunities in banking. Allows loans to be taken out, which must be repaid, or else."
+		}
+	},
+	
+  "Minigun":	{
+	"description": "Specialized weaponry has brewed a new type of solider. Shoots weak projectiles very rapidly with a large magazine. Shooting accelerates barrels, allowing for massive damage.",
+	"upgrades":	{
+		"Faster Spool":		"Liquid cooling allows the minigun to spool faster. Acceleration doubled.",
+		"Bigger Mags": 		"Rodent engineers now allow the minigun to fit 140 bullets in a magazine.",
+		"Twin Guns":		"A bad temper for bugs has given each soldier two miniguns to wield. Damage and magazine size doubled.",
+		"Flaming Fromage": 	"Bullets are dipped in a coat of molten cheese, increasing damage to 1.5.",
+		"Death Ray":		"Engineers have completely disregarded safety and sense, creating a beam of fondue with infinite ammo and no spool, firing constantly."
+		}
+	},
+	
+  "Cheese Beacon": {
+	"description":	"Nearly troops are rallied with government incentivized cheese consumption. Boosts nearby tower's damage by 25%.",
+	"upgrades":	{
+		"Organic Cheese":	"Cheese is ethically and sustainably sourced. Boosts damage by an additional 100%.",
+		"Pasteurized Cheese":	"Cheese goes through an ultra-pasteurization process. Boosts damage by an additional 105%.",
+		"Antibiotic Free":	"Cheese is only sourced from processes free from antibiotics. Boosts damage by an additional 120%.",
+		"Vitamin Enhanced Cheese":	"Vitamin A is added into the cheese production process. Increases tower radiuses by 50%.",
+		"Caffeinated Cheese":	"Arabica coffee extract is added during the cheese ageing process. Doubles tower speed."
+		}
+	},
+	
+  "Ratman":	{
+	"description":	"Local myth suggests Ratman is a hero, born to free the holy lands from insects. Shoots very fast projectiles rapidly, with a large radius.",
+	"upgrades":	{
+		"Supervision":		"The lab has devised a new gadget, increasing sight to many horizons. Radius increased by 75.",
+		"Superspeed":		"Peppermint extract has been injected into Ratman's suit, doubling his speed.",
+		"Robo-Rat":			"Desperate to save the world, Ratman has undergone intense body reconstruction in Thailand. Shoots projectiles out of each arm, radius increased by 25.",
+		"Fondue Blast":		"Hot coals melt cheese instantly, becoming flaming hot projectiles. Shoots projectiles dealing 4 damage.",
+		"Plasmatic Provolone":	"Cheese is melted by nuclear fission, becoming immensely hot and dealing 6 damage.",
+		"Cheese God":		"The legends are true! Ratman has taken his purest form, transforming into a mystical god. Shoots god rays extremely rapidly dealing 8 damage each."
+		}
+	},
+	
+  "Mortar Strike":	{
+	"description": "War efforts supply rats with long range grenade launches, capable of dealing explosive damage anywhere on the map.",
+	"upgrades":	{
+		"Bigger Bombs":		"Bombs are built to hold more gunpowder, increasing explosion range by 25%.",
+		"Napalm":			"Bombs are stuffed with gasoline and styrofoam, dealing 5 damage and lasting twice as long.",
+		"Tzar Bomba":		"Cheese-fusion physicist Robert Rattenheimer has built a new type of bomb, capable of mass destruction. Deals 8 damage, with a huge radius of 250.",
+		"Rapid Reload": 	"Mortars are each given a team, making reloading extremely efficient. Shoot once every 3.5 seconds.",
+		"Cluster Bombs":	"Bombs crumble into nitroglycerin-soaked parmesan, coupling into 5 additional explosions with 33% damage and radius.",
+		"Triple Barrel":	"Mortar teams are given 2 additional mortars, firing into a vertical barrage."
+		}
+	}
+}

@@ -7,6 +7,7 @@ import game_stats
 import mainmenu
 import merit_system
 import save_manager
+from info_functs import info_window
 
 pygame.init()
 pygame.display.set_mode((1280, 720))
@@ -19,7 +20,12 @@ _font_cache = {}
 
 def load_image(path):
     if path not in _asset_cache:
-        _asset_cache[path] = pygame.image.load(path).convert_alpha()
+        surf = pygame.image.load(path)
+        # if the loaded image has any alpha channel, use convert_alpha()
+        if surf.get_alpha() is not None:
+            _asset_cache[path] = surf.convert_alpha()
+        else:
+            _asset_cache[path] = surf.convert()
     return _asset_cache[path]
 
 
@@ -514,6 +520,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     if 1115 <= mouse[0] <= 1115 + 73 and 101 <= mouse[1] <= 101 + 88:
         scrn.blit(img_tower_select, (1115, 101))
         scrn.blit(img_mrcheese_text, (1113, 53))
+        info_window(scrn, "MrCheese")
         if detect_single_click():
             if money >= 150:
                 purchase.play()
@@ -525,6 +532,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     elif 1195 <= mouse[0] <= 1195 + 73 and 101 <= mouse[1] <= 101 + 88:
         scrn.blit(img_frost_text, (1113, 53))
         scrn.blit(img_tower_select, (1195, 101))
+        info_window(scrn, "Colby Frost")
         if detect_single_click():
             if money >= 200:
                 purchase.play()
@@ -536,6 +544,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     elif 1195 <= mouse[0] <= 1195 + 73 and 288 <= mouse[1] <= 288 + 88:
         scrn.blit(img_ratcamp_text, (1113, 53))
         scrn.blit(img_tower_select, (1192, 288))
+        info_window(scrn, "Rat Tent")
         if detect_single_click():
             if money >= 650:
                 purchase.play()
@@ -547,6 +556,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     elif 1118 <= mouse[0] <= 1118 + 73 and 382 <= mouse[1] <= 382 + 88:
         scrn.blit(img_ozbourne_text, (1113, 53))
         scrn.blit(img_tower_select, (1118, 382))
+        info_window(scrn, "Cheesy Ozbourne")
         if detect_single_click():
             if money >= 500:
                 purchase.play()
@@ -558,6 +568,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     elif 1195 <= mouse[0] <= 1195 + 73 and 382 <= mouse[1] <= 382 + 88:
         scrn.blit(img_ratbank_text, (1113, 53))
         scrn.blit(img_tower_select, (1195, 382))
+        info_window(scrn, "Rat Bank")
         if detect_single_click():
             if money >= 700:
                 purchase.play()
@@ -569,6 +580,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     elif 1195 <= mouse[0] <= 1195 + 73 and 195 <= mouse[1] <= 195 + 88:
         scrn.blit(img_commando_text, (1113, 53))
         scrn.blit(img_tower_select, (1195, 195))
+        info_window(scrn, "Cheddar Commando")
         if detect_single_click():
             if money >= 250:
                 purchase.play()
@@ -580,6 +592,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     elif 1118 <= mouse[0] <= 1118 + 73 and 475 <= mouse[1] <= 475 + 88:
         scrn.blit(img_minigun_text, (1113, 53))
         scrn.blit(img_tower_select, (1118, 475))
+        info_window(scrn, "Minigun")
         if detect_single_click():
             if money >= 600:
                 purchase.play()
@@ -591,6 +604,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     elif 1118 <= mouse[0] <= 1118 + 73 and 288 <= mouse[1] <= 288 + 88:
         scrn.blit(img_wizard_text, (1113, 53))
         scrn.blit(img_tower_select, (1118, 288))
+        info_window(scrn, "Rat Wizard")
         if detect_single_click():
             if money >= 400:
                 purchase.play()
@@ -602,6 +616,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     elif 1195 <= mouse[0] <= 1195 + 73 and 475 <= mouse[1] <= 475 + 88:
         scrn.blit(img_beacon_text, (1113, 53))
         scrn.blit(img_tower_select, (1195, 475))
+        info_window(scrn, "Cheese Beacon")
         if detect_single_click():
             if money >= 1400:
                 purchase.play()
@@ -613,6 +628,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     elif 1118 <= mouse[0] <= 1118 + 73 and 195 <= mouse[1] <= 195 + 88:
         scrn.blit(img_sniper_text, (1113, 53))
         scrn.blit(img_tower_select, (1118, 195))
+        info_window(scrn, "Sniper")
         if detect_single_click():
             if money >= 350:
                 purchase.play()
@@ -624,6 +640,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     elif 1118 <= mouse[0] <= 1118 + 73 and 567 <= mouse[1] <= 567 + 88:
         scrn.blit(img_ratman_text, (1113, 53))
         scrn.blit(img_tower_select, (1118, 567))
+        info_window(scrn, "Ratman")
         if detect_single_click():
             if money >= 2600:
                 purchase.play()
@@ -635,6 +652,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
     elif 1195 <= mouse[0] <= 1195 + 73 and 567 <= mouse[1] <= 567 + 88:
         scrn.blit(img_mortar_text, (1113, 53))
         scrn.blit(img_tower_select, (1195, 567))
+        info_window(scrn, "Mortar Strike")
         if detect_single_click():
             if money >= 750:
                 purchase.play()
@@ -694,6 +712,11 @@ def handle_upgrade(scrn, tower):
     # cleaner bounds
     top = (883, 65)
     bottom = (883, 194)
+
+    circle_surface = pygame.Surface((2 * tower.radius, 2 * tower.radius), pygame.SRCALPHA)
+    pygame.draw.circle(circle_surface, (0, 0, 0, 128), (tower.radius, tower.radius), tower.radius)
+    scrn.blit(circle_surface, (tower.position[0] - tower.radius, tower.position[1] - tower.radius))
+
     scrn.blit(img_upgrade_window, (882, 0))
     if isinstance(tower, RatBank):
         if tower.briefundFlag or tower.provoloanFlag:
@@ -714,18 +737,30 @@ def handle_upgrade(scrn, tower):
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_booksmart_upgrade, (883, 65))
             blit_text(scrn, "Book Smart", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Book Smart")
         elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_diploma_upgrade, (883, 65))
             blit_text(scrn, "College Diploma", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "College Diploma")
         else:
             scrn.blit(img_max_upgrades, top)
 
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_protein_upgrade, (883, 194))
             blit_text(scrn, "Protein 9000", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Protein 9000")
         elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
             scrn.blit(img_steroids_upgrade, (883, 194))
             blit_text(scrn, "Culture Injection", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Culture Injection")
         else:
             scrn.blit(img_max_upgrades, bottom)
 
@@ -738,7 +773,6 @@ def handle_upgrade(scrn, tower):
                 return
         # check bounds of upgrade, return 1 or 2 for top or bottom choice
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
                 if tower.curr_top_upgrade == 0 and money >= 400:
                     purchase.play()
@@ -777,7 +811,6 @@ def handle_upgrade(scrn, tower):
                         tower.image = load_image("assets/mrcheese_diploma+protein.png")
                         tower.original_image = load_image("assets/mrcheese_diploma+protein.png")
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 194))
             if detect_single_click():
                 if money >= 450 and tower.curr_bottom_upgrade == 0:
                     purchase.play()
@@ -823,22 +856,33 @@ def handle_upgrade(scrn, tower):
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_fasterrats_upgrade, (883, 65))
             blit_text(scrn, "Faster Rats", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Faster Rats")
         elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
             blit_text(scrn, "Task Force Cheese", "top")
             scrn.blit(img_army_upgrade, (883, 65))
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Task Force Cheese")
         else:
             scrn.blit(img_max_upgrades, top)
 
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_strongrats_upgrade, (883, 194))
             blit_text(scrn, "Stronger Rats", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Stronger Rats")
         elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
             scrn.blit(img_freak_upgrade, (883, 194))
             blit_text(scrn, "Freak Release", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Freak Release")
         else:
             scrn.blit(img_max_upgrades, bottom)
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
                 if tower.curr_top_upgrade == 0 and money >= 1250:
                     purchase.play()
@@ -878,7 +922,6 @@ def handle_upgrade(scrn, tower):
                 return
 
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 194))
             if detect_single_click():
                 if money >= 1000 and tower.curr_bottom_upgrade == 0:
                     purchase.play()
@@ -915,23 +958,34 @@ def handle_upgrade(scrn, tower):
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_amplifier_upgrade, (883, 65))
             scrn.blit(text_faster, (962, 42))
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Amplifier")
         elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_watts_upgrade, (883, 65))
-            blit_text(scrn, "One Million Wats", "top")
+            blit_text(scrn, "One Million Watts", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "One Million Watts")
         else:
             scrn.blit(img_max_upgrades, top)
 
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_longerriffs_upgrade, (883, 194))
             scrn.blit(text_stronger, (962, 172))
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Longer Riffs")
         elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
             scrn.blit(img_solo_upgrade, (883, 194))
             blit_text(scrn, "Guitar Solo", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Guitar Solo")
         else:
             scrn.blit(img_max_upgrades, bottom)
 
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
                 if tower.curr_top_upgrade == 0 and money >= 350:
                     purchase.play()
@@ -968,7 +1022,6 @@ def handle_upgrade(scrn, tower):
                 mixer.music.play(-1)
                 return
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 194))
             if detect_single_click():
                 if money >= 375 and tower.curr_bottom_upgrade == 0:
                     purchase.play()
@@ -1003,23 +1056,34 @@ def handle_upgrade(scrn, tower):
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_credit_upgrade, (883, 65))
             blit_text(scrn, "715 Credit Score", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "715 Credit Score")
         elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_import_upgrade, top)
             blit_text(scrn, "Cheddar Imports", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Cheddar Imports")
         else:
             scrn.blit(img_max_upgrades, top)
 
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_gouda_upgrade, bottom)
             blit_text(scrn, "Gouda Investments", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Gouda Investments")
         elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
             scrn.blit(img_cheesefargo_upgrade, bottom)
             blit_text(scrn, "Cheese Fargo", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Cheese Fargo")
         else:
             scrn.blit(img_max_upgrades, bottom)
 
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
                 if tower.curr_top_upgrade == 0 and money >= 800:
                     purchase.play()
@@ -1068,7 +1132,6 @@ def handle_upgrade(scrn, tower):
                     return
 
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 194))
             if detect_single_click():
                 if money >= 1600 and tower.curr_bottom_upgrade == 0:
                     purchase.play()
@@ -1095,26 +1158,40 @@ def handle_upgrade(scrn, tower):
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_fasterspool_upgrade, (883, 65))
             blit_text(scrn, "Faster Spool", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Faster Spool")
         elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_biggermags_upgrade, (883, 65))
             blit_text(scrn, "Bigger Mags", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Bigger Mags")
         elif tower.curr_top_upgrade == 2 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_twinguns_upgrade, (883, 65))
             blit_text(scrn, "Twin Guns", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Twin Guns")
         else:
             scrn.blit(img_max_upgrades, top)
 
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_flamebullets_upgrade, (883, 194))
             blit_text(scrn, "Flaming Fromage", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Flaming Fromage")
         elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
             scrn.blit(img_deathray_upgrade, (883, 194))
             blit_text(scrn, "Death Ray", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Death Ray")
         else:
             scrn.blit(img_max_upgrades, bottom)
         # TOP UPGRADE PATH
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
                 # faster spool
                 if tower.curr_top_upgrade == 0 and money >= 400:
@@ -1179,7 +1256,6 @@ def handle_upgrade(scrn, tower):
                 return
         # BOTTOM UPGRADE PATH
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 194))
             if detect_single_click():
                 # flaming fromage
                 if tower.curr_bottom_upgrade == 0 and money >= 550:
@@ -1236,28 +1312,45 @@ def handle_upgrade(scrn, tower):
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_collateral_upgrade, (883, 65))
             blit_text(scrn, "Collateral Hits", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Collateral Hits")
         elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_50cal_upgrade, (883, 65))
             blit_text(scrn, "50cal Rounds", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "50cal Rounds")
         elif tower.curr_top_upgrade == 2 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_chain_upgrade, (883, 65))
             blit_text(scrn, "Collateral Chain", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Collateral Chain")
         else:
             scrn.blit(img_max_upgrades, top)
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_rechamber_upgrade, (883, 194))
             blit_text(scrn, "Fast Rechambering", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Fast Rechambering")
         elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
             scrn.blit(img_semiauto_upgrade, (883, 194))
             blit_text(scrn, "FMJ Rounds", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "FMJ Rounds")
         elif tower.curr_bottom_upgrade == 2 and tower.curr_top_upgrade < 2:
             scrn.blit(img_fmj_upgrade, (883, 194))
             blit_text(scrn, "Semi-Automatic", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Semi-Automatic")
         else:
             scrn.blit(img_max_upgrades, bottom)
         # TOP UPGRADE PATH
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
                 # collateral
                 if tower.curr_top_upgrade == 0 and money >= 600:
@@ -1336,7 +1429,6 @@ def handle_upgrade(scrn, tower):
                 return
         # BOTTOM UPGRADE PATH
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 194))
             if detect_single_click():
                 # rechamber
                 if tower.curr_bottom_upgrade == 0 and money >= 1500:
@@ -1421,29 +1513,46 @@ def handle_upgrade(scrn, tower):
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_snowball_upgrade, (883, 65))
             blit_text(scrn, "Snowballs", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Snowballs")
         elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_deadly_snowballs_upgrade, (883, 65))
             blit_text(scrn, "Deadly Snowballs", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Deadly Snowballs")
         elif tower.curr_top_upgrade == 2 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_snowball_barrage_upgrade, (883, 65))
             blit_text(scrn, "Snowball Barrage", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Snowball Barrage")
         else:
             scrn.blit(img_max_upgrades, top)
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_freeze_radius_upgrade, (883, 194))
             blit_text(scrn, "Bigger Storm", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Bigger Storm")
         elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
             scrn.blit(img_snow_flurry_upgrade, (883, 194))
             blit_text(scrn, "Snow Flurries", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Snow Flurries")
         elif tower.curr_bottom_upgrade == 2 and tower.curr_top_upgrade < 2:
             scrn.blit(img_freezing_temps_upgrade, (883, 194))
             blit_text(scrn, "Sub-Zero Temps", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Sub-Zero Temps")
         else:
             scrn.blit(img_max_upgrades, bottom)
 
         # TOP UPGRADE PATH
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
                 # snowballs
                 if tower.curr_top_upgrade == 0 and money >= 250:
@@ -1479,7 +1588,6 @@ def handle_upgrade(scrn, tower):
 
         # BOTTOM UPGRADE PATH
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 194))
             if detect_single_click():
                 # radius
                 if tower.curr_bottom_upgrade == 0 and money >= 350:
@@ -1514,26 +1622,40 @@ def handle_upgrade(scrn, tower):
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_apprentice_upgrade, (883, 65))
             blit_text(scrn, "Rat Apprentice", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Rat Apprentice")
         elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_master_upgrade, (883, 65))
             blit_text(scrn, "Master Wizard", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Master Wizard")
         elif tower.curr_top_upgrade == 2 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_explosive_orbs_upgrade, (883, 65))
             blit_text(scrn, "Explosive Orbs", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Explosive Orbs")
         else:
             scrn.blit(img_max_upgrades, top)
 
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_lightning_upgrade, (883, 194))
             blit_text(scrn, "Lightning Spell", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Lightning Spell")
         elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 3:
             scrn.blit(img_storm_upgrade, (883, 194))
             blit_text(scrn, "Lightning Storm", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Lightning Storm")
         else:
             scrn.blit(img_max_upgrades, bottom)
         # TOP UPGRADE PATH
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
                 # apprentice
                 if tower.curr_top_upgrade == 0 and money >= 400:
@@ -1572,7 +1694,7 @@ def handle_upgrade(scrn, tower):
                         tower.image = load_image("assets/wizard+lightning+master.png")
                         tower.original_image = load_image("assets/wizard+lightning+master.png")
                 # explosive orbs
-                elif tower.curr_top_upgrade == 2 and money >= 1000:
+                elif tower.curr_top_upgrade == 2 and money >= 1000 and tower.curr_bottom_upgrade < 3:
                     purchase.play()
                     money -= 1000
                     tower.sell_amt += 500
@@ -1594,7 +1716,6 @@ def handle_upgrade(scrn, tower):
                 return
         # BOTTOM UPGRADE PATH
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 194))
             if detect_single_click():
                 # lightning
                 if tower.curr_bottom_upgrade == 0 and money >= 1850:
@@ -1620,7 +1741,7 @@ def handle_upgrade(scrn, tower):
                         tower.image = load_image("assets/wizard+explosiveorbs+lightning.png")
                         tower.original_image = load_image("assets/wizard+explosiveorbs+lightning.png")
                 # storm
-                elif tower.curr_bottom_upgrade == 1 and money >= 2600 and tower.curr_top_upgrade < 2:
+                elif tower.curr_bottom_upgrade == 1 and money >= 2600 and tower.curr_top_upgrade < 3:
                     purchase.play()
                     money -= 2600
                     tower.sell_amt += 1300
@@ -1643,23 +1764,34 @@ def handle_upgrade(scrn, tower):
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_piercing_upgrade, (883, 65))
             blit_text(scrn, "Piercing Rounds", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Piercing Rounds")
         elif tower.curr_top_upgrade == 1 and tower.curr_bottom_upgrade < 2:
             scrn.blit(img_shotgun_upgrade, (883, 65))
             blit_text(scrn, "Shotgun", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Shotgun")
         else:
             scrn.blit(img_max_upgrades, top)
 
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_rpg_upgrade, (883, 194))
             blit_text(scrn, "Explosive Rounds", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Explosive Rounds")
         elif tower.curr_bottom_upgrade == 1 and tower.curr_top_upgrade < 2:
             scrn.blit(img_thumper_upgrade, (883, 194))
             blit_text(scrn, "Grenade Launcher", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Grenade Launcher")
         else:
             scrn.blit(img_max_upgrades, bottom)
         # piercing upgrade
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
                 if tower.curr_top_upgrade == 0 and money >= 450:
                     purchase.play()
@@ -1697,7 +1829,6 @@ def handle_upgrade(scrn, tower):
                 return
         # rocket launcher upgrade
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 194))
             if detect_single_click():
                 if money >= 700 and tower.curr_bottom_upgrade == 0:
                     purchase.play()
@@ -1741,29 +1872,46 @@ def handle_upgrade(scrn, tower):
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_supervision_upgrade, (883, 65))
             blit_text(scrn, "Supervision", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Supervision")
         elif tower.curr_top_upgrade == 1:
             scrn.blit(img_superspeed_upgrade, (883, 65))
             blit_text(scrn, "Superspeed", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Superspeed")
         elif tower.curr_top_upgrade == 2 and tower.curr_bottom_upgrade < 3:
             scrn.blit(img_roborat_upgrade, (883, 65))
             blit_text(scrn, "Robo-Rat", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Robo-Rat")
         else:
             scrn.blit(img_max_upgrades, top)
 
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_fondue_upgrade, (883, 194))
             blit_text(scrn, "Fondue Blast", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Fondue Blast")
         elif tower.curr_bottom_upgrade == 1:
             scrn.blit(img_plasma_upgrade, (883, 194))
             blit_text(scrn, "Plasmatic Provolone", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Plasmatic Provolone")
         elif tower.curr_bottom_upgrade == 2 and tower.curr_top_upgrade < 3:
             scrn.blit(img_cheesegod_upgrade, (883, 194))
             blit_text(scrn, "Cheese God", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Cheese God")
         else:
             scrn.blit(img_max_upgrades, bottom)
         # TOP UPGRADE PATH
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
                 # Supervision
                 if tower.curr_top_upgrade == 0 and money >= 850:
@@ -1800,7 +1948,6 @@ def handle_upgrade(scrn, tower):
 
         # BOTTOM UPGRADE PATH
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 194))
             if detect_single_click():
                 # FONDUE BLAST
                 if tower.curr_bottom_upgrade == 0 and money >= 2200:
@@ -1837,29 +1984,46 @@ def handle_upgrade(scrn, tower):
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_bigger_upgrade, (883, 65))
             blit_text(scrn, "Bigger Bombs", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Bigger Bombs")
         elif tower.curr_top_upgrade == 1:
             scrn.blit(img_napalm_upgrade, (883, 65))
             blit_text(scrn, "Napalm", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Napalm")
         elif tower.curr_top_upgrade == 2 and tower.curr_bottom_upgrade < 3:
             scrn.blit(img_tzar_upgrade, (883, 65))
             blit_text(scrn, "Tzar Bomba", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Tzar Bomba")
         else:
             scrn.blit(img_max_upgrades, top)
 
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_rapid_upgrade, (883, 194))
             blit_text(scrn, "Rapid Reload", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Rapid Reload")
         elif tower.curr_bottom_upgrade == 1:
             scrn.blit(img_cluster_upgrade, (883, 194))
             blit_text(scrn, "Cluster Bombs", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Cluster Bombs")
         elif tower.curr_bottom_upgrade == 2 and tower.curr_top_upgrade < 3:
             scrn.blit(img_triple_upgrade, (883, 194))
             blit_text(scrn, "Triple Barrel", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Triple Barrel")
         else:
             scrn.blit(img_max_upgrades, bottom)
         # TOP UPGRADE PATH
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
                 # Bigger Bombs
                 if tower.curr_top_upgrade == 0 and money >= 400:
@@ -1896,7 +2060,6 @@ def handle_upgrade(scrn, tower):
 
         # BOTTOM UPGRADE PATH
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 194))
             if detect_single_click():
                 # Rapid Reload
                 if tower.curr_bottom_upgrade == 0 and money >= 1100:
@@ -1932,26 +2095,40 @@ def handle_upgrade(scrn, tower):
         if tower.curr_top_upgrade == 0:
             scrn.blit(img_damage3_upgrade, (883, 65))
             blit_text(scrn, "Organic Cheese", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Organic Cheese")
         elif tower.curr_top_upgrade == 1:
             scrn.blit(img_damage4_upgrade, (883, 65))
             blit_text(scrn, "Pasteurized Cheese", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Pasteurized Cheese")
         elif tower.curr_top_upgrade == 2:
             scrn.blit(img_damage5_upgrade, (883, 65))
             blit_text(scrn, "Antibiotic-Free", "top")
+            if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 65))
+                info_window(scrn, "Antibiotic-Free")
         else:
             scrn.blit(img_max_upgrades, bottom)
 
         if tower.curr_bottom_upgrade == 0:
             scrn.blit(img_radius_upgrade, (883, 194))
             blit_text(scrn, "Vitamin Enhanced Cheese", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Vitamin Enhanced Cheese")
         elif tower.curr_bottom_upgrade == 1:
             scrn.blit(img_speed_upgrade, (883, 194))
-            blit_text(scrn, "Caffienated Cheese", "bottom")
+            blit_text(scrn, "Caffeinated Cheese", "bottom")
+            if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
+                scrn.blit(img_upgrade_highlighted, (883, 194))
+                info_window(scrn, "Caffeinated Cheese")
         else:
             scrn.blit(img_max_upgrades, bottom)
         # damage 3x
         if 883 <= mouse[0] <= 883 + 218 and 65 <= mouse[1] <= 65 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 65))
             if detect_single_click():
                 if tower.curr_top_upgrade == 0 and money >= 2500:
                     purchase.play()
@@ -2008,7 +2185,6 @@ def handle_upgrade(scrn, tower):
                 UpgradeFlag = False
                 return
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
-            scrn.blit(img_upgrade_highlighted, (883, 194))
             if detect_single_click():
                 # radius
                 if money >= 600 and tower.curr_bottom_upgrade == 0:
@@ -2063,17 +2239,14 @@ def handle_upgrade(scrn, tower):
         if event.type == pygame.QUIT:
             pygame.quit()
 
-    circle_surface = pygame.Surface((2 * tower.radius, 2 * tower.radius), pygame.SRCALPHA)
-    pygame.draw.circle(circle_surface, (0, 0, 0, 128), (tower.radius, tower.radius), tower.radius)
-    scrn.blit(circle_surface, (tower.position[0] - tower.radius, tower.position[1] - tower.radius))
-
 
 def update_towers(scrn: pygame.surface):
     global towers, enemies, last_frame_time, game_speed_multiplier
-    # Calculate delta time
-    current_time = pygame.time.get_ticks()
-    delta = (current_time - last_frame_time) * game_speed_multiplier
-    last_frame_time = current_time
+    now = pygame.time.get_ticks()
+    # compute real elapsed time in ms, then scale it
+    raw_dt = now - last_frame_time
+    last_frame_time = now
+    delta = raw_dt * game_speed_multiplier
 
     for tower in towers:
         if not isinstance(tower, RatBank) and not isinstance(tower, CheeseBeacon):
@@ -2662,6 +2835,10 @@ class RatTent:
         self.horn_sfx = load_sound("assets/battle_horn.mp3")
         self.freak_sfx = load_sound("assets/freak-squeak.mp3")
         self.freak_death = load_sound("assets/freak_death.mp3")
+        self._spawn_acc = 0.0
+        self._army_acc = 0.0  # for the 60‑rat “Task Force Cheese” release
+        self._freak_acc = 0.0  # for the occasional “Freak Release”
+        self._last_update = pygame.time.get_ticks()
 
     def render(self, screen):
         screen.blit(self.image, self.rect.topleft)
@@ -2669,83 +2846,92 @@ class RatTent:
             recruit.render(screen)
 
     def update(self, enemies):
-        scaled_interval = self.spawn_interval / game_speed_multiplier
-        if self.curr_top_upgrade > 0:
-            self.spawn_interval = 1500
-        # use default spawning
+        now = pygame.time.get_ticks()
+        raw_dt = now - self._last_update
+        self._last_update = now
+        dt = raw_dt * game_speed_multiplier
+        if not RoundFlag:
+            # clear out any stragglers if you want
+            self.recruits.clear()
+            return
+
+        # choose base‐spawn interval (ms) depending on top‐path upgrade
+        base_interval = 1500 if self.curr_top_upgrade > 0 else self.spawn_interval
+
+        # ==== 1) Regular recruits ====
         if self.curr_top_upgrade < 2:
-            if pygame.time.get_ticks() - self.last_spawn_time >= scaled_interval and RoundFlag:
-                recruit_entity = RecruitEntity(self.position, 1, 1, recruit_path, 1, self.recruit_image)
-                closest_spawn_point, _ = recruit_entity.get_closest_point_on_path(self.position)
-                distance = ((closest_spawn_point[0] - self.position[0]) ** 2 + (
-                        closest_spawn_point[1] - self.position[1]) ** 2) ** 0.5
-                if distance <= self.radius:
-                    recruit = RecruitEntity(
-                        position=closest_spawn_point,
+            self._spawn_acc += dt
+            while self._spawn_acc >= base_interval:
+                self._spawn_acc -= base_interval
+                # one spawn tick
+                p, _ = RecruitEntity(self.position, 1, 1, recruit_path, 1, self.recruit_image) \
+                    .get_closest_point_on_path(self.position)
+                if (p[0] - self.position[0]) ** 2 + (p[1] - self.position[1]) ** 2 <= self.radius ** 2:
+                    r = RecruitEntity(
+                        position=p,
                         health=self.recruit_health,
-                        speed=self.recruit_speed,
+                        speed=(2 if self.curr_top_upgrade > 0 else self.recruit_speed),
                         path=recruit_path,
                         damage=self.recruit_damage,
-                        image_path=self.recruit_image,
-                    )
-                    if self.curr_top_upgrade > 0:
-                        recruit.speed = 2
+                        image_path=self.recruit_image)
                     if self.curr_bottom_upgrade > 1:
-                        recruit.health = 2
-                    self.recruits.append(recruit)
-                    self.last_spawn_time = pygame.time.get_ticks()
+                        r.health = 2
+                    self.recruits.append(r)
 
-        # ARMY RELEASE!
+        # ==== 2) Task Force Cheese army release ====
         if self.curr_top_upgrade == 2 and self.curr_bottom_upgrade < 2:
-            if pygame.time.get_ticks() - self.last_spawn_time >= (scaled_interval * 10) and RoundFlag:
+            army_interval = base_interval * 10
+            self._army_acc += dt
+            if self._army_acc >= army_interval:
+                self._army_acc -= army_interval
                 self.horn_sfx.play()
-                recruit_entity = RecruitEntity(self.position, 1, 1, recruit_path, 1, self.recruit_image)
-                closest_spawn_point, _ = recruit_entity.get_closest_point_on_path(self.position)
-                distance = ((closest_spawn_point[0] - self.position[0]) ** 2 + (
-                        closest_spawn_point[1] - self.position[1]) ** 2) ** 0.5
-                if distance <= self.radius:
+                p, _ = RecruitEntity(self.position, 1, 1, recruit_path, 1, self.recruit_image) \
+                    .get_closest_point_on_path(self.position)
+                if (p[0] - self.position[0]) ** 2 + (p[1] - self.position[1]) ** 2 <= self.radius ** 2:
                     for _ in range(60):
-                        offset_path = [(x + random.randint(-16, 16), y + random.randint(-8, 8)) for (x, y) in recruit_path]
-                        recruit = RecruitEntity(
-                            position=(closest_spawn_point[0] + random.randint(-16, 16), closest_spawn_point[1] + random.randint(-16, 16)),
+                        jittered_path = [
+                            (x + random.randint(-16, 16), y + random.randint(-8, 8))
+                            for (x, y) in recruit_path
+                        ]
+                        r = RecruitEntity(
+                            position=(p[0] + random.randint(-16, 16), p[1] + random.randint(-16, 16)),
                             health=self.recruit_health / 2,
                             speed=self.recruit_speed,
-                            path=offset_path,
+                            path=jittered_path,
                             damage=self.recruit_damage / 2,
-                            image_path="assets/recruit_army.png"
-                        )
-                        self.recruits.append(recruit)
-                        self.last_spawn_time = pygame.time.get_ticks()
+                            image_path="assets/recruit_army.png")
+                        self.recruits.append(r)
 
-        # RELEASE A FREAK!!
+        # ==== 3) Freak Release ====
         if self.curr_bottom_upgrade > 1 and self.curr_top_upgrade < 2:
-            if pygame.time.get_ticks() - self.freak_last_spawn_time >= (scaled_interval * 5) and RoundFlag:
+            freak_interval = base_interval * 5
+            self._freak_acc += dt
+            if self._freak_acc >= freak_interval:
+                self._freak_acc -= freak_interval
                 self.freak_sfx.play()
-                recruit_entity = RecruitEntity(self.position, 1, 1, recruit_path, 1, self.recruit_image)
-                closest_spawn_point, _ = recruit_entity.get_closest_point_on_path(self.position)
-                distance = ((closest_spawn_point[0] - self.position[0]) ** 2 + (
-                        closest_spawn_point[1] - self.position[1]) ** 2) ** 0.5
-                if distance <= self.radius:
-                    recruit = RecruitEntity(
-                        position=closest_spawn_point,
+                p, _ = RecruitEntity(self.position, 1, 1, recruit_path, 1, self.recruit_image) \
+                    .get_closest_point_on_path(self.position)
+                if (p[0] - self.position[0]) ** 2 + (p[1] - self.position[1]) ** 2 <= self.radius ** 2:
+                    r = RecruitEntity(
+                        position=p,
                         health=10,
-                        speed=.5,
+                        speed=0.5,
                         path=recruit_path,
                         damage=3,
-                        image_path="assets/freak_recruit_frames/freak0.png"
-                    )
-                    recruit.buff = True
-                    self.recruits.append(recruit)
-                    self.freak_last_spawn_time = pygame.time.get_ticks()
+                        image_path="assets/freak_recruit_frames/freak0.png")
+                    r.buff = True
+                    self.recruits.append(r)
 
-        for recruit in self.recruits[:]:
-            recruit.update(enemies)
-            if not recruit.is_alive and recruit is not None:
-                if recruit.buff:
-                    self.freak_death.play()
-                self.recruits.remove(recruit)
-            if not RoundFlag and recruit is not None:
-                self.recruits.remove(recruit)
+        # ==== 4) Advance & cull recruits ====
+        alive = []
+        for r in self.recruits:
+            r.update(enemies)
+            if r.is_alive:
+                alive.append(r)
+            elif r.buff:
+                self.freak_death.play()
+            # dead & not buffed just drop
+        self.recruits = alive
 
 
 class MrCheese:
@@ -8026,7 +8212,7 @@ class CentipedeEnemy:
         else:
             # If the head reaches the end of the path, subtract remaining health from the user.
             tot_health = sum(1 for seg in self.segments[1:] if seg.alive)
-            user_health -= int(head.health + tot_health * 2)
+            user_health -= int(abs(head.health + tot_health * 2))
             self.segments.clear()
             return
 
