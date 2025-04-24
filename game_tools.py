@@ -70,8 +70,8 @@ user_health = 100
 music_volume = 1.0
 user_volume = 1.0
 slider_dragging = False
-game_speed_multiplier = 1  # Add at top with other globals
-max_speed_multiplier = 2
+game_speed_multiplier = 2  # Add at top with other globals
+max_speed_multiplier = 4
 last_frame_time = 0  # Track frame timing
 global_damage_indicators = []
 global_impact_particles = []
@@ -456,14 +456,14 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
                 RoundFlag = True
                 return "nextround"
     if RoundFlag:
-        if game_speed_multiplier == 1:
+        if game_speed_multiplier == 2:
             scrn.blit(img_playbutton_1x, (1110, 665))
         else:
             scrn.blit(img_playbutton_2x, (1110, 665))
         # 2x speed
         if 1110 <= mouse[0] <= 1110 + 81 and 665 <= mouse[1] <= 665 + 50:
             if detect_single_click():
-                game_speed_multiplier = max_speed_multiplier if game_speed_multiplier == 1 else 1
+                game_speed_multiplier = max_speed_multiplier if game_speed_multiplier == 2 else 2
 
     # settings button
     scrn.blit(img_settingsbutton, (1192, 665))
@@ -486,6 +486,7 @@ def check_game_menu_elements(scrn: pygame.surface) -> str:
         if 306 <= mouse[0] <= 306 + 199 and 286 <= mouse[1] <= 286 + 114:
             if detect_single_click():
                 SettingsFlag = False
+                pygame.time.delay(500)
                 save_manager.save_settings(MAX_SHARDS, MAX_INDICATORS,
                                            max_speed_multiplier, showFPS, showCursor,
                                            user_volume, mainmenu.FullscreenFlag)
@@ -1018,8 +1019,7 @@ def handle_upgrade(scrn, tower):
                 money += tower.sell_amt
                 towers.remove(tower)
                 UpgradeFlag = False
-                mixer.music.load("assets/map_music.mp3")
-                mixer.music.play(-1)
+                mixer.music.unpause()
                 return
         if 883 <= mouse[0] <= 883 + 218 and 194 <= mouse[1] <= 194 + 100:
             if detect_single_click():
@@ -2393,11 +2393,11 @@ def update_stats(scrn: pygame.surface, health: int, money: int, round_number: in
     scrn.blit(text3, (1150, 10))
 
 
-def handle_newtower(scrn: pygame.surface, tower: str) -> bool:
+def handle_newtower(scrn: pygame.surface, tower: str, hitbox: str) -> bool:
     global money, TowerFlag
     TowerFlag = True
-    image_house_hitbox = 'assets/house_illegal_regions.png'
-    house_hitbox = load_image(image_house_hitbox)
+    image_hitbox = hitbox
+    house_hitbox = load_image(image_hitbox)
     tower_click = load_sound("assets/tower_placed.mp3")
     mouse = pygame.mouse.get_pos()
     relative_pos = (mouse[0] - hitbox_position[0], mouse[1] - hitbox_position[1])
@@ -8561,7 +8561,7 @@ class MillipedeBoss:
         """
         global user_health
         if not self.sfx_playing:
-            self.sfx_channel.play(self.millipede_sfx, loops=-1)
+            self.sfx_channel.play(self.millipede_sfx)
             self.sfx_playing = True
         # Adjust speed based on number of alive non-head segments.
         non_head_alive = sum(1 for seg in self.segments[1:] if seg.alive)

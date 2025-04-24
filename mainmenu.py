@@ -2,6 +2,7 @@ import pygame
 from pygame import mixer
 
 import game_tools
+import merit_system
 import save_manager
 from game_tools import load_image, MAX_SHARDS, MAX_INDICATORS, user_volume
 
@@ -42,47 +43,21 @@ def render_mainmenu(screen: pygame.Surface):
     :return: none
     """
 
+    img_menu = load_image("assets/mainmenu/mainmenu.png")
     font1 = pygame.font.SysFont('chalkduster.ttf', 20)
-    version = font1.render('Version 1.0.0', True, (0, 255, 0))
-    text_rect1 = version.get_rect()
-    screen.blit(version, text_rect1)
-
-    # Draw menu background
-    img_menu = pygame.image.load("assets/menu_background.png").convert()
-
-    # Logo
-    img_logo = pygame.image.load("assets/mainmenu_logo.png").convert_alpha()
-
-    # Play button screen
-    img_play = pygame.image.load("assets/mainmenu_play.png").convert_alpha()
-
-    # Quit button screen
-    img_quit = pygame.image.load("assets/mainmenu_quit.png").convert_alpha()
-
-    # render background
+    num_stars = font1.render(f'{merit_system.TOTAL_STARS}', True, (255, 255, 255))
     screen.blit(img_menu, (0, 0))
-
-    # render play button
-    screen.blit(img_play, (502, 555))
-
-    # render quit button
-    screen.blit(img_quit, (502, 635))
-
-    # render logo
-    screen.blit(img_logo, (384, 40))
+    screen.blit(num_stars, (1245, 685))
 
 
-def mainmenu_control(screen: pygame.Surface) -> bool:
+def mainmenu_control(screen: pygame.Surface) -> str:
     """
     tracks cursor position on menu and controls menu elements
     :return: bool
     """
-    hover_play = pygame.image.load(
-        "assets/mainmenu_play_hovered.png").convert_alpha()
-    hover_quit = pygame.image.load(
-        "assets/mainmenu_quit_hovered.png").convert_alpha()
-    img_play = pygame.image.load("assets/mainmenu_play.png").convert_alpha()
-    img_quit = pygame.image.load("assets/mainmenu_quit.png").convert_alpha()
+    hover_play = load_image("assets/mainmenu/play_selected.png")
+    hover_sandbox = load_image("assets/mainmenu/sandbox_selected.png")
+    hover_quit = load_image("assets/mainmenu/quit_selected.png")
     button_press = pygame.mixer.Sound("assets/button_press.mp3")
 
     click = False
@@ -95,24 +70,34 @@ def mainmenu_control(screen: pygame.Surface) -> bool:
     mouse = pygame.mouse.get_pos()
     click = pygame.mouse.get_pressed()[0]
 
-    if 502 <= mouse[0] <= 777 and 555 <= mouse[1] <= (555 + 75):
-        screen.blit(hover_play, (502, 555))
+    # Play button
+    if 92 <= mouse[0] <= 92 + 361 and 229 <= mouse[1] <= (229 + 59):
+        screen.blit(hover_play, (0, 0))
         if click:
             button_press.play()
-            return True
+            return "Play"
     else:
-        screen.blit(img_play, (502, 555))
+        screen.blit(load_image("assets/mainmenu/play.png"), (0, 0))
 
-    if 502 <= mouse[0] <= 777 and 635 <= mouse[1] <= (635 + 75):
-        screen.blit(hover_quit, (502, 635))
+    # Sandbox button
+    if 92 <= mouse[0] <= 92 + 361 and 304 <= mouse[1] <= (304 + 59):
+        screen.blit(hover_sandbox, (0, 0))
+        if click:
+            button_press.play()
+            return "Sandbox"
+    else:
+        screen.blit(load_image("assets/mainmenu/sandbox.png"), (0, 0))
+
+    # Quit button
+    if 92 <= mouse[0] <= 92 + 361 and 379 <= mouse[1] <= (379 + 59):
+        screen.blit(hover_quit, (0, 0))
         if click:
             button_press.play()
             pygame.quit()
-            # exit()
     else:
-        screen.blit(img_quit, (502, 635))
+        screen.blit(load_image("assets/mainmenu/quit.png"), (0, 0))
 
-    return False
+    return "NULL"
 
 
 def playscreen_control(screen: pygame.Surface, resume_flag: bool) -> str:
@@ -213,21 +198,21 @@ def options_control() -> str:
         game_surface.blit(checked, (970, 438))
 
     speed_font = game_tools.get_font("arial", 24)
-    text_speed = speed_font.render(f"{game_tools.max_speed_multiplier}", True, (0, 0, 0))
+    text_speed = speed_font.render(f"{int(game_tools.max_speed_multiplier / 2)}", True, (0, 0, 0))
     game_surface.blit(text_speed, (976, 300))
 
     if 1004 <= mouse[0] <= 1004 + 21 and 301 <= mouse[1] <= 301 + 25:
         if game_tools.detect_single_click():
             button_press.play()
-            game_tools.max_speed_multiplier += 1
+            game_tools.max_speed_multiplier += 2
             if game_tools.max_speed_multiplier > 10:
                 game_tools.max_speed_multiplier = 10
     elif 1032 <= mouse[0] <= 1032 + 21 and 301 <= mouse[1] <= 301 + 25:
         if game_tools.detect_single_click():
             button_press.play()
-            game_tools.max_speed_multiplier -= 1
-            if game_tools.max_speed_multiplier < 2:
-                game_tools.max_speed_multiplier = 2
+            game_tools.max_speed_multiplier -= 2
+            if game_tools.max_speed_multiplier < 4:
+                game_tools.max_speed_multiplier = 4
 
     if 967 <= mouse[0] <= 967 + 34 and 345 <= mouse[1] <= 345 + 30:
         if game_tools.detect_single_click():

@@ -30,6 +30,7 @@ resumeFlag = False
 curr_wave = False
 round_number = 1  # For debugging
 PlayFlag = True
+hitbox = None
 
 # Preload map image for the game background
 image_map = pygame.image.load("assets/house_map_baselayer.png").convert_alpha()
@@ -56,8 +57,10 @@ while running:
         mainmenu.game_surface.fill("purple")
         mainmenu.render_mainmenu(mainmenu.game_surface)
         playFlag = mainmenu.mainmenu_control(mainmenu.game_surface)
-        if playFlag:
+        if playFlag == "Play":
             state = "Play"
+        if playFlag == "Sandbox":
+            state = "Sandbox"
         # Upscale the off-screen surface (if in fullscreen) or draw normally
         if mainmenu.FullscreenFlag:
             scaled_surface = pygame.transform.scale(mainmenu.game_surface, (mainmenu.full_width, mainmenu.full_height))
@@ -112,6 +115,7 @@ while running:
         else:
             game_tools.fade_into_image(mainmenu.game_surface, "assets/house_map_baselayer.png", 500)
         image_map = pygame.image.load("assets/house_map_baselayer.png").convert_alpha()
+        hitbox = "assets/house_illegal_regions.png"
         mixer.music.fadeout(1000)
         mixer.music.load("assets/map_music.mp3")
         mixer.music.play(-1)
@@ -119,7 +123,7 @@ while running:
         # AVG MONEY AT RND 50: $17934
         # CHANGE THESE 3 FOR DEBUGGING
         game_tools.user_health = 100
-        game_tools.money = 35000
+        game_tools.money = 350
         round_number = 1
 
         game_tools.towers.clear()
@@ -127,11 +131,36 @@ while running:
         start_new_wave(round_number)
         state = "Game"
 
+    if state == "Sandbox":
+        if mainmenu.FullscreenFlag:
+            game_tools.fade_into_image(mainmenu.screen, "assets/sandbox_map_baselayer.png", 500)
+        else:
+            game_tools.fade_into_image(mainmenu.game_surface, "assets/sandbox_map_baselayer.png", 500)
+        image_map = pygame.image.load("assets/sandbox_map_baselayer.png").convert_alpha()
+        hitbox = "assets/sandbox_illegal_regions.png"
+        mixer.music.fadeout(1000)
+        mixer.music.load("assets/sandbox_music.mp3")
+        mixer.music.play(-1)
+
+        # AVG MONEY AT RND 50: $17934
+        # CHANGE THESE 3 FOR DEBUGGING
+        game_tools.user_health = 1000000
+        game_tools.money = 350000000
+        round_number = 1
+
+        game_tools.towers.clear()
+        game_tools.enemies.clear()
+        start_new_wave(round_number)
+        exit_new_tower = True
+        from sandbox import sandbox_cursor
+        state = "play_Sandbox"
+
     if state == "Resume":
         if mainmenu.FullscreenFlag:
             game_tools.fade_into_image(mainmenu.screen, "assets/house_map_baselayer.png", 500)
         else:
             game_tools.fade_into_image(mainmenu.game_surface, "assets/house_map_baselayer.png", 500)
+        hitbox = "assets/house_illegal_regions.png"
         image_map = pygame.image.load("assets/house_map_baselayer.png").convert_alpha()
         mixer.music.fadeout(1000)
         mixer.music.load("assets/map_music.mp3")
@@ -188,7 +217,7 @@ while running:
             exit_new_tower = False
 
         if not exit_new_tower:
-            exit_new_tower = game_tools.handle_newtower(mainmenu.game_surface, tower)
+            exit_new_tower = game_tools.handle_newtower(mainmenu.game_surface, tower, hitbox)
 
         if game_tools.RoundFlag:
             curr_wave = send_wave(mainmenu.game_surface, round_number)
@@ -229,6 +258,109 @@ while running:
                     merit_system.award_stars_for_round(8, mainmenu.game_surface)
                 if round_number > 1:
                     save_game(round_number, game_stats.global_kill_total["count"], resumeFlag, game_tools.money)
+                start_new_wave(round_number)
+                cursor_select = "NULL"
+
+        if game_tools.MogFlag:
+            if mainmenu.FullscreenFlag:
+                game_tools.play_mog_animation(mainmenu.screen)
+            else:
+                game_tools.play_mog_animation(mainmenu.game_surface)
+            game_tools.MogFlag = False
+            mixer.music.unpause()
+
+        # Upscale rendering: draw game_surface to screen
+        if mainmenu.FullscreenFlag:
+            scaled_surface = pygame.transform.scale(mainmenu.game_surface, (mainmenu.full_width, mainmenu.full_height))
+            mainmenu.screen.blit(scaled_surface, (0, 0))
+        else:
+            mainmenu.screen.blit(mainmenu.game_surface, (0, 0))
+
+        pygame.display.flip()
+        clock.tick(60 * game_tools.game_speed_multiplier)
+
+    while state == "play_Sandbox":
+        for events in pygame.event.get():
+            # Allow tower banks to update user text
+            for tower_bank in game_tools.towers:
+                if isinstance(tower_bank, game_tools.RatBank):
+                    tower_bank.update_user_text(events)
+                    pygame.event.clear()
+            if events.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if events.type == pygame.KEYDOWN:
+                if events.key == pygame.K_ESCAPE:
+                    game_tools.TowerFlag = False
+                    exit_new_tower = True
+
+        # First, draw the background map onto game_surface
+        mainmenu.game_surface.blit(image_map, (0, 0))
+        # Update game elements onto game_surface
+        game_tools.update_towers(mainmenu.game_surface)
+        game_tools.current_wave = round_number
+        game_tools.update_shards(mainmenu.game_surface)
+        cursor_select = game_tools.check_game_menu_elements(mainmenu.game_surface)
+
+        if cursor_select == "saveandquit":
+            game_tools.TowerFlag = False
+            resumeFlag = True
+            game_tools.RoundFlag = False
+            state = "Menu"
+        if cursor_select == 'quit':
+            game_tools.RoundFlag = False
+            game_tools.TowerFlag = False
+            state = "Menu"
+        if cursor_select == "newgame":
+            game_stats.global_kill_total["count"] = 0
+            state = "New Game"
+        if cursor_select == 'menu':
+            state = "Menu"
+
+        if cursor_select not in ("NULL", "nextround", "saveandquit"):
+            tower = cursor_select
+            exit_new_tower = False
+
+        if not exit_new_tower:
+            exit_new_tower = game_tools.handle_newtower(mainmenu.game_surface, tower, hitbox)
+
+        if game_tools.user_health < 100:
+            game_tools.user_health = 100
+        if game_tools.money < 100000:
+            game_tools.money = 100000
+
+        sel = sandbox_cursor(mainmenu.game_surface)
+        if sel == "skip":
+            from waves import current_round_config
+            current_round_config.clear()
+            game_tools.enemies.clear()
+            game_tools.RoundFlag = True
+            round_number += 1
+            print(round_number)
+            start_new_wave(round_number)
+        if sel == "clear":
+            game_tools.enemies.clear()
+
+        if game_tools.RoundFlag:
+            curr_wave = send_wave(mainmenu.game_surface, round_number)
+            if curr_wave:
+                for tower in game_tools.towers:
+                    if isinstance(tower, game_tools.RatBank):
+                        tower.process_loan_payment()
+                        tower.process_interest()
+                        tower.reset_imports()
+                    if isinstance(tower, game_tools.Ozbourne):
+                        tower.reset_solo()
+                if game_tools.Autoplay:
+                    game_tools.RoundFlag = True
+                else:
+                    game_tools.RoundFlag = False
+                round_number += 1
+                mainmenu.game_surface.blit(image_map, (0, 0))
+                game_tools.update_towers(mainmenu.game_surface)
+                game_tools.update_stats(mainmenu.game_surface, game_tools.user_health, game_tools.money, round_number,
+                                        clock)
+                pygame.display.flip()
                 start_new_wave(round_number)
                 cursor_select = "NULL"
 
