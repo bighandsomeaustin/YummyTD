@@ -668,8 +668,10 @@ for r in range(1, 101):
                          "spawn_interval": 4500,
                          "delay": 0})
 
-
-
+    elif r == 61:
+        segments.append({"enemies": ["WASP_BOSS"],
+                         "spawn_interval": 0,
+                         "delay": 0})
 
     else:
         if (r % 5) == 0:
@@ -729,8 +731,11 @@ def start_new_wave(round_number: int):
     """Initialize wave settings when a new wave starts."""
     global current_round_config, current_segment_index, segment_enemy_spawned, segment_start_time
     global rush_active, rush_info, rush_spawned, original_spawn_interval, enemies
-
+    if round_number not in round_configs:
+        # generate infinite waves past 100
+        round_configs[round_number] = generate_rand_wave(round_number)
     current_round_config = round_configs[round_number]
+
     current_segment_index = 0
     segment_enemy_spawned = 0
     segment_start_time = pygame.time.get_ticks()
@@ -742,6 +747,98 @@ def start_new_wave(round_number: int):
 
 
 FINAL_CLEANUP_DELAY = 1000  # in milliseconds
+
+
+def generate_rand_wave(r):
+    """
+    Infinite-wave generator for rounds >=100, with extremely challenging boss spam and heavy alt-path use:
+    - For round 100–110: single massive boss segment (50–100 bosses).
+    - For r>110: multi-segment waves, high boss probability, large counts.
+    - Alternate path used for 50%+ of enemies.
+    """
+    # Special ultra-boss rush for round 100-110
+    if 100 <= r <= 110:
+        boss_wave = []
+        num_bosses = random.randint(50, 100)
+        boss_types = ["CENTIPEDE_BOSS", "DUNG_BEETLE", "MILLIPEDE", "MANTIS"]
+        # Randomly choose boss types for this huge segment
+        wave_enemies = [random.choice(boss_types) for _ in range(num_bosses)]
+        # Half the bosses take the alternate path for chaos
+        for i in random.sample(range(num_bosses), k=num_bosses//2):
+            wave_enemies[i] += '_ALT1'
+        return [{
+            'enemies': wave_enemies,
+            'spawn_interval': 500,
+            'delay': 2000
+        }]
+
+    segments = []
+    # Number of segments grows with r
+    num_segments = random.randint(4, min(12, r // 8))
+    # Build complete enemy pool
+    base_pool = ["ANT"] * 20 + ["HORNET"] * 20 + ["SPIDER"] * 15 + ["BEETLE"] * 15
+    base_pool += ["ROACH"] * 15 + ["DRAGONFLY"] * 10 + ["FIREFLY"] * 10
+    base_pool += ["TERMITE"] * 8 + ["CENTIPEDE"] * 6 + ["DUNG_BEETLE"] * 5
+    base_pool += ["MILLIPEDE"] * 4 + ["CENTIPEDE_BOSS"] * 3 + ["MANTIS"] * 2
+
+    # Boss insertion probability skyrockets: cap at 90%
+    boss_chance = min(0.9, (r - 100) / 100.0)
+
+    for _ in range(num_segments):
+        seg = {}
+        # Enemy count scales heavily: between r*1.5 and r*2
+        min_count = int(r * 1.5)
+        max_count = int(r * 2)
+        count = random.randint(min_count, max_count)
+
+        enemies = []
+        for _ in range(count):
+            if random.random() < boss_chance:
+                # Choose a boss-type 80% of the time when boss_chance triggers
+                enemies.append(random.choice(["CENTIPEDE_BOSS", "DUNG_BEETLE", "MILLIPEDE", "MANTIS"]))
+            else:
+                enemies.append(random.choice(base_pool))
+
+        # Inject healers sometimes
+        if random.random() < 0.4:
+            healers = random.randint(count//20, count//10)
+            for _ in range(healers):
+                idx = random.randrange(count)
+                enemies[idx] = 'FIREFLY'
+
+        # Alternate path for half the enemies
+        for idx in random.sample(range(count), k=count//2):
+            enemies[idx] += '_ALT1'
+
+        seg['enemies'] = enemies
+        # Rush phase almost guaranteed for chaos
+        if random.random() < 0.8:
+            trigger = random.randint(max(1, count//5), max(2, count//3))
+            num_rush = random.randint(max(2, count//10), max(5, count//6))
+            rush_speed = max(10, int((800 - r*2) * 0.25))
+            seg['rush'] = {'trigger': trigger, 'num': num_rush, 'speed': rush_speed}
+        # Spawn interval extremely tight
+        base_interval = max(5, 800 - int(r * 3))
+        seg['spawn_interval'] = random.randint(int(base_interval * 0.3), base_interval)
+        # Short delay to keep pressure
+        seg['delay'] = random.randint(0, min(1000, r * 5))
+
+        segments.append(seg)
+
+    # Every 5 rounds beyond 110, add an extra boss finale
+    if (r - 100) % 5 == 0:
+        finale_count = random.randint(r//10, r//5)
+        bosses = [random.choice(["MILLIPEDE", "MANTIS", "CENTIPEDE_BOSS"]) for _ in range(finale_count)]
+        # Alt-path chaos
+        for i in random.sample(range(finale_count), k=finale_count*2//3):
+            bosses[i] += '_ALT1'
+        segments.append({
+            'enemies': bosses,
+            'spawn_interval': 1000,
+            'delay': 0
+        })
+
+    return segments
 
 
 def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
@@ -763,7 +860,7 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
     elif 85 <= round_number < 100:
         health_mult = 3
     elif round_number >= 100:
-        health_mult = int(round_number / 5) - 6
+        health_mult = int(round_number / 5) - 5
     else:
         health_mult = 1
 
@@ -843,6 +940,8 @@ def send_wave(scrn: pygame.Surface, round_number: int) -> bool:
                 new_enemy = (game_tools.MantisBoss(spawn_pos, offset_path))
             elif enemy_type == "TERMITE":
                 new_enemy = (game_tools.TermiteEnemy(offset_path, spawn_pos, ))
+            elif enemy_type == "WASP_BOSS":
+                new_enemy = game_tools.WaspBoss(spawn_pos, offset_path)
 
             # ALTERNATE PATH 1
             elif enemy_type == "ANT_ALT1":

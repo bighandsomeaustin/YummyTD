@@ -3421,6 +3421,7 @@ class MortarStrike:
         self.target_pos = list(position)
         self.dragging = False
         self.is_selected = False
+        self.sfx_channel = pygame.mixer.Channel(6)
         # Firing
         self.shoot_interval = 6500  # ms
         self.last_shot_time = 0
@@ -3573,7 +3574,7 @@ class MortarStrike:
             if math.hypot(ex - pos[0], ey - pos[1]) <= radius + enemy.rect.width/2:
                 enemy.take_damage(dmg, ExplosiveProjectile())
         # Sound
-        self.explosion_sfx.play()
+        self.sfx_channel.play(self.explosion_sfx)
         # Create particles
         parts = []
         for _ in range(20):
@@ -7243,6 +7244,119 @@ class DragonflyEnemy:
             screen.blit(self.img_death, self.rect.topleft)
 
 
+class WaspBoss:
+    sfx_splat = load_sound("assets/splat_sfx.mp3")
+    img_death = load_image("assets/splatter.png")
+
+    def __init__(self, position, path):
+        self.position = position
+        self.health = 350
+        self.speed = 1.5
+        self.path = path
+        self.frames = []
+        for i in range(0, 7):
+            self.frames.append(f"assets/wasp_frames/wasp{i}.png")
+        self.current_frame = 0
+        self.frame_duration = 150  # milliseconds per frame
+        self.last_frame_update = pygame.time.get_ticks()
+        self.original_image = load_image("assets/wasp_frames/wasp0.png")
+        self.image = self.original_image
+        self.rect = self.image.get_rect(center=position)
+        self.size = self.rect.size
+        self.current_target = 0
+        self.is_alive = True
+        self.buzz_sfx = load_sound("assets/wasp_spawn.mp3")
+        self.buzz_sfx.play()
+        self.last_buzz_time = pygame.time.get_ticks()
+
+    def move(self):
+        global user_health
+        self.update_animation()
+        if self.current_target < len(self.path):
+            target_x, target_y = self.path[self.current_target]
+            dx = target_x - self.position[0]
+            dy = target_y - self.position[1]
+            distance = (dx ** 2 + dy ** 2) ** 0.5
+            if distance == 0:
+                return
+            direction_x = dx / distance
+            direction_y = dy / distance
+            self.position = (
+                self.position[0] + direction_x * self.speed,
+                self.position[1] + direction_y * self.speed
+            )
+            self.rect.center = self.position
+            self.update_orientation(direction_x, direction_y)
+            if distance <= self.speed:
+                self.current_target += 1
+        if self.current_target >= len(self.path):
+            self.is_alive = False
+            user_health -= self.health
+
+    def spawn_shards(self):
+        spawn_shard(self.position, color=(255, 0, 0), count=5)
+
+    def update_orientation(self, direction_x, direction_y):
+        angle = math.degrees(math.atan2(-direction_y, direction_x))
+        self.image = pygame.transform.rotate(self.original_image, angle - 90)
+        self.rect = self.image.get_rect(center=self.rect.center)
+
+    def show_damage_indicator(self, damage):
+        # Create a damage text surface using a shared font.
+        font = pygame.font.SysFont("impact", 20, bold=False)
+        text_surface = font.render(f"{damage:.1f}", True, (255, 0, 0))
+        text_surface.set_alpha(128)
+
+        angle_deg = random.uniform(-45, 45)
+        angle_rad = math.radians(angle_deg)
+
+        # Speed magnitude
+        speed = random.uniform(.5, 2)
+
+        # Convert polar to cartesian velocity
+        vel_x = math.sin(angle_rad) * speed
+        vel_y = -math.cos(angle_rad) * speed  # negative because up is -y in Pygame
+
+        # Set up the indicator's properties.
+        indicator = {
+            'surface': text_surface,
+            'pos': list(self.rect.center) + [0, -20],  # starting at the enemy's center
+            'vel': [vel_x, vel_y],
+            'lifetime': random.randint(100, 250),  # milliseconds
+            'start_time': pygame.time.get_ticks()
+        }
+        if len(global_damage_indicators) < MAX_INDICATORS:
+            global_damage_indicators.append(indicator)
+
+    def take_damage(self, damage, projectile=None):
+        global money
+        self.health -= damage
+        self.show_damage_indicator(damage)
+        self.spawn_shards()  # NEW: Create particles on hit
+        if self.health <= 0:
+            self.is_alive = False
+            self.sfx_splat.play()
+            money += 10
+            game_stats.global_kill_total["count"] += 1
+
+    def update_animation(self):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_frame_update >= self.frame_duration / game_speed_multiplier:
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+            self.image = load_image(self.frames[self.current_frame])
+            self.original_image = load_image(self.frames[self.current_frame])
+            self.last_frame_update = current_time
+        if current_time - self.last_buzz_time >= 7500:
+            self.buzz_sfx.play()
+            self.last_buzz_time = pygame.time.get_ticks()
+
+    def render(self, screen):
+        if self.is_alive:
+            screen.blit(self.image, self.rect.topleft)
+        else:
+            screen.blit(self.img_death, self.rect.topleft)
+
+
 class MantisBoss:
     sfx_splat = load_sound("assets/splat_sfx.mp3")
     img_death = load_image("assets/splatter.png")
@@ -8838,42 +8952,48 @@ class Projectile:
     def __init__(self, position, target, speed, damage, image_path):
         self.position = list(position)
         self.target = target
-        self.speed = speed * game_speed_multiplier  # Scaled at creation
+
+        # Keep raw speed here for compatibility with existing vx/vy assignments
+        self.speed = speed
+
         self.damage = damage
-        self.image = load_image(image_path)
-        self.rect = self.image.get_rect(center=position)
+
+        # Immutable base sprite
+        self.base_image = load_image(image_path)
+        self.rect = self.base_image.get_rect(center=position)
+
         self.hit = False
         self.penetration = 0
 
     def move(self):
-        if self.damage > 0:
-            if not self.target.is_alive:
-                self.hit = True
-                return
-        target_x, target_y = self.target.position
-        dx = target_x - self.position[0]
-        dy = target_y - self.position[1]
-        distance = math.sqrt(dx ** 2 + dy ** 2)
-        if distance > 0:
-            direction_x = dx / distance
-            direction_y = dy / distance
-            self.position[0] += direction_x * self.speed
-            self.position[1] += direction_y * self.speed
+        # Apply game‐speed multiplier here instead of at init
+        effective_speed = self.speed * game_speed_multiplier
+
+        # Early exit if target is dead
+        if self.damage > 0 and not self.target.is_alive:
+            self.hit = True
+            return
+
+        tx, ty = self.target.position
+        dx, dy = tx - self.position[0], ty - self.position[1]
+        dist = math.hypot(dx, dy)
+        if dist > 0:
+            nx, ny = dx / dist, dy / dist
+            self.position[0] += nx * effective_speed
+            self.position[1] += ny * effective_speed
             self.rect.center = self.position
-        if distance <= self.speed:
+
+        if dist <= effective_speed:
             self.hit = True
 
     def render(self, screen):
-        # Rotate turret toward target
-        original_image = self.image
-        dx = self.target.position[0] - self.position[0]
-        dy = self.target.position[1] - self.position[1]
+        # Rotate off of the base_image; don't overwrite it
+        tx, ty = self.target.position
+        dx, dy = tx - self.position[0], ty - self.position[1]
         angle = math.degrees(math.atan2(-dy, dx))
-        self.image = pygame.transform.rotate(original_image, angle)
-        self.rect = self.image.get_rect(center=self.position)
-        # Draw tower
-        screen.blit(self.image, self.rect.topleft)
-
+        rotated = pygame.transform.rotate(self.base_image, angle)
+        rect = rotated.get_rect(center=self.position)
+        screen.blit(rotated, rect.topleft)
 
 
 class RatRecruit:
